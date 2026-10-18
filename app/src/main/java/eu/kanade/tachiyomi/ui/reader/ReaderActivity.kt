@@ -1,5 +1,6 @@
 package eu.kanade.tachiyomi.ui.reader
 
+// KMK -->
 import android.Manifest
 import android.annotation.SuppressLint
 import android.app.assist.AssistContent
@@ -83,6 +84,8 @@ import eu.kanade.tachiyomi.data.connections.discord.DiscordRPCService
 import eu.kanade.tachiyomi.data.connections.discord.ReaderData
 import eu.kanade.tachiyomi.data.notification.NotificationReceiver
 import eu.kanade.tachiyomi.data.notification.Notifications
+import eu.kanade.tachiyomi.data.suwayomi.SuwayomiBackend
+import eu.kanade.tachiyomi.data.suwayomi.SuwayomiMode
 import eu.kanade.tachiyomi.databinding.ReaderActivityBinding
 import eu.kanade.tachiyomi.source.model.Page
 import eu.kanade.tachiyomi.source.online.HttpSource
@@ -148,6 +151,7 @@ import uy.kohesive.injekt.api.get
 import java.io.ByteArrayOutputStream
 import kotlin.time.Duration.Companion.seconds
 import androidx.compose.ui.graphics.Color as ComposeColor
+// KMK <--
 
 class ReaderActivity : BaseActivity() {
 
@@ -157,6 +161,11 @@ class ReaderActivity : BaseActivity() {
             return Intent(context, ReaderActivity::class.java).apply {
                 putExtra("manga", mangaId)
                 putExtra("chapter", chapterId)
+                // KMK -->
+                if (mangaId != null && mangaId < -1) {
+                    putExtra("suwayomi_session", Injekt.get<SuwayomiBackend>().requireSession().id)
+                }
+                // KMK <--
                 // SY -->
                 putExtra("page", page)
                 // SY <--
@@ -242,7 +251,9 @@ class ReaderActivity : BaseActivity() {
             NotificationReceiver.dismissNotification(this, manga.hashCode(), Notifications.ID_NEW_CHAPTERS)
 
             lifecycleScope.launchNonCancellable {
-                val initResult = viewModel.init(manga, chapter/* SY --> */, page/* SY <-- */)
+                // KMK -->
+                val initResult = viewModel.init(manga, chapter, page, intent.getStringExtra("suwayomi_session"))
+                // KMK <--
                 if (!initResult.getOrDefault(false)) {
                     val exception = initResult.exceptionOrNull() ?: IllegalStateException("Unknown err")
                     withUIContext {
@@ -288,6 +299,9 @@ class ReaderActivity : BaseActivity() {
         viewModel.eventFlow
             .onEach { event ->
                 when (event) {
+                    // KMK -->
+                    is ReaderViewModel.Event.CloudNotice -> toast(event.message)
+                    // KMK <--
                     ReaderViewModel.Event.ReloadViewerChapters -> {
                         viewModel.state.value.viewerChapters?.let(::setChapters)
                     }
@@ -422,7 +436,9 @@ class ReaderActivity : BaseActivity() {
                 is ReaderViewModel.Dialog.PageActions -> {
                     ReaderPageActionsDialog(
                         onDismissRequest = onDismissRequest,
-                        onSetAsCover = viewModel::setAsCover,
+                        // KMK -->
+                        onSetAsCover = if (SuwayomiMode.enabled) null else viewModel::setAsCover,
+                        // KMK <--
                         onShare = viewModel::shareImage,
                         // SY -->
                         onSave = { extra ->
@@ -472,8 +488,12 @@ class ReaderActivity : BaseActivity() {
                         },
                         state.dateRelativeTime,
                         // KMK -->
-                        onDownloadAction = { chapter, action ->
-                            viewModel.handleDownloadAction(chapter, action)
+                        onDownloadAction = if (SuwayomiMode.enabled) {
+                            null
+                        } else {
+                            { chapter, action ->
+                                viewModel.handleDownloadAction(chapter, action)
+                            }
                         },
                         // KMK <--
                     )

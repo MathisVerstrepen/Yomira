@@ -2,11 +2,13 @@
 package eu.kanade.tachiyomi.data.suwayomi
 
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
@@ -174,14 +176,14 @@ internal class SuwayomiClient(
         query: String,
         variables: JsonObject = JsonObject(emptyMap()),
         authenticate: Boolean = true,
-    ): JsonObject {
+    ): JsonObject = withContext(Dispatchers.IO) {
         val body = buildJsonObject {
             put("query", query)
             put("variables", variables)
         }
         val request = requestBuilder(url.graphql, authenticate)
             .post(body.toString().toRequestBody("application/json".toMediaType())).build()
-        return http.newCall(request).await().use { response ->
+        http.newCall(request).await().use { response ->
             checkStatus(response)
             val envelope = try {
                 json.parseToJsonElement(response.body.string()).jsonObject
@@ -204,7 +206,7 @@ internal class SuwayomiClient(
         }
     }
 
-    suspend fun image(path: String): ByteArray {
+    suspend fun image(path: String): ByteArray = withContext(Dispatchers.IO) {
         val target = url.asset(path)
         val token = credentials.accessToken
         suspend fun fetch(): ByteArray = http.newCall(requestBuilder(target).get().build()).await().use {
@@ -212,7 +214,7 @@ internal class SuwayomiClient(
             if (it.body.contentType()?.type != "image") throw SuwayomiException(SuwayomiFailure.CONTRACT)
             it.body.bytes()
         }
-        return try {
+        try {
             fetch()
         } catch (e: SuwayomiException) {
             if (e.failure != SuwayomiFailure.AUTHENTICATION_REQUIRED) throw e

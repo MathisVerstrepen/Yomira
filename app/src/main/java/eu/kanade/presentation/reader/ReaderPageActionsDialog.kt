@@ -31,7 +31,9 @@ import tachiyomi.presentation.core.i18n.stringResource
 @Composable
 fun ReaderPageActionsDialog(
     onDismissRequest: () -> Unit,
-    onSetAsCover: (/* SY --> */useExtraPage: Boolean/* SY <-- */) -> Unit,
+    // KMK -->
+    onSetAsCover: ((useExtraPage: Boolean) -> Unit)?,
+    // KMK <--
     onShare: (copyToClipboard: Boolean, /* SY --> */useExtraPage: Boolean/* SY <-- */) -> Unit,
     onSave: (/* SY --> */useExtraPage: Boolean/* SY <-- */) -> Unit,
     // SY -->
@@ -50,20 +52,24 @@ fun ReaderPageActionsDialog(
             Row(
                 horizontalArrangement = Arrangement.spacedBy(MaterialTheme.padding.small),
             ) {
-                ActionButton(
-                    modifier = Modifier.weight(1f),
-                    title = stringResource(
-                        // SY -->
-                        if (hasExtraPage) {
-                            SYMR.strings.action_set_first_page_cover
-                        } else {
-                            MR.strings.set_as_cover
-                        },
-                        // SY <--
-                    ),
-                    icon = Icons.Outlined.Photo,
-                    onClick = { showSetCoverDialog = true },
-                )
+                // KMK -->
+                if (onSetAsCover != null) {
+                    ActionButton(
+                        modifier = Modifier.weight(1f),
+                        title = stringResource(
+                            // SY -->
+                            if (hasExtraPage) {
+                                SYMR.strings.action_set_first_page_cover
+                            } else {
+                                MR.strings.set_as_cover
+                            },
+                            // SY <--
+                        ),
+                        icon = Icons.Outlined.Photo,
+                        onClick = { showSetCoverDialog = true },
+                    )
+                }
+                // KMK <--
                 ActionButton(
                     modifier = Modifier.weight(1f),
                     title = stringResource(
@@ -201,7 +207,9 @@ fun ReaderPageActionsDialog(
         SetCoverDialog(
             onConfirm = {
                 // SY -->
-                onSetAsCover(useExtraPage)
+                // KMK -->
+                onSetAsCover?.invoke(useExtraPage)
+                // KMK <--
                 showSetCoverDialog = false
                 useExtraPage = false
                 // SY <--
