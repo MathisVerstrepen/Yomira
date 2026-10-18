@@ -127,6 +127,15 @@ data class ServerChapterUser(
 )
 
 @Serializable
+data class ServerChapterMangaIdentity(
+    @Serializable(with = ServerLongSerializer::class) val sourceId: Long,
+    val url: String,
+)
+
+@Serializable
+data class ChapterIdentity(val mangaId: Int, val sourceId: Long, val mangaUrl: String, val chapterUrl: String)
+
+@Serializable
 data class ServerChapter(
     val id: Int,
     val mangaId: Int,
@@ -137,7 +146,11 @@ data class ServerChapter(
     @Serializable(with = ServerLongSerializer::class) val uploadDate: Long = 0,
     val pageCount: Int,
     val user: ServerChapterUser,
+    val url: String,
+    val manga: ServerChapterMangaIdentity,
 )
+
+internal fun ServerChapter.identity() = ChapterIdentity(mangaId, manga.sourceId, manga.url, url)
 
 @Serializable
 data class ServerSyncConflict(val deviceName: String, val remotePage: Int)

@@ -32,7 +32,7 @@ import tachiyomi.presentation.core.i18n.stringResource
 fun ReaderPageActionsDialog(
     onDismissRequest: () -> Unit,
     // KMK -->
-    onSetAsCover: ((useExtraPage: Boolean) -> Unit)?,
+    onSetAsCover: ((/* SY --> */useExtraPage: Boolean/* SY <-- */) -> Unit)?,
     // KMK <--
     onShare: (copyToClipboard: Boolean, /* SY --> */useExtraPage: Boolean/* SY <-- */) -> Unit,
     onSave: (/* SY --> */useExtraPage: Boolean/* SY <-- */) -> Unit,
@@ -132,14 +132,18 @@ fun ReaderPageActionsDialog(
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(MaterialTheme.padding.small),
                 ) {
-                    ActionButton(
-                        modifier = Modifier.weight(1f),
-                        title = stringResource(SYMR.strings.action_set_second_page_cover),
-                        icon = Icons.Outlined.Photo,
-                        onClick = {
-                            showSetCoverDialog = true
-                        },
-                    )
+                    // KMK -->
+                    if (onSetAsCover != null) {
+                        ActionButton(
+                            modifier = Modifier.weight(1f),
+                            title = stringResource(SYMR.strings.action_set_second_page_cover),
+                            icon = Icons.Outlined.Photo,
+                            onClick = {
+                                showSetCoverDialog = true
+                            },
+                        )
+                    }
+                    // KMK <--
                     ActionButton(
                         modifier = Modifier.weight(1f),
                         title = stringResource(KMR.strings.action_copy_to_clipboard_second_page),

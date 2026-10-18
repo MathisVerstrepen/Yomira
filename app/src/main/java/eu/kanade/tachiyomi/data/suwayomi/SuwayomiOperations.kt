@@ -152,7 +152,7 @@ suspend fun SuwayomiSession.categoryMutation(action: String, categoryId: Int? = 
         "mutation(\$input:$inputType!) { $operation(input:\$input) { $selection } }",
         variables(
             "input" to buildJsonObject {
-                categoryId?.let { put("id", it) }
+                categoryId?.let { put(if (action == "delete") "categoryId" else "id", it) }
                 if (action == "rename") put("patch", buildJsonObject { put("name", name!!) }) else name?.let { put("name", it) }
                 position?.let { put("position", it) }
             },

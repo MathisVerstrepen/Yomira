@@ -15,6 +15,7 @@ import eu.kanade.tachiyomi.data.suwayomi.SuwayomiException
 import eu.kanade.tachiyomi.data.suwayomi.SuwayomiFailure
 import eu.kanade.tachiyomi.data.suwayomi.SuwayomiSession
 import eu.kanade.tachiyomi.data.suwayomi.downloadAction
+import eu.kanade.tachiyomi.data.suwayomi.identity
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -177,7 +178,7 @@ class SuwayomiMangaScreenModel(
                 ChapterIntentKind.BOOKMARK -> ChapterPatch(isBookmarked = !chapter.user.isBookmarked)
                 else -> return
             }
-            backend.requireSession(sessionId).enqueue(chapter.id, kind, patch)
+            backend.requireSession(sessionId).enqueue(chapter.id, kind, patch, identity = chapter.identity())
             // The pending banner remains until confirmation; refresh only after a deliberate action.
             mutableState.update { current ->
                 current.copy(

@@ -38,7 +38,7 @@ class SuwayomiReader private constructor(
                 },
                 chapterFlags = Manga.CHAPTER_SORTING_SOURCE or Manga.CHAPTER_SORT_ASC,
             )
-            return SuwayomiReader(session, manga, remoteChapters.map { it.toReaderChapter() }, session.readingTicket(remoteChapters.map { it.id }))
+            return SuwayomiReader(session, manga, remoteChapters.map { it.toReaderChapter() }, session.readingTicket(remoteChapters))
         }
     }
 
@@ -52,7 +52,7 @@ class SuwayomiReader private constructor(
     }
 
     fun bookmark(chapterId: Long, bookmarked: Boolean) {
-        session.enqueue(SuwayomiMode.remoteId(chapterId), ChapterIntentKind.BOOKMARK, ChapterPatch(isBookmarked = bookmarked))
+        session.enqueue(SuwayomiMode.remoteId(chapterId), ChapterIntentKind.BOOKMARK, ChapterPatch(isBookmarked = bookmarked), ticket)
     }
 
     suspend fun setFlags(flag: Long, mask: Long): Manga {
@@ -78,4 +78,9 @@ internal fun ServerChapter.toReaderChapter(): Chapter = Chapter.create().copy(
     bookmark = user.isBookmarked,
     lastPageRead = user.lastPageRead.toLong(),
 )
+/** Pager events identify the first source page of a spread; persist its last displayed source page. */
+internal fun canonicalServerPage(index: Int, count: Int, hasExtraPage: Boolean): Int {
+    require(count > 0)
+    return (index + if (hasExtraPage) 1 else 0).coerceIn(0, count - 1)
+}
 // KMK <--

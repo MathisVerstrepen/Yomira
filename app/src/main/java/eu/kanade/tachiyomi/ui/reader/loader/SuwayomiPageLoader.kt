@@ -45,6 +45,7 @@ internal class SuwayomiPageLoader(
         chapter.chapter.read = result.chapter.user.isRead
         chapter.chapter.bookmark = result.chapter.user.isBookmarked
         pages = result.pages.mapIndexed { index, url -> ReaderPage(index, imageUrl = url) }
+        if (preferences.aggressivePageLoading().get()) pages.forEach { page -> scope.launch { load(page) } }
         return pages
     }
 

@@ -78,6 +78,23 @@ class SuwayomiProtocolTest {
     }
 
     @Test
+    fun `pending chapter identity survives process recreation without conflating source IDs`() {
+        var disk = ""
+        val outbox = ChapterOutbox(null) { disk = it }
+        val identity = ChapterIdentity(7, Long.MAX_VALUE, "/manga", "/chapter/special")
+        val ticket = outbox.ticket(listOf(9), mapOf(9 to identity))
+        outbox.enqueue(9, ChapterIntentKind.PROGRESS, ChapterPatch(lastPageRead = 2), ticket)
+        assertEquals(identity, ChapterOutbox(disk) {}.operations().single().identity)
+    }
+
+    @Test
+    fun `spread progress uses the last visible canonical source page`() {
+        assertEquals(5, canonicalServerPage(4, 6, hasExtraPage = true))
+        assertEquals(5, canonicalServerPage(5, 6, hasExtraPage = true))
+        assertEquals(3, canonicalServerPage(3, 6, hasExtraPage = false))
+    }
+
+    @Test
     fun `process death preserves uncertainty and does not blindly replay`() {
         var disk = ""
         val outbox = ChapterOutbox(null) { disk = it }

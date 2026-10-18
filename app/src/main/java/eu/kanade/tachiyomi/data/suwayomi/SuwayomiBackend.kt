@@ -19,6 +19,7 @@ import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
+import uy.kohesive.injekt.api.get
 import java.io.File
 import java.util.concurrent.atomic.AtomicReference
 
@@ -233,14 +234,14 @@ class SuwayomiSession internal constructor(
         Unit
     }
 
-    fun readingTicket(chapters: List<Int>): ReadingTicket {
+    fun readingTicket(chapters: List<ServerChapter>): ReadingTicket {
         assertActive()
-        return outbox.ticket(chapters)
+        return outbox.ticket(chapters.map { it.id }, chapters.associate { it.id to it.identity() })
     }
 
-    fun enqueue(chapterId: Int, kind: ChapterIntentKind, patch: ChapterPatch, ticket: ReadingTicket? = null) {
+    fun enqueue(chapterId: Int, kind: ChapterIntentKind, patch: ChapterPatch, ticket: ReadingTicket? = null, identity: ChapterIdentity? = null) {
         assertActive()
-        if (outbox.enqueue(chapterId, kind, patch, ticket)) {
+        if (outbox.enqueue(chapterId, kind, patch, ticket, identity)) {
             mutablePending.value = outbox.operations()
             scheduledFlush?.cancel()
             scheduledFlush = scope.launch {
@@ -253,12 +254,19 @@ class SuwayomiSession internal constructor(
     /** A timeout is reconciled by exact identity and values, never blindly reissued. */
     suspend fun flush() = drainMutex.withLock {
         assertActive()
+        if (uy.kohesive.injekt.Injekt.get<eu.kanade.domain.base.BasePreferences>().incognitoMode().get()) return@withLock
         mutableFailure.value = null
         for (intent in outbox.operations()) {
             if (outbox.operations().none { it.id == intent.id }) continue
             try {
+                val remote = chapter(intent.chapterId)
+                if (intent.identity == null || remote.identity() != intent.identity) {
+                    outbox.setStatus(intent.id, ChapterIntentStatus.FAILED)
+                    mutableFailure.value = SuwayomiFailure.SESSION_CHANGED
+                    break
+                }
                 if (intent.status == ChapterIntentStatus.AMBIGUOUS || intent.status == ChapterIntentStatus.SENDING) {
-                    if (matches(chapter(intent.chapterId), intent.patch)) {
+                    if (matches(remote, intent.patch)) {
                         updateServerTracking(intent)
                         outbox.acknowledge(intent.id)
                         mutablePending.value = outbox.operations()
@@ -316,6 +324,13 @@ class SuwayomiSession internal constructor(
             mutablePending.value = outbox.operations()
         }
         flush()
+    }
+
+    suspend fun discardPending() = drainMutex.withLock {
+        assertActive()
+        outbox.discard()
+        mutablePending.value = outbox.operations()
+        mutableFailure.value = null
     }
 
     fun flushSoon() {
@@ -379,7 +394,7 @@ class SuwayomiSession internal constructor(
 
     companion object {
         internal const val MANGA_FIELDS = "id sourceId title thumbnailUrl author artist description genre status user { inLibrary unreadCount downloadCount } meta { key value }"
-        internal const val CHAPTER_FIELDS = "id mangaId name chapterNumber sourceOrder scanlator uploadDate pageCount user { isRead isBookmarked lastPageRead lastReadAt isDownloaded }"
+        internal const val CHAPTER_FIELDS = "id mangaId url manga {sourceId url} name chapterNumber sourceOrder scanlator uploadDate pageCount user { isRead isBookmarked lastPageRead lastReadAt isDownloaded }"
     }
 }
 // KMK <--

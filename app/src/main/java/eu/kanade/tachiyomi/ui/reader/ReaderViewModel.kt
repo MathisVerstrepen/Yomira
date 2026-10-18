@@ -32,6 +32,7 @@ import eu.kanade.tachiyomi.data.suwayomi.SuwayomiException
 import eu.kanade.tachiyomi.data.suwayomi.SuwayomiFailure
 import eu.kanade.tachiyomi.data.suwayomi.SuwayomiMode
 import eu.kanade.tachiyomi.data.suwayomi.SuwayomiReader
+import eu.kanade.tachiyomi.data.suwayomi.canonicalServerPage
 import eu.kanade.tachiyomi.data.sync.SyncDataJob
 import eu.kanade.tachiyomi.source.model.Page
 import eu.kanade.tachiyomi.source.online.HttpSource
@@ -456,7 +457,7 @@ class ReaderViewModel @JvmOverloads constructor(
      * fetch the manga from the database and initialize the initial chapter.
      */
     // KMK -->
-    suspend fun init(mangaId: Long, initialChapterId: Long, page: Int?, sessionId: String? = null): Result<Boolean> {
+    suspend fun init(mangaId: Long, initialChapterId: Long /* SY --> */, page: Int?/* SY <-- */, sessionId: String? = null): Result<Boolean> {
         // KMK <--
         if (!needsInit()) return Result.success(true)
         return withIOContext {
@@ -876,11 +877,11 @@ class ReaderViewModel @JvmOverloads constructor(
         cloudReader?.let { remote ->
             val count = readerChapter.pages?.count { it !is InsertPage } ?: 0
             if (count == 0) return
-            val canonicalPage = page.index.coerceIn(0, count - 1)
+            val canonicalPage = canonicalServerPage(page.index, count, hasExtraPage)
             mutableState.update { it.copy(currentPage = canonicalPage + 1) }
             readerChapter.requestedPage = canonicalPage
             chapterPageIndex = canonicalPage
-            if (!incognitoMode && page.status !is Page.State.Error) {
+            if (!basePreferences.incognitoMode().get() && page.status !is Page.State.Error) {
                 readerChapter.chapter.last_page_read = canonicalPage
                 if (canonicalPage == count - 1) readerChapter.chapter.read = true
                 try {
@@ -1058,7 +1059,7 @@ class ReaderViewModel @JvmOverloads constructor(
         viewModelScope.launchNonCancellable {
             // KMK -->
             if (cloudReader != null) {
-                if (!incognitoMode) cloudReader!!.bookmark(chapter.id!!, bookmarked)
+                if (!basePreferences.incognitoMode().get()) cloudReader!!.bookmark(chapter.id!!, bookmarked)
                 return@launchNonCancellable
             }
             // KMK <--
@@ -1084,7 +1085,7 @@ class ReaderViewModel @JvmOverloads constructor(
         viewModelScope.launchNonCancellable {
             // KMK -->
             if (cloudReader != null) {
-                if (!incognitoMode) cloudReader!!.bookmark(chapterId, bookmarked)
+                if (!basePreferences.incognitoMode().get()) cloudReader!!.bookmark(chapterId, bookmarked)
                 return@launchNonCancellable
             }
             // KMK <--

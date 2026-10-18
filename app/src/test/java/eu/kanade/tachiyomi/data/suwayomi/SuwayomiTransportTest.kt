@@ -87,8 +87,26 @@ class SuwayomiTransportTest {
             val client = SuwayomiClient(StoredSession(baseUrl = base, mode = SuwayomiAuthMode.NONE)) {}
             try {
                 val failure = runCatching { client.graphql("mutation { updateChapter { chapter { id } } }") }.exceptionOrNull() as SuwayomiException
-                assertEquals(SuwayomiFailure.CONTRACT, failure.failure)
+                assertEquals(SuwayomiFailure.SERVER, failure.failure)
                 assertFalse(failure.toString().contains("secret"))
+            } finally {
+                client.close()
+            }
+        }
+    }
+
+    @Test
+    fun `partial mutation success is never replayed to refresh authentication`() = runBlocking {
+        val calls = AtomicInteger()
+        withServer({ exchange ->
+            calls.incrementAndGet()
+            exchange.json("""{"data":{"updateManga":{"id":1}},"errors":[{"message":"Unauthorized\r\nprivate stack","path":["updateManga"]}]}""")
+        }) { base ->
+            val client = SuwayomiClient(StoredSession(baseUrl = base, mode = SuwayomiAuthMode.UI_LOGIN, accessToken = "expired", refreshToken = "refresh")) {}
+            try {
+                val error = runCatching { client.graphql("mutation { updateManga { id } }") }.exceptionOrNull() as SuwayomiException
+                assertEquals(SuwayomiFailure.SERVER, error.failure)
+                assertEquals(1, calls.get())
             } finally {
                 client.close()
             }

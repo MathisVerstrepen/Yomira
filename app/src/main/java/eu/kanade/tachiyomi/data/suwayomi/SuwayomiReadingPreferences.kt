@@ -44,7 +44,7 @@ class SuwayomiReadingPreferences(private val preferences: ReaderPreferences) {
     suspend fun apply(session: SuwayomiSession) {
         val data = session.execute("query { metas(first:20, filter:{key:{startsWith:\"$PREFIX\"}}) {nodes{key value} pageInfo{hasNextPage endCursor} totalCount} }")
         val fields = Json { ignoreUnknownKeys = true }.decodeFromJsonElement<ServerConnection<ServerMeta>>(data.getValue("metas")).nodes.associate { it.key.removePrefix(PREFIX) to it.value }
-        fields["defaultMode"]?.toIntOrNull()?.takeIf { value -> ReadingMode.entries.any { it.flagValue == value } }?.let { preferences.defaultReadingMode().set(it) }
+        fields["defaultMode"]?.toIntOrNull()?.takeIf { value -> ReadingMode.entries.any { it != ReadingMode.DEFAULT && it.flagValue == value } }?.let { preferences.defaultReadingMode().set(it) }
         booleans.forEach { (key, preference) -> fields[key]?.toBooleanStrictOrNull()?.let(preference::set) }
     }
 

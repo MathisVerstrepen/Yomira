@@ -252,7 +252,7 @@ class ReaderActivity : BaseActivity() {
 
             lifecycleScope.launchNonCancellable {
                 // KMK -->
-                val initResult = viewModel.init(manga, chapter, page, intent.getStringExtra("suwayomi_session"))
+                val initResult = viewModel.init(manga, chapter/* SY --> */, page/* SY <-- */, intent.getStringExtra("suwayomi_session"))
                 // KMK <--
                 if (!initResult.getOrDefault(false)) {
                     val exception = initResult.exceptionOrNull() ?: IllegalStateException("Unknown err")

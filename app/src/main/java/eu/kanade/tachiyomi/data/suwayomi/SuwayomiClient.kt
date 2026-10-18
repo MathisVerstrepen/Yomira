@@ -198,9 +198,16 @@ internal class SuwayomiClient(
             if (!errors.isNullOrEmpty()) {
                 // The inspected server sends stack traces in messages. Classify; never expose them.
                 val messages = errors.map { it.jsonObject["message"]?.jsonPrimitive?.content.orEmpty() }
+                val firstLines = messages.map { it.lineSequence().first().trim() }
+                val partial = (envelope["data"] as? JsonObject)?.values?.any { it != JsonNull } == true
+                val refreshRejected = query.contains("refreshToken(") && messages.any {
+                    it.contains("com.auth0.jwt.exceptions.") || it.contains("Token revoked by a password change") ||
+                        it.contains("Cannot use access token to refresh") || it.contains("Token intended for different audience")
+                }
                 val failure = when {
-                    messages.any { it.contains("Unauthorized") } -> SuwayomiFailure.AUTHENTICATION_REQUIRED
-                    messages.any { it.contains("Forbidden") || it.contains("Missing permission") } -> SuwayomiFailure.PERMISSION_DENIED
+                    partial -> SuwayomiFailure.SERVER
+                    firstLines.any { it == "Unauthorized" || it.endsWith(": Unauthorized") || it.endsWith("Incorrect username or password.") } || refreshRejected -> SuwayomiFailure.AUTHENTICATION_REQUIRED
+                    firstLines.any { it.contains("Forbidden") || it.contains("Missing permission") } -> SuwayomiFailure.PERMISSION_DENIED
                     errors.any { it.jsonObject["path"] == null } -> SuwayomiFailure.CONTRACT
                     else -> SuwayomiFailure.SERVER
                 }

@@ -21,6 +21,7 @@ data class ChapterIntent(
     val readingSession: String? = null,
     val barrier: Long = 0,
     val status: ChapterIntentStatus = ChapterIntentStatus.PENDING,
+    val identity: ChapterIdentity? = null,
 )
 
 @Serializable
@@ -29,7 +30,7 @@ internal data class OutboxState(
     val barriers: Map<Int, Long> = emptyMap(),
 )
 
-data class ReadingTicket(val sessionId: String, val barriers: Map<Int, Long>)
+data class ReadingTicket(val sessionId: String, val barriers: Map<Int, Long>, val identities: Map<Int, ChapterIdentity> = emptyMap())
 
 /** Pure ordering policy. Persistence is synchronous and atomic before an enqueue is acknowledged. */
 internal class ChapterOutbox(initial: String?, private val save: (String) -> Unit) {
@@ -47,13 +48,14 @@ internal class ChapterOutbox(initial: String?, private val save: (String) -> Uni
 
     @Synchronized fun operations(): List<ChapterIntent> = state.operations.toList()
 
-    @Synchronized fun ticket(chapters: List<Int>) = ReadingTicket(
+    @Synchronized fun ticket(chapters: List<Int>, identities: Map<Int, ChapterIdentity> = emptyMap()) = ReadingTicket(
         UUID.randomUUID().toString(),
         chapters.associateWith { state.barriers[it] ?: 0 },
+        identities,
     )
 
     @Synchronized
-    fun enqueue(chapterId: Int, kind: ChapterIntentKind, patch: ChapterPatch, ticket: ReadingTicket? = null): Boolean {
+    fun enqueue(chapterId: Int, kind: ChapterIntentKind, patch: ChapterPatch, ticket: ReadingTicket? = null, identity: ChapterIdentity? = null): Boolean {
         val barrier = state.barriers[chapterId] ?: 0
         if (kind == ChapterIntentKind.PROGRESS && (ticket == null || ticket.barriers[chapterId] != barrier)) return false
         val resets = kind == ChapterIntentKind.MARK_UNREAD || kind == ChapterIntentKind.MARK_READ
@@ -78,6 +80,7 @@ internal class ChapterOutbox(initial: String?, private val save: (String) -> Uni
                 },
                 readingSession = ticket?.sessionId,
                 barrier = barrier,
+                identity = identity ?: ticket?.identities?.get(chapterId),
             ),
             barriers = if (resets) state.barriers + (chapterId to barrier + 1) else state.barriers,
         )
@@ -97,6 +100,11 @@ internal class ChapterOutbox(initial: String?, private val save: (String) -> Uni
 
     @Synchronized fun retry() {
         state = state.copy(operations = state.operations.map { it.copy(status = ChapterIntentStatus.PENDING) })
+        persist()
+    }
+
+    @Synchronized fun discard() {
+        state = state.copy(operations = emptyList())
         persist()
     }
 

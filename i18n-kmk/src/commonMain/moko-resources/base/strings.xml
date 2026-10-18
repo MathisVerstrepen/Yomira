@@ -350,4 +350,8 @@
     <string name="suwayomi_filter_include">Include</string>
     <string name="suwayomi_filter_exclude">Exclude</string>
     <!-- KMK filter choices end -->
+    <!-- KMK pending intent recovery -->
+    <string name="suwayomi_discard_changes">Discard pending changes</string>
+    <string name="suwayomi_discard_notice">Remove unsent chapter changes on this device and use the current server state. This does not undo requests that already reached the server.</string>
+    <!-- KMK pending intent recovery end -->
 </resources>

@@ -333,6 +333,8 @@ class SuwayomiMangaScreen(private val sessionId: String, private val mangaId: In
     @Composable
     override fun Content() {
         val model = rememberScreenModel { SuwayomiMangaScreenModel(sessionId, mangaId) }
+        val preferences = remember { Injekt.get<BasePreferences>() }
+        val incognito by preferences.incognitoMode().collectAsState()
         val state by model.state.collectAsState()
         val navigator = LocalNavigator.currentOrThrow
         val context = LocalContext.current
@@ -353,6 +355,7 @@ class SuwayomiMangaScreen(private val sessionId: String, private val mangaId: In
                     return@Column
                 }
                 PendingChanges(session)
+                if (incognito) Text(stringResource(KMR.strings.suwayomi_incognito_notice), Modifier.padding(16.dp), style = MaterialTheme.typography.bodySmall)
                 if (state.loading) LinearProgressIndicator(Modifier.fillMaxWidth())
                 if (state.error != null) {
                     ConnectionError(state.error!!, { model.refresh() })
@@ -410,15 +413,15 @@ class SuwayomiMangaScreen(private val sessionId: String, private val mangaId: In
                                         }
                                     }
 
-                                    DropdownMenuItem(text = { Text(stringResource(KMR.strings.suwayomi_mark_read)) }, onClick = {
+                                    DropdownMenuItem(enabled = !incognito, text = { Text(stringResource(KMR.strings.suwayomi_mark_read)) }, onClick = {
                                         actions = false
                                         model.chapterAction(chapter, ChapterIntentKind.MARK_READ)
                                     })
-                                    DropdownMenuItem(text = { Text(stringResource(KMR.strings.suwayomi_mark_unread)) }, onClick = {
+                                    DropdownMenuItem(enabled = !incognito, text = { Text(stringResource(KMR.strings.suwayomi_mark_unread)) }, onClick = {
                                         actions = false
                                         model.chapterAction(chapter, ChapterIntentKind.MARK_UNREAD)
                                     })
-                                    DropdownMenuItem(text = { Text(stringResource(if (chapter.user.isBookmarked) KMR.strings.suwayomi_remove_bookmark else KMR.strings.suwayomi_add_bookmark)) }, onClick = {
+                                    DropdownMenuItem(enabled = !incognito, text = { Text(stringResource(if (chapter.user.isBookmarked) KMR.strings.suwayomi_remove_bookmark else KMR.strings.suwayomi_add_bookmark)) }, onClick = {
                                         actions = false
                                         model.chapterAction(chapter, ChapterIntentKind.BOOKMARK)
                                     })
@@ -434,7 +437,7 @@ class SuwayomiMangaScreen(private val sessionId: String, private val mangaId: In
 
 @Composable
 internal fun ServerCover(session: SuwayomiSession, path: String?, modifier: Modifier) {
-    val bytes by produceState<BufferedSource?>(null, session.id, path) {
+    val bytes by produceState<BufferedSource?>(null, session, path) {
         value = try {
             path?.let { Buffer().write(session.image(it)) }
         } catch (e: Exception) {
@@ -450,6 +453,7 @@ private fun PendingChanges(session: SuwayomiSession) {
     val pending by session.pending.collectAsState()
     val failure by session.mutationFailure.collectAsState()
     val scope = rememberCoroutineScope()
+    var discard by remember { mutableStateOf(false) }
     if (pending.isNotEmpty()) {
         Column(Modifier.fillMaxWidth().padding(12.dp)) {
             Text(stringResource(KMR.strings.suwayomi_pending, pending.size), style = MaterialTheme.typography.labelMedium)
@@ -457,8 +461,23 @@ private fun PendingChanges(session: SuwayomiSession) {
                 Text(failureText(failure!!), color = MaterialTheme.colorScheme.error)
                 Text(stringResource(KMR.strings.suwayomi_retry_notice), style = MaterialTheme.typography.bodySmall)
                 TextButton(onClick = { scope.launch(Dispatchers.IO) { runCatching { session.retryPending() } } }) { Text(stringResource(KMR.strings.suwayomi_retry_changes)) }
+                TextButton(onClick = { discard = true }) { Text(stringResource(KMR.strings.suwayomi_discard_changes)) }
             }
         }
+    }
+    if (discard) {
+        AlertDialog(
+            onDismissRequest = { discard = false },
+            title = { Text(stringResource(KMR.strings.suwayomi_discard_changes)) },
+            text = { Text(stringResource(KMR.strings.suwayomi_discard_notice)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    discard = false
+                    scope.launch(Dispatchers.IO) { runCatching { session.discardPending() } }
+                }) { Text(stringResource(KMR.strings.suwayomi_discard_changes)) }
+            },
+            dismissButton = { TextButton(onClick = { discard = false }) { Text(stringResource(KMR.strings.suwayomi_cancel)) } },
+        )
     }
 }
 
