@@ -97,7 +97,26 @@ data class ServerPageInfo(val hasNextPage: Boolean, val endCursor: String? = nul
 data class ServerConnection<T>(val nodes: List<T>, val pageInfo: ServerPageInfo, val totalCount: Int)
 
 @Serializable
-data class ServerMangaUser(val inLibrary: Boolean, val unreadCount: Int = 0, val downloadCount: Int = 0)
+data class ServerMangaUser(
+    val inLibrary: Boolean,
+    val unreadCount: Int = 0,
+    val downloadCount: Int = 0,
+    val bookmarkCount: Int = 0,
+    @Serializable(with = ServerLongSerializer::class) val inLibraryAt: Long = 0,
+    val lastReadChapter: ServerLastRead? = null,
+)
+
+@Serializable
+data class ServerLastRead(val user: ServerReadTime)
+
+@Serializable
+data class ServerReadTime(@Serializable(with = ServerLongSerializer::class) val lastReadAt: Long)
+
+@Serializable
+data class ServerMangaCategories(val nodes: List<ServerCategory> = emptyList())
+
+@Serializable
+data class ServerMangaSource(val name: String, val lang: String)
 
 @Serializable
 data class ServerMeta(val key: String, val value: String)
@@ -115,6 +134,9 @@ data class ServerManga(
     val status: String = "UNKNOWN",
     val user: ServerMangaUser,
     val meta: List<ServerMeta> = emptyList(),
+    val url: String = "",
+    val categories: ServerMangaCategories = ServerMangaCategories(),
+    val source: ServerMangaSource? = null,
 )
 
 @Serializable

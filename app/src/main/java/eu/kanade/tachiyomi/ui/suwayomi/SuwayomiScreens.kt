@@ -15,9 +15,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -27,12 +24,10 @@ import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -104,10 +99,6 @@ object SuwayomiHomeScreen : Screen() {
         var loginPassword by remember { mutableStateOf("") }
         val preferences = remember { Injekt.get<BasePreferences>() }
         val incognito by preferences.incognitoMode().collectAsState()
-        var search by rememberSaveable { mutableStateOf("") }
-        var unread by rememberSaveable { mutableStateOf(false) }
-        var grid by rememberSaveable { mutableStateOf(true) }
-        var reverse by rememberSaveable { mutableStateOf(false) }
         LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { model.refresh() }
         Scaffold(topBar = {
             TopAppBar(title = { Text(stringResource(KMR.strings.suwayomi_library)) }, actions = {
@@ -196,37 +187,8 @@ object SuwayomiHomeScreen : Screen() {
                             style = MaterialTheme.typography.labelMedium,
                         )
                         if (incognito) Text(stringResource(KMR.strings.suwayomi_incognito_notice), Modifier.padding(16.dp), style = MaterialTheme.typography.bodySmall)
-                        OutlinedTextField(search, { search = it }, label = { Text(stringResource(KMR.strings.suwayomi_search_library)) }, singleLine = true, modifier = Modifier.fillMaxWidth().padding(12.dp))
-                        Row(Modifier.padding(horizontal = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            FilterChip(unread, { unread = !unread }, label = { Text(stringResource(KMR.strings.suwayomi_unread)) })
-                            FilterChip(grid, { grid = !grid }, label = { Text(stringResource(KMR.strings.suwayomi_grid)) })
-                            FilterChip(reverse, { reverse = !reverse }, label = { Text(stringResource(KMR.strings.suwayomi_reverse)) })
-                        }
                         if (state.loading) LinearProgressIndicator(Modifier.fillMaxWidth())
-                        val mangas = state.mangas.filter { it.title.contains(search, ignoreCase = true) && (!unread || it.user.unreadCount > 0) }.sortedBy { it.title.lowercase() }.let { if (reverse) it.reversed() else it }
-                        if (mangas.isEmpty() && !state.loading) Text(stringResource(KMR.strings.suwayomi_empty_library), Modifier.padding(24.dp))
-                        if (grid) {
-                            LazyVerticalGrid(GridCells.Adaptive(132.dp), Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                                items(mangas, key = { it.id }) { manga ->
-                                    Card(onClick = { navigator.push(SuwayomiMangaScreen(session.id, manga.id)) }, modifier = Modifier.padding(horizontal = 6.dp)) {
-                                        ServerCover(session, manga.thumbnailUrl, Modifier.fillMaxWidth().aspectRatio(2f / 3f))
-                                        Text(manga.title, Modifier.padding(8.dp), maxLines = 2, overflow = TextOverflow.Ellipsis)
-                                        Text(stringResource(KMR.strings.suwayomi_unread_count, manga.user.unreadCount), Modifier.padding(horizontal = 8.dp), style = MaterialTheme.typography.labelSmall)
-                                    }
-                                }
-                            }
-                        } else {
-                            LazyColumn(Modifier.weight(1f)) {
-                                items(mangas, key = { it.id }) { manga ->
-                                    Row(Modifier.fillMaxWidth().clickable { navigator.push(SuwayomiMangaScreen(session.id, manga.id)) }.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                                        ServerCover(session, manga.thumbnailUrl, Modifier.width(48.dp).height(72.dp))
-                                        Text(manga.title, Modifier.weight(1f).padding(12.dp), maxLines = 2)
-                                        Text(manga.user.unreadCount.toString())
-                                    }
-                                }
-                            }
-                        }
-                        if (state.hasNext) TextButton(onClick = { model.nextPage() }, enabled = !state.loading, modifier = Modifier.align(Alignment.CenterHorizontally)) { Text(stringResource(KMR.strings.suwayomi_load_more)) }
+                        SuwayomiLibraryContent(state, model, navigator, incognito, Modifier.weight(1f))
                     }
                 }
             }

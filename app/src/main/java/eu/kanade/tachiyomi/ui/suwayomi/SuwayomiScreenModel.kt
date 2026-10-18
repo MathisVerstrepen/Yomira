@@ -5,6 +5,8 @@ import cafe.adriel.voyager.core.model.StateScreenModel
 import cafe.adriel.voyager.core.model.screenModelScope
 import eu.kanade.tachiyomi.data.suwayomi.ChapterIntentKind
 import eu.kanade.tachiyomi.data.suwayomi.ChapterPatch
+import eu.kanade.tachiyomi.data.suwayomi.LibraryPresentation
+import eu.kanade.tachiyomi.data.suwayomi.ServerCategory
 import eu.kanade.tachiyomi.data.suwayomi.ServerChapter
 import eu.kanade.tachiyomi.data.suwayomi.ServerInfo
 import eu.kanade.tachiyomi.data.suwayomi.ServerManga
@@ -16,6 +18,8 @@ import eu.kanade.tachiyomi.data.suwayomi.SuwayomiFailure
 import eu.kanade.tachiyomi.data.suwayomi.SuwayomiSession
 import eu.kanade.tachiyomi.data.suwayomi.downloadAction
 import eu.kanade.tachiyomi.data.suwayomi.identity
+import eu.kanade.tachiyomi.data.suwayomi.serverCategories
+import eu.kanade.tachiyomi.data.suwayomi.setCategoryMembership
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -33,7 +37,7 @@ class SuwayomiScreenModel(private val backend: SuwayomiBackend = Injekt.get()) :
     init {
         screenModelScope.launch(Dispatchers.IO) {
             backend.session.collectLatest { session ->
-                mutableState.value = State(session = session)
+                mutableState.value = State(session = session, presentation = session?.libraryPresentation() ?: LibraryPresentation())
                 if (session != null) reload()
             }
         }
@@ -83,29 +87,70 @@ class SuwayomiScreenModel(private val backend: SuwayomiBackend = Injekt.get()) :
             session.flush()
             val user = session.user()
             val info = session.info()
-            val page = session.library()
-            backend.requireSession(session.id)
-            mutableState.update { it.copy(loading = false, user = user, info = info, mangas = page.nodes, cursor = page.pageInfo.endCursor, hasNext = page.pageInfo.hasNextPage) }
+            val categories = session.serverCategories()
+            val all = linkedMapOf<Int, ServerManga>()
+            var cursor: String? = null
+            do {
+                val page = session.library(cursor)
+                backend.requireSession(session.id)
+                page.nodes.forEach { all[it.id] = it }
+                mutableState.update { it.copy(user = user, info = info, categories = categories, mangas = all.values.toList(), total = page.totalCount) }
+                if (!page.pageInfo.hasNextPage) break
+                val next = page.pageInfo.endCursor
+                if (next == null || next == cursor || page.nodes.isEmpty()) throw SuwayomiException(SuwayomiFailure.CONTRACT)
+                cursor = next
+            } while (true)
+            mutableState.update { it.copy(loading = false) }
         } catch (e: Exception) {
             if (e is CancellationException) throw e
             if (state.value.session?.id == session.id) mutableState.update { it.copy(loading = false, error = failure(e)) }
         }
     }
 
-    fun nextPage() = screenModelScope.launch(Dispatchers.IO) {
+    fun presentation(value: LibraryPresentation) {
+        try {
+            state.value.session?.saveLibraryPresentation(value)
+            mutableState.update { it.copy(presentation = value) }
+        } catch (e: Exception) {
+            mutableState.update { it.copy(error = failure(e)) }
+        }
+    }
+
+    fun select(id: Int) = mutableState.update { it.copy(selected = if (id in it.selected) it.selected - id else it.selected + id) }
+    fun selectVisible(ids: Set<Int>) = mutableState.update { it.copy(selected = it.selected + ids) }
+    fun clearSelection() = mutableState.update { it.copy(selected = emptySet()) }
+
+    /** Each selected manga is checked before applying an explicit operation; failures retain unprocessed selections. */
+    fun bulk(action: String, categoryId: Int? = null) = screenModelScope.launch(Dispatchers.IO) {
         libraryMutex.withLock {
             val current = state.value
             val session = current.session ?: return@withLock
-            if (!current.hasNext || current.loading) return@withLock
+            if (current.loading) return@withLock
+            if (action in listOf("read", "unread") && Injekt.get<eu.kanade.domain.base.BasePreferences>().incognitoMode().get()) return@withLock
             mutableState.update { it.copy(loading = true, error = null) }
             try {
-                val page = session.library(current.cursor)
-                if (page.pageInfo.hasNextPage && (page.pageInfo.endCursor == current.cursor || page.nodes.isEmpty())) throw SuwayomiException(SuwayomiFailure.CONTRACT)
-                backend.requireSession(session.id)
-                mutableState.update { it.copy(loading = false, mangas = (it.mangas + page.nodes).distinctBy(ServerManga::id), cursor = page.pageInfo.endCursor, hasNext = page.pageInfo.hasNextPage) }
+                for (manga in current.mangas.filter { it.id in current.selected }) {
+                    val remote = session.manga(manga.id)
+                    if (remote.sourceId != manga.sourceId || remote.url != manga.url) throw SuwayomiException(SuwayomiFailure.SESSION_CHANGED)
+                    when (action) {
+                        "remove" -> session.setLibrary(manga.id, false)
+                        "categoryAdd", "categoryRemove" -> session.setCategoryMembership(manga.id, requireNotNull(categoryId), action == "categoryAdd")
+                        "read", "unread" -> {
+                            val kind = if (action == "read") ChapterIntentKind.MARK_READ else ChapterIntentKind.MARK_UNREAD
+                            val patch = if (action == "read") ChapterPatch(isRead = true) else ChapterPatch(isRead = false, lastPageRead = 0)
+                            session.chapters(manga.id).forEach { session.enqueue(it.id, kind, patch, identity = it.identity()) }
+                            session.flush()
+                        }
+                        else -> error("Unsupported library action")
+                    }
+                    val updated = session.manga(manga.id)
+                    mutableState.update { state -> state.copy(selected = state.selected - manga.id, mangas = state.mangas.map { if (it.id == manga.id) updated else it }.filter { it.user.inLibrary }) }
+                }
             } catch (e: Exception) {
                 if (e is CancellationException) throw e
-                if (state.value.session?.id == session.id) mutableState.update { it.copy(loading = false, error = failure(e)) }
+                mutableState.update { it.copy(error = failure(e)) }
+            } finally {
+                mutableState.update { it.copy(loading = false) }
             }
         }
     }
@@ -117,6 +162,10 @@ class SuwayomiScreenModel(private val backend: SuwayomiBackend = Injekt.get()) :
         val mangas: List<ServerManga> = emptyList(),
         val cursor: String? = null,
         val hasNext: Boolean = false,
+        val total: Int = 0,
+        val categories: List<ServerCategory> = emptyList(),
+        val presentation: LibraryPresentation = LibraryPresentation(),
+        val selected: Set<Int> = emptySet(),
         val loading: Boolean = false,
         val error: SuwayomiFailure? = null,
     )

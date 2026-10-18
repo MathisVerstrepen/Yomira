@@ -245,10 +245,10 @@
     <string name="suwayomi_appearance">Appearance on this device</string>
     <string name="suwayomi_reader_settings">Reader on this device</string>
     <string name="suwayomi_replace">Replace server or sign out</string>
-    <string name="suwayomi_search_library">Search loaded library titles</string>
+    <string name="suwayomi_search_library">Search your library</string>
     <string name="suwayomi_unread">Unread</string>
     <string name="suwayomi_grid">Cover grid</string>
-    <string name="suwayomi_reverse">Reverse title order</string>
+    <string name="suwayomi_reverse">Reverse order</string>
     <string name="suwayomi_empty_library">No matching titles. Add manga to your server library or load more titles.</string>
     <string name="suwayomi_unread_count">%1$d unread</string>
     <string name="suwayomi_load_more">Load more from server</string>
@@ -354,4 +354,23 @@
     <string name="suwayomi_discard_changes">Discard pending changes</string>
     <string name="suwayomi_discard_notice">Remove unsent chapter changes on this device and use the current server state. This does not undo requests that already reached the server.</string>
     <!-- KMK pending intent recovery end -->
+    <string name="suwayomi_all">All</string>
+    <string name="suwayomi_uncategorized">Uncategorized</string>
+    <string name="suwayomi_missing_source">Unavailable source</string>
+    <string name="suwayomi_show_hidden">Show hidden categories</string>
+    <string name="suwayomi_hide_category">Hide category</string>
+    <string name="suwayomi_selected_count">%1$d selected</string>
+    <string name="suwayomi_select_visible">Select results</string>
+    <string name="suwayomi_actions">Actions</string>
+    <string name="suwayomi_add_category_named">Add to %1$s</string>
+    <string name="suwayomi_remove_category_named">Remove from %1$s</string>
+    <string name="suwayomi_library_count">%1$d results · %2$d in library</string>
+    <string name="suwayomi_server_download_count">%1$d on server</string>
+    <string name="suwayomi_bulk_notice">Apply this operation to the %1$d selected manga. Changes confirmed before a failure remain applied.</string>
+    <string name="suwayomi_bulk_read">Mark all selected chapters read</string>
+    <string name="suwayomi_bulk_unread">Mark all selected chapters unread and reset progress</string>
+    <string name="suwayomi_sort_title">Title</string>
+    <string name="suwayomi_sort_added">Date added</string>
+    <string name="suwayomi_ungrouped">No grouping</string>
+    <string name="suwayomi_group_status">Group by status</string>
 </resources>

@@ -135,6 +135,7 @@ class SuwayomiSession internal constructor(
     private var scheduledFlush: Job? = null
     private val outboxFile = AtomicFile(File(context.noBackupFilesDir, "suwayomi-outbox-$id"))
     internal val pageCache = File(context.cacheDir, "suwayomi/$id/${java.util.UUID.randomUUID()}")
+    private val libraryFile = AtomicFile(File(context.noBackupFilesDir, "suwayomi-library-$id"))
     private val flagsFile = AtomicFile(File(context.noBackupFilesDir, "suwayomi-reader-$id"))
     private val outbox = ChapterOutbox(if (outboxFile.baseFile.exists()) outboxFile.readFully().decodeToString() else null) {
         if (!closed) writeAtomic(outboxFile, it)
@@ -143,6 +144,22 @@ class SuwayomiSession internal constructor(
     val pending = mutablePending.asStateFlow()
     private val mutableFailure = MutableStateFlow<SuwayomiFailure?>(null)
     val mutationFailure = mutableFailure.asStateFlow()
+
+    @Synchronized
+    fun libraryPresentation(): LibraryPresentation {
+        assertActive()
+        return if (libraryFile.baseFile.exists()) {
+            runCatching { kotlinx.serialization.json.Json.decodeFromString<LibraryPresentation>(libraryFile.readFully().decodeToString()) }.getOrDefault(LibraryPresentation())
+        } else {
+            LibraryPresentation()
+        }
+    }
+
+    @Synchronized
+    fun saveLibraryPresentation(value: LibraryPresentation) {
+        assertActive()
+        writeAtomic(libraryFile, kotlinx.serialization.json.Json.encodeToString(LibraryPresentation.serializer(), value))
+    }
 
     @Synchronized
     fun readerFlags(mangaId: Int): Long {
@@ -378,6 +395,7 @@ class SuwayomiSession internal constructor(
         if (clear) {
             outboxFile.delete()
             flagsFile.delete()
+            libraryFile.delete()
         }
     }
 
@@ -393,7 +411,7 @@ class SuwayomiSession internal constructor(
     }
 
     companion object {
-        internal const val MANGA_FIELDS = "id sourceId title thumbnailUrl author artist description genre status user { inLibrary unreadCount downloadCount } meta { key value }"
+        internal const val MANGA_FIELDS = "id url sourceId source {name lang} title thumbnailUrl author artist description genre status categories {nodes {id name order}} user { inLibrary inLibraryAt unreadCount downloadCount bookmarkCount lastReadChapter {user {lastReadAt}} } meta { key value }"
         internal const val CHAPTER_FIELDS = "id mangaId url manga {sourceId url} name chapterNumber sourceOrder scanlator uploadDate pageCount user { isRead isBookmarked lastPageRead lastReadAt isDownloaded }"
     }
 }
