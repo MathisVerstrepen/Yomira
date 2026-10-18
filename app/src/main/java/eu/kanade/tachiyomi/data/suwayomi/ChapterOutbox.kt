@@ -68,7 +68,14 @@ internal class ChapterOutbox(initial: String?, private val save: (String) -> Uni
             operations = operations + ChapterIntent(
                 chapterId = chapterId,
                 kind = kind,
-                patch = patch,
+                patch = if (kind == ChapterIntentKind.PROGRESS && state.operations.any {
+                        it.chapterId == chapterId && it.kind == kind && it.readingSession == ticket?.sessionId && it.patch.isRead == true
+                    }
+                ) {
+                    patch.copy(isRead = true)
+                } else {
+                    patch
+                },
                 readingSession = ticket?.sessionId,
                 barrier = barrier,
             ),

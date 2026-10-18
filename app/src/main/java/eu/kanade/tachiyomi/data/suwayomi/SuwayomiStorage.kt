@@ -26,6 +26,7 @@ internal data class StoredSession(
     val accessToken: String = "",
     val refreshToken: String = "",
     val cookies: List<String> = emptyList(),
+    val userId: Int? = null,
 ) {
     override fun toString(): String = "StoredSession(id=$id, mode=$mode, credentials=redacted)"
 }

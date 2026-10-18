@@ -62,6 +62,22 @@ class SuwayomiProtocolTest {
     }
 
     @Test
+    fun `backwards navigation cannot drop a pending completion`() {
+        val outbox = ChapterOutbox(null) {}
+        val ticket = outbox.ticket(listOf(3))
+        outbox.enqueue(3, ChapterIntentKind.PROGRESS, ChapterPatch(isRead = true, lastPageRead = 9), ticket)
+        outbox.enqueue(3, ChapterIntentKind.PROGRESS, ChapterPatch(lastPageRead = 2), ticket)
+        assertEquals(true, outbox.operations().single().patch.isRead)
+        assertEquals(2, outbox.operations().single().patch.lastPageRead)
+    }
+
+    @Test
+    fun `source filter group changes retain both positional indices`() {
+        val change = sourceFilterChange(listOf(2, 4), "checkBoxState", kotlinx.serialization.json.JsonPrimitive(false))
+        assertEquals("{\"position\":2,\"groupChange\":{\"position\":4,\"checkBoxState\":false}}", change.toString())
+    }
+
+    @Test
     fun `process death preserves uncertainty and does not blindly replay`() {
         var disk = ""
         val outbox = ChapterOutbox(null) { disk = it }

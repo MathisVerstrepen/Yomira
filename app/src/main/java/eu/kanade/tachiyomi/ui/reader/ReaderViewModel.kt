@@ -883,7 +883,12 @@ class ReaderViewModel @JvmOverloads constructor(
             if (!incognitoMode && page.status !is Page.State.Error) {
                 readerChapter.chapter.last_page_read = canonicalPage
                 if (canonicalPage == count - 1) readerChapter.chapter.read = true
-                remote.progress(readerChapter.chapter.id!!, canonicalPage, readerChapter.chapter.read)
+                try {
+                    remote.progress(readerChapter.chapter.id!!, canonicalPage, canonicalPage == count - 1)
+                } catch (e: Exception) {
+                    if (e is CancellationException) throw e
+                    eventChannel.trySend(Event.CloudNotice(Injekt.get<Application>().stringResource(KMR.strings.suwayomi_session_changed)))
+                }
             }
             return
         }
@@ -1117,10 +1122,18 @@ class ReaderViewModel @JvmOverloads constructor(
      */
     fun setMangaReadingMode(readingMode: ReadingMode) {
         val manga = manga ?: return
-        runBlocking(Dispatchers.IO) {
+        // KMK -->
+        viewModelScope.launchIO {
+            // KMK <--
             // KMK -->
             if (cloudReader != null) {
-                cloudReader!!.setFlags(readingMode.flagValue.toLong(), ReadingMode.MASK.toLong())
+                try {
+                    cloudReader!!.setFlags(readingMode.flagValue.toLong(), ReadingMode.MASK.toLong())
+                } catch (e: Exception) {
+                    if (e is CancellationException) throw e
+                    eventChannel.send(Event.CloudNotice(Injekt.get<Application>().stringResource(KMR.strings.suwayomi_preference_sync_failed)))
+                    return@launchIO
+                }
             } else {
                 setMangaViewerFlags.awaitSetReadingMode(manga.id, readingMode.flagValue.toLong())
             }

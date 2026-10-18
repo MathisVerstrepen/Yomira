@@ -290,4 +290,64 @@
     <string name="suwayomi_incognito_notice">Personal progress, bookmarks, and tracking are paused. The server can still observe image and page requests.</string>
     <!-- KMK Suwayomi end -->
     <string name="suwayomi_sync_conflict">The server reports a reading conflict with %1$s at page %2$d. Your current position has been kept; review progress in the server WebUI.</string>
+    <!-- KMK Suwayomi daily workflows -->
+    <string name="suwayomi_sources">Server sources</string>
+    <string name="suwayomi_source_search">Search this server source</string>
+    <string name="suwayomi_search">Search</string>
+    <string name="suwayomi_popular">Popular</string>
+    <string name="suwayomi_latest">Latest</string>
+    <string name="suwayomi_filters">Source filters</string>
+    <string name="suwayomi_reset_filters">Reset filters</string>
+    <string name="suwayomi_sort_ascending">Ascending</string>
+    <string name="suwayomi_filter_unavailable">This filter schema is not supported. Refresh source filters or use the server WebUI.</string>
+    <string name="suwayomi_categories">Server categories</string>
+    <string name="suwayomi_create">Create</string>
+    <string name="suwayomi_rename">Rename</string>
+    <string name="suwayomi_move_up">Move up</string>
+    <string name="suwayomi_delete">Delete</string>
+    <string name="suwayomi_name">Name</string>
+    <string name="suwayomi_save">Save</string>
+    <string name="suwayomi_delete_category">Delete this server category?</string>
+    <string name="suwayomi_server_downloads">Server downloads</string>
+    <string name="suwayomi_download_notice">These files and this queue are on Suwayomi. Saving chapters to this device and offline reading are not available yet.</string>
+    <string name="suwayomi_start_queue">Start queue</string>
+    <string name="suwayomi_stop_queue">Pause queue</string>
+    <string name="suwayomi_cancel_server_download">Cancel server download</string>
+    <string name="suwayomi_download_on_server">Download on server</string>
+    <string name="suwayomi_delete_server_download">Delete download from server</string>
+    <!-- KMK Suwayomi daily workflows end -->
+    <!-- KMK Suwayomi reading preferences -->
+    <string name="suwayomi_recent_reading">Recent reading</string>
+    <string name="suwayomi_updates">Server library updates</string>
+    <string name="suwayomi_update_library">Update library on server</string>
+    <string name="suwayomi_updating">Suwayomi is updating the library.</string>
+    <string name="suwayomi_history_notice">Recent reading comes from server chapter state. Clearing history separately from read state and cloud reading-duration statistics are not supported by this server contract.</string>
+    <string name="suwayomi_preference_sync">Synchronize reading preferences</string>
+    <string name="suwayomi_preference_sync_notice">Synchronize default reading mode and crop settings with this server account. Brightness, orientation, rotation, and other device controls stay on this device. Per-manga reading mode synchronizes when you change it in the reader.</string>
+    <string name="suwayomi_upload_preferences">Upload these preferences</string>
+    <string name="suwayomi_apply_preferences">Use server preferences</string>
+    <string name="suwayomi_preference_sync_failed">Could not save the reading mode on the server. Check the connection and retry.</string>
+    <!-- KMK Suwayomi reading preferences end -->
+    <!-- KMK Suwayomi tracking and sessions -->
+    <string name="suwayomi_tracking">Server tracking</string>
+    <string name="suwayomi_tracking_notice">Tracker accounts and progress belong to this Suwayomi account. Reading completion updates tracking through the server. Removing a binding leaves the entry at the tracking service.</string>
+    <string name="suwayomi_sign_in">Sign in</string>
+    <string name="suwayomi_signed_in">Signed in on server</string>
+    <string name="suwayomi_bind">Bind</string>
+    <string name="suwayomi_unbind">Remove binding</string>
+    <string name="suwayomi_edit_track">Edit tracking</string>
+    <string name="suwayomi_authorize">Authorize in browser</string>
+    <string name="suwayomi_callback_notice">After authorization, paste the complete callback URL here. Alternatively, finish tracker login in the server WebUI.</string>
+    <string name="suwayomi_callback">OAuth callback URL</string>
+    <string name="suwayomi_last_chapter">Last chapter read</string>
+    <string name="suwayomi_score">Score</string>
+    <string name="suwayomi_webui">Open server WebUI (sign-in may be required)</string>
+    <string name="suwayomi_sign_in_again">Sign in again</string>
+    <string name="suwayomi_reauthenticate_notice">Sign in to the same server account to keep pending chapter changes. To use a different account, choose Replace server or sign out.</string>
+    <!-- KMK Suwayomi tracking and sessions end -->
+    <!-- KMK filter choices -->
+    <string name="suwayomi_filter_any">Any</string>
+    <string name="suwayomi_filter_include">Include</string>
+    <string name="suwayomi_filter_exclude">Exclude</string>
+    <!-- KMK filter choices end -->
 </resources>

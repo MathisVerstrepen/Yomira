@@ -32,8 +32,10 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.Response
+import okhttp3.ResponseBody
 import okhttp3.WebSocket
 import okhttp3.WebSocketListener
+import java.io.File
 import java.io.IOException
 import java.util.concurrent.TimeUnit
 import kotlin.coroutines.resumeWithException
@@ -77,6 +79,8 @@ internal class SuwayomiClient(
         })
         .build()
 
+    internal fun attachUser(userId: Int) = updateCredentials(credentials.copy(userId = userId))
+
     suspend fun login() {
         when (credentials.mode) {
             SuwayomiAuthMode.UI_LOGIN -> {
@@ -105,7 +109,7 @@ internal class SuwayomiClient(
 
     private suspend fun simpleLogin() {
         val form = FormBody.Builder().add("user", credentials.username).add("pass", credentials.password).build()
-        http.newCall(Request.Builder().url(url.login).post(form).build()).await().use {
+        http.newCall(Request.Builder().url(url.login).post(form).build()).read {
             if (it.code != 303) throw SuwayomiException(SuwayomiFailure.AUTHENTICATION_REQUIRED)
         }
     }
@@ -183,7 +187,7 @@ internal class SuwayomiClient(
         }
         val request = requestBuilder(url.graphql, authenticate)
             .post(body.toString().toRequestBody("application/json".toMediaType())).build()
-        http.newCall(request).await().use { response ->
+        http.newCall(request).read { response ->
             checkStatus(response)
             val envelope = try {
                 json.parseToJsonElement(response.body.string()).jsonObject
@@ -206,15 +210,22 @@ internal class SuwayomiClient(
         }
     }
 
-    suspend fun image(path: String): ByteArray = withContext(Dispatchers.IO) {
+    suspend fun image(path: String): ByteArray = fetchImage(path) { it.bytes() }
+
+    suspend fun imageFile(path: String, destination: File) = fetchImage(path) { body ->
+        destination.outputStream().use { output -> body.byteStream().use { it.copyTo(output) } }
+        Unit
+    }
+
+    private suspend fun <T> fetchImage(path: String, consume: (ResponseBody) -> T): T {
         val target = url.asset(path)
         val token = credentials.accessToken
-        suspend fun fetch(): ByteArray = http.newCall(requestBuilder(target).get().build()).await().use {
+        suspend fun fetch(): T = http.newCall(requestBuilder(target).get().build()).read {
             checkStatus(it)
             if (it.body.contentType()?.type != "image") throw SuwayomiException(SuwayomiFailure.CONTRACT)
-            it.body.bytes()
+            consume(it.body)
         }
-        try {
+        return try {
             fetch()
         } catch (e: SuwayomiException) {
             if (e.failure != SuwayomiFailure.AUTHENTICATION_REQUIRED) throw e
@@ -276,6 +287,10 @@ internal class SuwayomiClient(
                 override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
                     close(SuwayomiException(SuwayomiFailure.NETWORK))
                 }
+                override fun onClosing(webSocket: WebSocket, code: Int, reason: String) {
+                    webSocket.close(code, reason)
+                    close(if (code == 4401 || code == 4403) SuwayomiException(SuwayomiFailure.AUTHENTICATION_REQUIRED) else null)
+                }
                 override fun onClosed(webSocket: WebSocket, code: Int, reason: String) {
                     close(if (code == 4401 || code == 4403) SuwayomiException(SuwayomiFailure.AUTHENTICATION_REQUIRED) else null)
                 }
@@ -303,14 +318,24 @@ internal class SuwayomiClient(
 
 internal fun variables(vararg pairs: Pair<String, JsonElement>) = JsonObject(pairs.toMap())
 
-private suspend fun Call.await(): Response = suspendCancellableCoroutine { continuation ->
+/** Consume responses on OkHttp's worker and retain cancellation until the entire body is read. */
+private suspend fun <T> Call.read(consume: (Response) -> T): T = suspendCancellableCoroutine { continuation ->
     continuation.invokeOnCancellation { cancel() }
     enqueue(object : Callback {
         override fun onFailure(call: Call, e: IOException) {
             if (continuation.isActive) continuation.resumeWithException(SuwayomiException(SuwayomiFailure.NETWORK))
         }
         override fun onResponse(call: Call, response: Response) {
-            continuation.resume(response) { _, value, _ -> value.close() }
+            try {
+                val value = response.use(consume)
+                if (continuation.isActive) continuation.resumeWith(Result.success(value))
+            } catch (e: Exception) {
+                if (continuation.isActive) {
+                    continuation.resumeWithException(
+                        if (e is IOException) SuwayomiException(SuwayomiFailure.NETWORK) else e,
+                    )
+                }
+            }
         }
     })
 }

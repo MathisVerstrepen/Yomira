@@ -93,10 +93,15 @@ object SuwayomiHomeScreen : Screen() {
     @Composable
     override fun Content() {
         val model = rememberScreenModel { SuwayomiScreenModel() }
+        val context = LocalContext.current
         val state by model.state.collectAsState()
         val navigator = LocalNavigator.currentOrThrow
         var menu by remember { mutableStateOf(false) }
         var replace by remember { mutableStateOf(false) }
+        var preferenceSync by remember { mutableStateOf(false) }
+        var reauthenticate by remember { mutableStateOf(false) }
+        var loginName by remember { mutableStateOf("") }
+        var loginPassword by remember { mutableStateOf("") }
         val preferences = remember { Injekt.get<BasePreferences>() }
         val incognito by preferences.incognitoMode().collectAsState()
         var search by rememberSaveable { mutableStateOf("") }
@@ -112,6 +117,44 @@ object SuwayomiHomeScreen : Screen() {
                     }
                     IconButton(onClick = { menu = true }) { Icon(Icons.Default.MoreVert, stringResource(KMR.strings.suwayomi_settings)) }
                     DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
+                        DropdownMenuItem(text = { Text(stringResource(KMR.strings.suwayomi_sign_in_again)) }, onClick = {
+                            menu = false
+                            loginName = state.user?.username.orEmpty()
+                            reauthenticate = true
+                        })
+                        DropdownMenuItem(text = { Text(stringResource(KMR.strings.suwayomi_tracking)) }, onClick = {
+                            menu = false
+                            state.session?.let { navigator.push(SuwayomiTrackingScreen(it.id)) }
+                        })
+                        DropdownMenuItem(text = { Text(stringResource(KMR.strings.suwayomi_webui)) }, onClick = {
+                            menu = false
+                            state.session?.let { session -> context.startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(session.baseUrl))) }
+                        })
+                        DropdownMenuItem(text = { Text(stringResource(KMR.strings.suwayomi_recent_reading)) }, onClick = {
+                            menu = false
+                            state.session?.let { navigator.push(SuwayomiActivityScreen(it.id, true)) }
+                        })
+                        DropdownMenuItem(text = { Text(stringResource(KMR.strings.suwayomi_updates)) }, onClick = {
+                            menu = false
+                            state.session?.let { navigator.push(SuwayomiActivityScreen(it.id, false)) }
+                        })
+                        DropdownMenuItem(text = { Text(stringResource(KMR.strings.suwayomi_preference_sync)) }, onClick = {
+                            menu = false
+                            preferenceSync = true
+                        })
+                        DropdownMenuItem(text = { Text(stringResource(KMR.strings.suwayomi_sources)) }, onClick = {
+                            menu = false
+                            state.session?.let { navigator.push(SuwayomiBrowseScreen(it.id)) }
+                        })
+                        DropdownMenuItem(text = { Text(stringResource(KMR.strings.suwayomi_categories)) }, onClick = {
+                            menu = false
+                            state.session?.let { navigator.push(SuwayomiCategoriesScreen(it.id)) }
+                        })
+                        DropdownMenuItem(text = { Text(stringResource(KMR.strings.suwayomi_server_downloads)) }, onClick = {
+                            menu = false
+                            state.session?.let { navigator.push(SuwayomiDownloadsScreen(it.id)) }
+                        })
+
                         DropdownMenuItem(text = { Text(stringResource(KMR.strings.suwayomi_appearance)) }, onClick = {
                             menu = false
                             navigator.push(SettingsAppearanceScreen)
@@ -139,6 +182,12 @@ object SuwayomiHomeScreen : Screen() {
                 } else {
                     PendingChanges(session)
                     if (state.error != null) {
+                        if (state.error == SuwayomiFailure.AUTHENTICATION_REQUIRED) {
+                            TextButton(onClick = {
+                                loginName = state.user?.username.orEmpty()
+                                reauthenticate = true
+                            }) { Text(stringResource(KMR.strings.suwayomi_sign_in_again)) }
+                        }
                         ConnectionError(state.error!!, { model.refresh() }, { replace = true })
                     } else {
                         Text(
@@ -181,6 +230,54 @@ object SuwayomiHomeScreen : Screen() {
                     }
                 }
             }
+        }
+        if (reauthenticate) {
+            AlertDialog(
+                onDismissRequest = {
+                    reauthenticate = false
+                    loginPassword = ""
+                },
+                title = { Text(stringResource(KMR.strings.suwayomi_sign_in_again)) },
+                text = {
+                    Column {
+                        Text(stringResource(KMR.strings.suwayomi_reauthenticate_notice))
+                        OutlinedTextField(loginName, { loginName = it }, label = { Text(stringResource(KMR.strings.suwayomi_username)) }, singleLine = true)
+                        OutlinedTextField(loginPassword, { loginPassword = it }, label = { Text(stringResource(KMR.strings.suwayomi_password)) }, singleLine = true, visualTransformation = PasswordVisualTransformation())
+                    }
+                },
+                confirmButton = {
+                    TextButton(onClick = {
+                        model.reauthenticate(loginName, loginPassword)
+                        reauthenticate = false
+                        loginPassword = ""
+                    }) { Text(stringResource(KMR.strings.suwayomi_sign_in)) }
+                },
+                dismissButton = {
+                    TextButton(onClick = {
+                        reauthenticate = false
+                        loginPassword = ""
+                    }) { Text(stringResource(KMR.strings.suwayomi_cancel)) }
+                },
+            )
+        }
+        if (preferenceSync) {
+            AlertDialog(
+                onDismissRequest = { preferenceSync = false },
+                title = { Text(stringResource(KMR.strings.suwayomi_preference_sync)) },
+                text = { Text(stringResource(KMR.strings.suwayomi_preference_sync_notice)) },
+                confirmButton = {
+                    TextButton(onClick = {
+                        preferenceSync = false
+                        model.readingPreferences(true)
+                    }) { Text(stringResource(KMR.strings.suwayomi_upload_preferences)) }
+                },
+                dismissButton = {
+                    TextButton(onClick = {
+                        preferenceSync = false
+                        model.readingPreferences(false)
+                    }) { Text(stringResource(KMR.strings.suwayomi_apply_preferences)) }
+                },
+            )
         }
         if (replace) {
             AlertDialog(
@@ -275,6 +372,8 @@ class SuwayomiMangaScreen(private val sessionId: String, private val mangaId: In
                                 }
                             }
                             manga.description?.let { Text(it, Modifier.padding(horizontal = 16.dp), style = MaterialTheme.typography.bodyMedium) }
+                            TextButton(onClick = { navigator.push(SuwayomiTrackingScreen(sessionId, mangaId)) }) { Text(stringResource(KMR.strings.suwayomi_tracking)) }
+                            TextButton(onClick = { navigator.push(SuwayomiCategoriesScreen(sessionId, mangaId)) }) { Text(stringResource(KMR.strings.suwayomi_categories)) }
                             TextButton(onClick = { model.refresh(fetch = true) }, enabled = !state.loading) { Text(stringResource(KMR.strings.suwayomi_fetch_source)) }
                             HorizontalDivider()
                         }
@@ -298,6 +397,19 @@ class SuwayomiMangaScreen(private val sessionId: String, private val mangaId: In
                             Box {
                                 IconButton(onClick = { actions = true }) { Icon(Icons.Default.MoreVert, stringResource(KMR.strings.suwayomi_chapter_actions)) }
                                 DropdownMenu(actions, { actions = false }) {
+                                    if (state.canDownload) {
+                                        DropdownMenuItem(text = { Text(stringResource(KMR.strings.suwayomi_download_on_server)) }, onClick = {
+                                            actions = false
+                                            model.download("enqueue", chapter.id)
+                                        })
+                                        if (chapter.user.isDownloaded) {
+                                            DropdownMenuItem(text = { Text(stringResource(KMR.strings.suwayomi_delete_server_download)) }, onClick = {
+                                                actions = false
+                                                model.download("delete", chapter.id)
+                                            })
+                                        }
+                                    }
+
                                     DropdownMenuItem(text = { Text(stringResource(KMR.strings.suwayomi_mark_read)) }, onClick = {
                                         actions = false
                                         model.chapterAction(chapter, ChapterIntentKind.MARK_READ)

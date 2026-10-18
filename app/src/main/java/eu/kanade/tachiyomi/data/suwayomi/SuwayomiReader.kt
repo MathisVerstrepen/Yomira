@@ -31,18 +31,22 @@ class SuwayomiReader private constructor(
                 ogThumbnailUrl = null,
                 initialized = true,
                 url = "suwayomi:${session.id}:$mangaId",
-                viewerFlags = session.readerFlags(mangaId),
+                viewerFlags = session.readerFlags(mangaId).let { local ->
+                    val remote = remoteManga.meta.firstOrNull { it.key == "komikku.reader.v1.mode" }?.value?.toLongOrNull()
+                    val mask = ReadingMode.MASK.toLong()
+                    if (remote != null && ReadingMode.entries.any { it.flagValue.toLong() == remote }) (local and mask.inv()) or remote else local
+                },
                 chapterFlags = Manga.CHAPTER_SORTING_SOURCE or Manga.CHAPTER_SORT_ASC,
             )
             return SuwayomiReader(session, manga, remoteChapters.map { it.toReaderChapter() }, session.readingTicket(remoteChapters.map { it.id }))
         }
     }
 
-    fun progress(chapterId: Long, page: Int, read: Boolean) {
+    fun progress(chapterId: Long, page: Int, completed: Boolean) {
         session.enqueue(
             SuwayomiMode.remoteId(chapterId),
             ChapterIntentKind.PROGRESS,
-            ChapterPatch(isRead = read, lastPageRead = page),
+            ChapterPatch(isRead = if (completed) true else null, lastPageRead = page),
             ticket,
         )
     }
@@ -51,7 +55,8 @@ class SuwayomiReader private constructor(
         session.enqueue(SuwayomiMode.remoteId(chapterId), ChapterIntentKind.BOOKMARK, ChapterPatch(isBookmarked = bookmarked))
     }
 
-    fun setFlags(flag: Long, mask: Long): Manga {
+    suspend fun setFlags(flag: Long, mask: Long): Manga {
+        if (mask == ReadingMode.MASK.toLong()) session.setMangaReadingMode(SuwayomiMode.remoteId(manga.id), flag)
         val flags = manga.viewerFlags and mask.inv() or (flag and mask)
         session.setReaderFlags(SuwayomiMode.remoteId(manga.id), flags)
         manga = manga.copy(viewerFlags = flags)

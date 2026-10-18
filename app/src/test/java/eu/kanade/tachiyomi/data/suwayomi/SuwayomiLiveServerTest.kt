@@ -1,6 +1,8 @@
 // KMK -->
 package eu.kanade.tachiyomi.data.suwayomi
 
+import io.mockk.coEvery
+import io.mockk.mockk
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
@@ -58,6 +60,49 @@ class SuwayomiLiveServerTest {
             } finally {
                 patch(client, pages.chapter.user.isRead, pages.chapter.user.lastPageRead, pages.chapter.user.isBookmarked)
             }
+        } finally {
+            client.close()
+        }
+    }
+
+    @Test
+    fun `source browsing categories and reading metadata obey the live contract`() = runBlocking {
+        val client = SuwayomiClient(
+            StoredSession(
+                baseUrl = System.getenv("KOMIKKU_SUWAYOMI_TEST_URL"),
+                mode = SuwayomiAuthMode.valueOf(System.getenv("KOMIKKU_SUWAYOMI_TEST_AUTH") ?: "NONE"),
+                username = System.getenv("KOMIKKU_SUWAYOMI_TEST_USER") ?: "",
+                password = System.getenv("KOMIKKU_SUWAYOMI_TEST_PASSWORD") ?: "",
+            ),
+        ) {}
+        try {
+            client.login()
+            val session = mockk<SuwayomiSession>()
+            coEvery { session.execute(any(), any()) } coAnswers { client.graphql(firstArg(), secondArg()) }
+            assertTrue(session.serverSources().any { it.id == 0L })
+            session.sourceFilters(0)
+            val source = session.browseSource(0, 1, "", "POPULAR", emptyList())
+            assertTrue(source.mangas.any { it.id == 1 })
+            val categoryName = "Komikku acceptance ${System.nanoTime()}"
+            session.categoryMutation("create", name = categoryName)
+            val category = session.serverCategories().single { it.name == categoryName }
+            try {
+                session.categoryMutation("rename", category.id, name = "$categoryName renamed")
+                session.categoryMutation("reorder", category.id, position = 1)
+                session.setCategoryMembership(1, category.id, true)
+                assertTrue(session.mangaCategories(1).any { it.id == category.id })
+                session.setCategoryMembership(1, category.id, false)
+                assertTrue(session.mangaCategories(1).none { it.id == category.id })
+            } finally {
+                session.categoryMutation("delete", category.id)
+            }
+            session.serverDownloads()
+            session.activityPage(true, null)
+            session.activityPage(false, null)
+            session.setMangaReadingMode(1, 1)
+            val manga = client.field<ServerManga>("query {manga(id:1) { ${SuwayomiSession.MANGA_FIELDS} }}", "manga")
+            assertEquals("1", manga.meta.first { it.key == "komikku.reader.v1.mode" }.value)
+            session.updateRunning()
         } finally {
             client.close()
         }

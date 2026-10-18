@@ -14,6 +14,7 @@ import eu.kanade.tachiyomi.data.suwayomi.SuwayomiBackend
 import eu.kanade.tachiyomi.data.suwayomi.SuwayomiException
 import eu.kanade.tachiyomi.data.suwayomi.SuwayomiFailure
 import eu.kanade.tachiyomi.data.suwayomi.SuwayomiSession
+import eu.kanade.tachiyomi.data.suwayomi.downloadAction
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -47,9 +48,32 @@ class SuwayomiScreenModel(private val backend: SuwayomiBackend = Injekt.get()) :
         }
     }
 
+    fun reauthenticate(username: String, password: String) = screenModelScope.launch(Dispatchers.IO) {
+        mutableState.update { it.copy(loading = true, error = null) }
+        try {
+            backend.reauthenticate(username, password)
+        } catch (e: Exception) {
+            if (e is CancellationException) throw e
+            mutableState.update { it.copy(loading = false, error = failure(e)) }
+        }
+    }
+
     fun disconnect() = screenModelScope.launch(Dispatchers.IO) { backend.disconnect() }
 
     fun refresh() = screenModelScope.launch(Dispatchers.IO) { reload() }
+
+    fun readingPreferences(upload: Boolean) = screenModelScope.launch(Dispatchers.IO) {
+        val session = state.value.session ?: return@launch
+        mutableState.update { it.copy(loading = true, error = null) }
+        try {
+            val sync = eu.kanade.tachiyomi.data.suwayomi.SuwayomiReadingPreferences(Injekt.get())
+            if (upload) sync.upload(session) else sync.apply(session)
+            mutableState.update { it.copy(loading = false) }
+        } catch (e: Exception) {
+            if (e is CancellationException) throw e
+            mutableState.update { it.copy(loading = false, error = failure(e)) }
+        }
+    }
 
     private suspend fun reload() = libraryMutex.withLock {
         val session = state.value.session ?: return@withLock
@@ -113,7 +137,8 @@ class SuwayomiMangaScreenModel(
                 if (fetch) session.refreshManga(mangaId)
                 val manga = session.manga(mangaId)
                 val chapters = session.chapters(mangaId)
-                mutableState.value = State(manga, chapters, loading = false)
+                val user = session.user()
+                mutableState.value = State(manga = manga, chapters = chapters, loading = false, canDownload = user.roles.contains("ADMIN") || user.permissions.contains("DOWNLOAD_CHAPTERS"))
             } catch (e: Exception) {
                 if (e is CancellationException) throw e
                 mutableState.update { it.copy(loading = false, error = failure(e)) }
@@ -125,6 +150,17 @@ class SuwayomiMangaScreenModel(
         mutableState.update { it.copy(loading = true, error = null) }
         try {
             backend.requireSession(sessionId).setLibrary(mangaId, inLibrary)
+            refresh()
+        } catch (e: Exception) {
+            if (e is CancellationException) throw e
+            mutableState.update { it.copy(loading = false, error = failure(e)) }
+        }
+    }
+
+    fun download(action: String, chapterId: Int) = screenModelScope.launch(Dispatchers.IO) {
+        mutableState.update { it.copy(loading = true, error = null) }
+        try {
+            backend.requireSession(sessionId).downloadAction(action, chapterId)
             refresh()
         } catch (e: Exception) {
             if (e is CancellationException) throw e
@@ -167,6 +203,7 @@ class SuwayomiMangaScreenModel(
 
     data class State(
         val manga: ServerManga? = null,
+        val canDownload: Boolean = false,
         val chapters: List<ServerChapter> = emptyList(),
         val loading: Boolean = true,
         val error: SuwayomiFailure? = null,

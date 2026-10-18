@@ -31,43 +31,77 @@ class SuwayomiBackend(private val context: Context) {
     val session = mutableSession.asStateFlow()
 
     init {
+        File(context.cacheDir, "suwayomi").deleteRecursively()
         storage.read()?.let { stored -> mutableSession.value = createSession(stored) }
     }
 
     private fun createSession(stored: StoredSession): SuwayomiSession {
-        val client = SuwayomiClient(stored) { updated ->
+        lateinit var client: SuwayomiClient
+        client = SuwayomiClient(stored) { updated ->
             synchronized(sessionLock) {
-                if (mutableSession.value?.id == stored.id) storage.write(updated)
+                if (mutableSession.value?.client === client) storage.write(updated)
             }
         }
-        return SuwayomiSession(context, stored.id, client) { requireSession(stored.id) }
+        return SuwayomiSession(context, stored.id, client) { requireClient(stored.id, client) }
     }
 
     suspend fun connect(baseUrl: String, mode: SuwayomiAuthMode, username: String, password: String) = connectionMutex.withLock {
         val stored = StoredSession(baseUrl = SuwayomiUrl(baseUrl).base.toString(), mode = mode, username = username, password = password)
         val latest = AtomicReference(stored)
-        val candidate = SuwayomiClient(stored) { updated ->
+        lateinit var candidate: SuwayomiClient
+        candidate = SuwayomiClient(stored) { updated ->
             latest.set(updated)
             synchronized(sessionLock) {
-                if (mutableSession.value?.id == stored.id) storage.write(updated)
+                if (mutableSession.value?.client === candidate) storage.write(updated)
             }
         }
         try {
             candidate.login()
-            candidate.field<ServerUser>("query { user { id username permissions roles } }", "user")
+            val user = candidate.field<ServerUser>("query { user { id username permissions roles } }", "user")
+            candidate.attachUser(user.id)
             candidate.field<ServerInfo>("query { aboutServer { name version } }", "aboutServer")
             // Contract probe. A version string alone does not guarantee the per-user API exists.
             candidate.graphql("query { mangas(first: 1, condition: {inLibrary: true}) { nodes { id sourceId user { inLibrary unreadCount } } pageInfo { hasNextPage endCursor } } }")
             synchronized(sessionLock) {
                 storage.write(latest.get())
                 val old = mutableSession.value
-                mutableSession.value = SuwayomiSession(context, stored.id, candidate) { requireSession(stored.id) }
+                mutableSession.value = SuwayomiSession(context, stored.id, candidate) { requireClient(stored.id, candidate) }
                 old?.close(clear = true)
             }
         } catch (e: Exception) {
             candidate.close()
             throw e
         }
+    }
+
+    suspend fun reauthenticate(username: String, password: String) = connectionMutex.withLock {
+        val old = requireSession()
+        val saved = storage.read() ?: throw SuwayomiException(SuwayomiFailure.CONNECTION_REQUIRED)
+        if (saved.userId == null) throw SuwayomiException(SuwayomiFailure.CONTRACT)
+        val latest = AtomicReference(saved.copy(username = username, password = password, accessToken = "", refreshToken = "", cookies = emptyList()))
+        lateinit var client: SuwayomiClient
+        client = SuwayomiClient(latest.get()) { updated ->
+            latest.set(updated)
+            synchronized(sessionLock) { if (mutableSession.value?.client === client) storage.write(updated) }
+        }
+        try {
+            client.login()
+            val user = client.field<ServerUser>("query { user {id username permissions roles} }", "user")
+            if (user.id != saved.userId) throw SuwayomiException(SuwayomiFailure.PERMISSION_DENIED)
+            client.attachUser(user.id)
+            synchronized(sessionLock) {
+                storage.write(latest.get())
+                old.close(clear = false)
+                mutableSession.value = SuwayomiSession(context, saved.id, client) { requireClient(saved.id, client) }
+            }
+        } catch (e: Exception) {
+            client.close()
+            throw e
+        }
+    }
+
+    private fun requireClient(id: String, client: SuwayomiClient) {
+        if (requireSession(id).client !== client) throw SuwayomiException(SuwayomiFailure.SESSION_CHANGED)
     }
 
     suspend fun disconnect() = connectionMutex.withLock {
@@ -99,6 +133,7 @@ class SuwayomiSession internal constructor(
     private val drainMutex = Mutex()
     private var scheduledFlush: Job? = null
     private val outboxFile = AtomicFile(File(context.noBackupFilesDir, "suwayomi-outbox-$id"))
+    internal val pageCache = File(context.cacheDir, "suwayomi/$id/${java.util.UUID.randomUUID()}")
     private val flagsFile = AtomicFile(File(context.noBackupFilesDir, "suwayomi-reader-$id"))
     private val outbox = ChapterOutbox(if (outboxFile.baseFile.exists()) outboxFile.readFully().decodeToString() else null) {
         if (!closed) writeAtomic(outboxFile, it)
@@ -169,6 +204,7 @@ class SuwayomiSession internal constructor(
     }
 
     suspend fun image(path: String): ByteArray = checked { client.image(path) }
+    internal suspend fun imageFile(path: String, file: File) = checked { client.imageFile(path, file) }
 
     suspend fun setLibrary(mangaId: Int, inLibrary: Boolean) = checked {
         client.graphql(
@@ -223,6 +259,7 @@ class SuwayomiSession internal constructor(
             try {
                 if (intent.status == ChapterIntentStatus.AMBIGUOUS || intent.status == ChapterIntentStatus.SENDING) {
                     if (matches(chapter(intent.chapterId), intent.patch)) {
+                        updateServerTracking(intent)
                         outbox.acknowledge(intent.id)
                         mutablePending.value = outbox.operations()
                         continue
@@ -255,6 +292,7 @@ class SuwayomiSession internal constructor(
                         ),
                     )
                 }
+                updateServerTracking(intent)
                 outbox.acknowledge(intent.id)
             } catch (e: CancellationException) {
                 // Persist uncertainty even when the process/activity or HTTP call was cancelled.
@@ -284,10 +322,31 @@ class SuwayomiSession internal constructor(
         scope.launch { flush() }
     }
 
+    private suspend fun updateServerTracking(intent: ChapterIntent) {
+        if (intent.patch.isRead != true) return
+        val mangaId = chapter(intent.chapterId).mangaId
+        execute(
+            "mutation(\$input:TrackProgressInput!) { trackProgress(input:\$input) {clientMutationId} }",
+            variables("input" to buildJsonObject { put("mangaId", mangaId) }),
+        )
+    }
+
     private fun matches(chapter: ServerChapter, patch: ChapterPatch): Boolean =
         (patch.isRead == null || patch.isRead == chapter.user.isRead) &&
             (patch.lastPageRead == null || patch.lastPageRead == chapter.user.lastPageRead) &&
             (patch.isBookmarked == null || patch.isBookmarked == chapter.user.isBookmarked)
+
+    internal fun downloadEvents() = kotlinx.coroutines.flow.flow {
+        user()
+        client.subscribe("subscription { downloadChanged { state } }").collect {
+            assertActive()
+            emit(it)
+        }
+    }
+
+    internal suspend fun execute(query: String, variables: kotlinx.serialization.json.JsonObject = kotlinx.serialization.json.JsonObject(emptyMap())) = checked {
+        client.graphql(query, variables)
+    }
 
     private suspend fun <T> checked(block: suspend () -> T): T {
         assertActive()
@@ -300,6 +359,7 @@ class SuwayomiSession internal constructor(
         closed = true
         scope.coroutineContext[Job]?.cancel()
         client.close()
+        pageCache.deleteRecursively()
         if (clear) {
             outboxFile.delete()
             flagsFile.delete()
@@ -318,7 +378,7 @@ class SuwayomiSession internal constructor(
     }
 
     companion object {
-        internal const val MANGA_FIELDS = "id sourceId title thumbnailUrl author artist description genre status user { inLibrary unreadCount downloadCount }"
+        internal const val MANGA_FIELDS = "id sourceId title thumbnailUrl author artist description genre status user { inLibrary unreadCount downloadCount } meta { key value }"
         internal const val CHAPTER_FIELDS = "id mangaId name chapterNumber sourceOrder scanlator uploadDate pageCount user { isRead isBookmarked lastPageRead lastReadAt isDownloaded }"
     }
 }

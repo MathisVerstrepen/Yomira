@@ -100,6 +100,9 @@ data class ServerConnection<T>(val nodes: List<T>, val pageInfo: ServerPageInfo,
 data class ServerMangaUser(val inLibrary: Boolean, val unreadCount: Int = 0, val downloadCount: Int = 0)
 
 @Serializable
+data class ServerMeta(val key: String, val value: String)
+
+@Serializable
 data class ServerManga(
     val id: Int,
     @Serializable(with = ServerLongSerializer::class) val sourceId: Long,
@@ -111,6 +114,7 @@ data class ServerManga(
     val genre: List<String> = emptyList(),
     val status: String = "UNKNOWN",
     val user: ServerMangaUser,
+    val meta: List<ServerMeta> = emptyList(),
 )
 
 @Serializable

@@ -8,6 +8,7 @@ import eu.kanade.tachiyomi.data.suwayomi.SuwayomiSession
 import eu.kanade.tachiyomi.source.model.Page
 import eu.kanade.tachiyomi.ui.reader.model.ReaderChapter
 import eu.kanade.tachiyomi.ui.reader.model.ReaderPage
+import eu.kanade.tachiyomi.ui.reader.setting.ReaderPreferences
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -18,27 +19,28 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.sync.withPermit
-import java.io.ByteArrayInputStream
+import uy.kohesive.injekt.Injekt
+import uy.kohesive.injekt.api.get
+import java.io.File
 
-/** Server-returned URLs only. Pages stay in a bounded chapter cache until this loader is recycled. */
+/** Server URLs only. Temporary image files are scoped to the connection and active chapter. */
 internal class SuwayomiPageLoader(
     private val chapter: ReaderChapter,
     private val session: SuwayomiSession,
     private val onConflict: (String, Int) -> Unit,
+    private val preferences: ReaderPreferences = Injekt.get(),
 ) : PageLoader() {
     override var isLocal = false
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
-    private val slots = Semaphore(3)
+    private val slots = Semaphore(preferences.readerThreads().get().coerceIn(1, 8))
     private val locks = mutableMapOf<Int, Mutex>()
-    private val images = object : LinkedHashMap<Int, ByteArray>(16, 0.75f, true) {
-        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<Int, ByteArray>?): Boolean = size > 8
-    }
+    private val directory = File(session.pageCache, "chapter-${chapter.chapter.id}")
     private var pages: List<ReaderPage> = emptyList()
 
     override suspend fun getPages(): List<ReaderPage> {
         val result = session.pages(SuwayomiMode.remoteId(chapter.chapter.id!!))
         result.syncConflict?.let { onConflict(it.deviceName, it.remotePage) }
-        // fetchChapterPages can pull newer resume state from a server integration.
+        // Page fetching may pull newer resume state from a server-owned integration.
         chapter.chapter.last_page_read = result.chapter.user.lastPageRead
         chapter.chapter.read = result.chapter.user.isRead
         chapter.chapter.bookmark = result.chapter.user.isBookmarked
@@ -48,32 +50,35 @@ internal class SuwayomiPageLoader(
 
     override suspend fun loadPage(page: ReaderPage) {
         load(page)
-        pages.drop(page.index + 1).take(3).forEach { next -> scope.launch { load(next) } }
+        pages.drop(page.index + 1).take(preferences.preloadSize().get().coerceIn(0, 20)).forEach { next -> scope.launch { load(next) } }
     }
 
     private suspend fun load(page: ReaderPage) {
         val lock = synchronized(locks) { locks.getOrPut(page.index) { Mutex() } }
         lock.withLock {
             if (isRecycled) return
-            val cached = synchronized(images) { images[page.index] }
-            if (cached != null) {
-                page.stream = { ByteArrayInputStream(synchronized(images) { images[page.index] } ?: throw SuwayomiException(SuwayomiFailure.NETWORK)) }
+            val file = File(directory, page.index.toString())
+            if (file.isFile) {
+                page.stream = file::inputStream
                 page.status = Page.State.Ready
                 return
             }
+            val temporary = File(directory, "${page.index}.part")
             try {
                 page.status = Page.State.DownloadImage
-                val bytes = slots.withPermit { session.image(page.imageUrl ?: throw SuwayomiException(SuwayomiFailure.CONTRACT)) }
+                directory.mkdirs()
+                slots.withPermit { session.imageFile(page.imageUrl ?: throw SuwayomiException(SuwayomiFailure.CONTRACT), temporary) }
                 if (isRecycled) return
-                synchronized(images) { images[page.index] = bytes }
-                // Resolve the bytes at read time, so evicted page objects do not retain whole chapters.
-                page.stream = { ByteArrayInputStream(synchronized(images) { images[page.index] } ?: throw SuwayomiException(SuwayomiFailure.NETWORK)) }
+                check(temporary.renameTo(file))
+                page.stream = file::inputStream
                 page.status = Page.State.Ready
             } catch (e: CancellationException) {
                 page.status = Page.State.Queue
                 throw e
             } catch (e: Exception) {
                 page.status = Page.State.Error(e)
+            } finally {
+                temporary.delete()
             }
         }
     }
@@ -86,7 +91,7 @@ internal class SuwayomiPageLoader(
     override fun recycle() {
         super.recycle()
         scope.cancel()
-        synchronized(images) { images.clear() }
+        directory.deleteRecursively()
         pages.forEach { it.stream = null }
         pages = emptyList()
     }
