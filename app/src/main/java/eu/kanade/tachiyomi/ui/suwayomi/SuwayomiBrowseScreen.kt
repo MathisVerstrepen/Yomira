@@ -47,6 +47,7 @@ import cafe.adriel.voyager.navigator.currentOrThrow
 import eu.kanade.presentation.util.Screen
 import eu.kanade.tachiyomi.data.suwayomi.ServerFilter
 import eu.kanade.tachiyomi.data.suwayomi.SuwayomiBackend
+import eu.kanade.tachiyomi.data.suwayomi.coverUrl
 import eu.kanade.tachiyomi.data.suwayomi.sourceFilterChange
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
@@ -86,6 +87,7 @@ class SuwayomiBrowseScreen(private val sessionId: String) : Screen() {
                     return@Column
                 }
                 state.error?.let { Text(failureText(it), Modifier.padding(16.dp), color = MaterialTheme.colorScheme.error) }
+                if (state.schemaChanged) Text(stringResource(KMR.strings.suwayomi_filter_schema_changed), Modifier.padding(16.dp))
                 if (state.loading) LinearProgressIndicator(Modifier.fillMaxWidth())
                 val source = state.source
                 if (source == null) {
@@ -119,7 +121,7 @@ class SuwayomiBrowseScreen(private val sessionId: String) : Screen() {
                     LazyColumn(Modifier.weight(1f)) {
                         items(state.mangas, key = { it.id }) { manga ->
                             Row(Modifier.fillMaxWidth().clickable { navigator.push(SuwayomiMangaScreen(sessionId, manga.id)) }.padding(12.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                                ServerCover(session, manga.thumbnailUrl, Modifier.size(64.dp, 96.dp))
+                                ServerCover(session, manga.coverUrl(), Modifier.size(64.dp, 96.dp))
                                 Text(manga.title)
                             }
                         }

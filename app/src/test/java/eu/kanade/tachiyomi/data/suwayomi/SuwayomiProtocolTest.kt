@@ -103,5 +103,14 @@ class SuwayomiProtocolTest {
         val recovered = ChapterOutbox(disk) {}
         assertEquals(ChapterIntentStatus.AMBIGUOUS, recovered.operations().single().status)
     }
+
+    @Test
+    fun `nested source schema changes invalidate positional filters without treating defaults as schema`() {
+        val original = listOf(ServerFilter("GroupFilter", name = "Group", filters = listOf(ServerFilter("SelectFilter", name = "Language", values = listOf("A", "B"), selected = 0))))
+        val stateOnly = listOf(original.single().copy(filters = listOf(original.single().filters.single().copy(selected = 1))))
+        assertTrue(original.sameFilterSchema(stateOnly))
+        val reordered = listOf(original.single().copy(filters = listOf(original.single().filters.single().copy(values = listOf("B", "A")))))
+        assertFalse(original.sameFilterSchema(reordered))
+    }
 }
 // KMK <--

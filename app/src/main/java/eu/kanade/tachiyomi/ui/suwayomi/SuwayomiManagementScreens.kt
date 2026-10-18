@@ -178,13 +178,17 @@ class SuwayomiDownloadsModel(private val sessionId: String) : StateScreenModel<S
     private val backend = Injekt.get<SuwayomiBackend>()
     private val mutex = Mutex()
     fun load() = screenModelScope.launch(Dispatchers.IO) { refresh() }
-    fun action(action: String, chapterId: Int? = null) = screenModelScope.launch(Dispatchers.IO) {
-        try {
-            backend.requireSession(sessionId).downloadAction(action, chapterId)
-            refresh()
-        } catch (e: Exception) {
-            if (e is CancellationException) throw e
-            mutableState.update { it.copy(error = failure(e)) }
+    private val actionMutex = Mutex()
+    fun action(action: String, chapterId: Int? = null, position: Int? = null) = screenModelScope.launch(Dispatchers.IO) {
+        actionMutex.withLock {
+            mutableState.update { it.copy(loading = true, error = null) }
+            try {
+                backend.requireSession(sessionId).downloadAction(action, chapterId, position)
+                refresh()
+            } catch (e: Exception) {
+                if (e is CancellationException) throw e
+                mutableState.update { it.copy(loading = false, error = failure(e)) }
+            }
         }
     }
     suspend fun observe() {
@@ -218,6 +222,7 @@ class SuwayomiDownloadsScreen(private val sessionId: String) : Screen() {
         val model = rememberScreenModel { SuwayomiDownloadsModel(sessionId) }
         val state by model.state.collectAsState()
         val navigator = LocalNavigator.currentOrThrow
+        var clear by remember { mutableStateOf(false) }
         LaunchedEffect(Unit) {
             model.load()
             try {
@@ -236,11 +241,13 @@ class SuwayomiDownloadsScreen(private val sessionId: String) : Screen() {
                 if (state.loading) LinearProgressIndicator(Modifier.fillMaxWidth())
                 state.error?.let { Text(failureText(it), Modifier.padding(16.dp), color = MaterialTheme.colorScheme.error) }
                 Text(stringResource(KMR.strings.suwayomi_download_notice), Modifier.padding(16.dp))
+                Text(stringResource(KMR.strings.suwayomi_shared_queue_notice), Modifier.padding(horizontal = 16.dp), style = MaterialTheme.typography.bodySmall)
                 Row {
                     TextButton(onClick = { model.load() }) { Text(stringResource(KMR.strings.suwayomi_reload)) }
                     Button(onClick = { model.action("start") }, enabled = state.canDownload) { Text(stringResource(KMR.strings.suwayomi_start_queue)) }
                     TextButton(onClick = { model.action("stop") }, enabled = state.canDownload) { Text(stringResource(KMR.strings.suwayomi_stop_queue)) }
                 }
+                TextButton(onClick = { clear = true }, enabled = state.canDownload && !state.loading && state.downloads?.queue?.isNotEmpty() == true) { Text(stringResource(KMR.strings.suwayomi_clear_queue)) }
                 state.downloads?.let { downloads ->
                     Text(downloads.state, Modifier.padding(16.dp))
                     LazyColumn {
@@ -248,12 +255,21 @@ class SuwayomiDownloadsScreen(private val sessionId: String) : Screen() {
                             Column(Modifier.fillMaxWidth().padding(12.dp)) {
                                 Text(item.manga.title, style = MaterialTheme.typography.titleMedium)
                                 Text("${item.chapter.name} · ${item.state} · ${(item.progress * 100).toInt()}%")
+                                TextButton(onClick = { model.action("reorder", item.chapter.id, position = 0) }, enabled = state.canDownload && !state.loading) { Text(stringResource(KMR.strings.suwayomi_queue_first)) }
                                 TextButton(onClick = { model.action("cancel", item.chapter.id) }, enabled = state.canDownload) { Text(stringResource(KMR.strings.suwayomi_cancel_server_download)) }
                             }
                         }
                     }
                 }
             }
+        }
+        if (clear) {
+            AlertDialog(onDismissRequest = { clear = false }, title = { Text(stringResource(KMR.strings.suwayomi_clear_queue)) }, text = { Text(stringResource(KMR.strings.suwayomi_clear_queue_notice)) }, confirmButton = {
+                TextButton(onClick = {
+                    model.action("clear")
+                    clear = false
+                }) { Text(stringResource(KMR.strings.suwayomi_clear_queue)) }
+            }, dismissButton = { TextButton(onClick = { clear = false }) { Text(stringResource(KMR.strings.suwayomi_cancel)) } })
         }
     }
 }

@@ -70,6 +70,7 @@ import eu.kanade.tachiyomi.data.suwayomi.SuwayomiBackend
 import eu.kanade.tachiyomi.data.suwayomi.SuwayomiFailure
 import eu.kanade.tachiyomi.data.suwayomi.SuwayomiMode
 import eu.kanade.tachiyomi.data.suwayomi.SuwayomiSession
+import eu.kanade.tachiyomi.data.suwayomi.coverUrl
 import eu.kanade.tachiyomi.ui.reader.ReaderActivity
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
@@ -116,6 +117,10 @@ object SuwayomiHomeScreen : Screen() {
                         DropdownMenuItem(text = { Text(stringResource(KMR.strings.suwayomi_tracking)) }, onClick = {
                             menu = false
                             state.session?.let { navigator.push(SuwayomiTrackingScreen(it.id)) }
+                        })
+                        DropdownMenuItem(text = { Text(stringResource(KMR.strings.suwayomi_feature_availability)) }, onClick = {
+                            menu = false
+                            navigator.push(SuwayomiCompatibilityScreen())
                         })
                         DropdownMenuItem(text = { Text(stringResource(KMR.strings.suwayomi_administration)) }, onClick = {
                             menu = false
@@ -263,8 +268,8 @@ object SuwayomiHomeScreen : Screen() {
 }
 
 @Composable
-private fun ServerSetup(loading: Boolean, error: SuwayomiFailure?, connect: (String, SuwayomiAuthMode, String, String) -> Any) {
-    var url by rememberSaveable { mutableStateOf("") }
+internal fun ServerSetup(loading: Boolean, error: SuwayomiFailure?, connect: (String, SuwayomiAuthMode, String, String) -> Any, initialUrl: String = "") {
+    var url by rememberSaveable { mutableStateOf(initialUrl) }
     var mode by rememberSaveable { mutableStateOf(SuwayomiAuthMode.NONE) }
     var username by rememberSaveable { mutableStateOf("") }
     // Credentials must not be serialized into saved-instance-state or screenshots of diagnostics.
@@ -331,9 +336,13 @@ class SuwayomiMangaScreen(private val sessionId: String, private val mangaId: In
                     state.manga?.let { manga ->
                         item {
                             Row(Modifier.padding(16.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                                ServerCover(session, manga.thumbnailUrl, Modifier.width(100.dp).height(150.dp))
+                                ServerCover(session, manga.coverUrl(), Modifier.width(100.dp).height(150.dp))
                                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                                     Text(manga.title, style = MaterialTheme.typography.titleLarge)
+                                    TextButton(onClick = {
+                                        val link = eu.kanade.tachiyomi.data.suwayomi.SuwayomiLink(session.baseUrl, manga.id, manga.sourceId, manga.url).encode()
+                                        context.startActivity(android.content.Intent.createChooser(android.content.Intent(android.content.Intent.ACTION_SEND).setType("text/plain").putExtra(android.content.Intent.EXTRA_TEXT, link), null))
+                                    }) { Text(stringResource(KMR.strings.suwayomi_share_link)) }
                                     Text(listOfNotNull(manga.author, manga.artist).distinct().joinToString(" · "))
                                     Button(onClick = { model.setLibrary(!manga.user.inLibrary) }, enabled = !state.loading) {
                                         Text(stringResource(if (manga.user.inLibrary) KMR.strings.suwayomi_remove_library else KMR.strings.suwayomi_add_library))

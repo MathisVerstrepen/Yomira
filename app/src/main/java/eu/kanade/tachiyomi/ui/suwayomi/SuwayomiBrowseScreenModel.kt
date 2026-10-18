@@ -9,6 +9,7 @@ import eu.kanade.tachiyomi.data.suwayomi.ServerSource
 import eu.kanade.tachiyomi.data.suwayomi.SuwayomiBackend
 import eu.kanade.tachiyomi.data.suwayomi.SuwayomiFailure
 import eu.kanade.tachiyomi.data.suwayomi.browseSource
+import eu.kanade.tachiyomi.data.suwayomi.sameFilterSchema
 import eu.kanade.tachiyomi.data.suwayomi.serverSources
 import eu.kanade.tachiyomi.data.suwayomi.sourceFilters
 import kotlinx.coroutines.CancellationException
@@ -69,9 +70,18 @@ class SuwayomiBrowseScreenModel(private val sessionId: String, private val backe
         val page = if (next) state.value.page + 1 else 1
         task?.cancel()
         task = screenModelScope.launch(Dispatchers.IO) {
-            mutableState.update { it.copy(loading = true, error = null, mangas = if (next) it.mangas else emptyList()) }
+            mutableState.update { it.copy(loading = true, error = null, schemaChanged = false, mangas = if (next) it.mangas else emptyList()) }
             try {
-                val result = backend.requireSession(sessionId).browseSource(source.id, page, query, type, changes)
+                val session = backend.requireSession(sessionId)
+                if (changes.isNotEmpty()) {
+                    val schema = session.sourceFilters(source.id)
+                    if (!state.value.filters.sameFilterSchema(schema)) {
+                        changes = emptyList()
+                        mutableState.update { it.copy(filters = schema, schemaChanged = true, loading = false, mangas = emptyList(), page = 0, hasNext = false) }
+                        return@launch
+                    }
+                }
+                val result = session.browseSource(source.id, page, query, type, changes)
                 mutableState.update { it.copy(loading = false, page = page, hasNext = result.hasNextPage, mangas = (it.mangas + result.mangas).distinctBy(ServerManga::id)) }
             } catch (e: Exception) {
                 if (e is CancellationException) throw e
@@ -88,6 +98,7 @@ class SuwayomiBrowseScreenModel(private val sessionId: String, private val backe
         val loading: Boolean = false,
         val error: SuwayomiFailure? = null,
         val page: Int = 0,
+        val schemaChanged: Boolean = false,
         val hasNext: Boolean = false,
     )
 }

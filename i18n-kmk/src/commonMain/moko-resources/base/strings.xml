@@ -405,4 +405,19 @@
     <string name="suwayomi_new_server_chapters">%1$d new server chapters</string>
     <string name="suwayomi_background_notice">Optional Android checks look for new server chapters about once an hour. Android may delay checks while idle. The first check creates a baseline without notifying. This does not run a server library update or provide instant push delivery.</string>
     <string name="suwayomi_background_checks">Notify about new server chapters</string>
+    <string name="suwayomi_shared_queue_notice">Queue start, stop, clear, and ordering control the shared server queue and can affect other users.</string>
+    <string name="suwayomi_clear_queue">Clear shared queue</string>
+    <string name="suwayomi_clear_queue_notice">Stop the server downloader and cancel all queued chapters for every user? Existing downloaded files are kept.</string>
+    <string name="suwayomi_queue_first">Move to front of server queue</string>
+    <string name="suwayomi_invalid_link">This server manga link is invalid.</string>
+    <string name="suwayomi_link_connect">Connect to %1$s to open this manga.</string>
+    <string name="suwayomi_link_other_server">This manga belongs to %1$s. Replace your connection deliberately in library settings, then reopen the link.</string>
+    <string name="suwayomi_back_library">Back to library</string>
+    <string name="suwayomi_share_link">Share server manga link</string>
+    <string name="suwayomi_feature_availability">Feature availability</string>
+    <string name="suwayomi_availability_core">Reading, library categories, source browsing, tracking, updates, and server downloads use your connected server. Reader layout, gestures, themes, brightness, and orientation run on this device.</string>
+    <string name="suwayomi_availability_deferred">Saved feeds and searches, merged manga, metadata overrides and custom covers, recommendations, source migration, release predictions, source-specific enhancements, and home-screen widgets are not available in server mode yet. Android never falls back to running a source directly.</string>
+    <string name="suwayomi_availability_history">Recent reading uses server chapter progress. Clearing history independently of read state and complete reading-duration statistics need additional server support, so these controls are unavailable.</string>
+    <string name="suwayomi_availability_offline">Saving chapters to this device and airplane-mode reading are planned for a later phase. Server downloads still require a server connection.</string>
+    <string name="suwayomi_filter_schema_changed">The server source filters changed. Your old filter choices were cleared. Choose filters again before searching.</string>
 </resources>

@@ -43,6 +43,7 @@ import eu.kanade.tachiyomi.data.suwayomi.LibraryFilter
 import eu.kanade.tachiyomi.data.suwayomi.LibraryGroup
 import eu.kanade.tachiyomi.data.suwayomi.LibrarySort
 import eu.kanade.tachiyomi.data.suwayomi.ServerManga
+import eu.kanade.tachiyomi.data.suwayomi.coverUrl
 import eu.kanade.tachiyomi.data.suwayomi.libraryMatches
 import eu.kanade.tachiyomi.data.suwayomi.libraryOrder
 import tachiyomi.i18n.kmk.KMR
@@ -157,7 +158,7 @@ internal fun SuwayomiLibraryContent(state: SuwayomiScreenModel.State, model: Suw
                     if (name.isNotEmpty()) item(span = { GridItemSpan(maxLineSpan) }) { Text(name, Modifier.padding(12.dp), style = MaterialTheme.typography.titleMedium) }
                     items(items, key = { "$groupIndex:${it.id}" }) { manga ->
                         Card(Modifier.padding(horizontal = 6.dp).combinedClickable(onClick = { open(manga) }, onLongClick = { model.select(manga.id) })) {
-                            ServerCover(session, manga.thumbnailUrl, Modifier.fillMaxWidth().aspectRatio(2f / 3f))
+                            ServerCover(session, manga.coverUrl(), Modifier.fillMaxWidth().aspectRatio(2f / 3f))
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 if (state.selected.isNotEmpty()) Checkbox(manga.id in state.selected, { model.select(manga.id) })
                                 Text(manga.title, Modifier.weight(1f).padding(8.dp), maxLines = 2, overflow = TextOverflow.Ellipsis)
@@ -175,7 +176,7 @@ internal fun SuwayomiLibraryContent(state: SuwayomiScreenModel.State, model: Suw
                     items(items, key = { "$groupIndex:${it.id}" }) { manga ->
                         Row(Modifier.fillMaxWidth().combinedClickable(onClick = { open(manga) }, onLongClick = { model.select(manga.id) }).padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
                             if (state.selected.isNotEmpty()) Checkbox(manga.id in state.selected, { model.select(manga.id) })
-                            ServerCover(session, manga.thumbnailUrl, Modifier.width(48.dp).height(72.dp))
+                            ServerCover(session, manga.coverUrl(), Modifier.width(48.dp).height(72.dp))
                             Text(manga.title, Modifier.weight(1f).padding(12.dp), maxLines = 2)
                             Text(manga.user.unreadCount.toString())
                         }

@@ -29,5 +29,13 @@ class SuwayomiAdministrationTest {
         assertThrows(SuwayomiException::class.java) { runBlocking { session.changeSourcePreference(7, 0, ServerPreference("SwitchPreference"), "switchState", JsonPrimitive(true)) } }
         coVerify(exactly = 0) { session.execute(any(), any()) }
     }
+
+    @Test
+    fun `download reordering uses chapter identity and zero based queue position`() = runBlocking<Unit> {
+        val session = mockk<SuwayomiSession>()
+        coEvery { session.execute(any(), any()) } returns Json.parseToJsonElement("""{"reorderChapterDownload":{"clientMutationId":null}}""").jsonObject
+        session.downloadAction("reorder", 47, 0)
+        coVerify { session.execute(match { it.contains("reorderChapterDownload") }, match { it.toString() == "{\"input\":{\"chapterId\":47,\"to\":0}}" }) }
+    }
 }
 // KMK <--

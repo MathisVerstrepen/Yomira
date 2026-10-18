@@ -117,7 +117,8 @@ class SuwayomiLiveServerTest {
                 session.changeUserOption("updateMangas", JsonPrimitive(options.updateMangas))
             }
 
-            session.serverDownloads()
+            assertTrue(session.serverDownloads().queue.isEmpty(), "Use a disposable server with no active downloads")
+            session.downloadAction("clear")
 
             session.activityPage(true, null)
 

@@ -42,6 +42,7 @@ import eu.kanade.tachiyomi.data.suwayomi.SuwayomiBackend
 import eu.kanade.tachiyomi.data.suwayomi.SuwayomiFailure
 import eu.kanade.tachiyomi.data.suwayomi.SuwayomiMode
 import eu.kanade.tachiyomi.data.suwayomi.activityPage
+import eu.kanade.tachiyomi.data.suwayomi.coverUrl
 import eu.kanade.tachiyomi.data.suwayomi.updateLibraryOnServer
 import eu.kanade.tachiyomi.data.suwayomi.updateRunning
 import eu.kanade.tachiyomi.ui.reader.ReaderActivity
@@ -131,7 +132,7 @@ class SuwayomiActivityScreen(private val sessionId: String, private val history:
                                 if (backend.session.value?.id == sessionId) context.startActivity(ReaderActivity.newIntent(context, SuwayomiMode.readerId(chapter.manga.id), SuwayomiMode.readerId(chapter.id)))
                             }.padding(12.dp),
                         ) {
-                            ServerCover(session, chapter.manga.thumbnailUrl, Modifier.size(56.dp, 84.dp))
+                            ServerCover(session, chapter.manga.coverUrl(), Modifier.size(56.dp, 84.dp))
                             Column(Modifier.padding(horizontal = 12.dp)) {
                                 Text(chapter.manga.title, style = MaterialTheme.typography.titleMedium)
                                 Text(chapter.name)

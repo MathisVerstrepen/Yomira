@@ -66,7 +66,7 @@ class SuwayomiNotificationWorker(context: Context, parameters: WorkerParameters)
                     val pending = PendingIntent.getActivity(applicationContext, ID, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
                     val title = applicationContext.stringResource(tachiyomi.i18n.kmk.KMR.strings.suwayomi_new_server_chapters, changed.size)
                     val notification = NotificationCompat.Builder(applicationContext, CHANNEL).setSmallIcon(R.drawable.ic_komikku).setContentTitle(title)
-                        .setContentText(changed.map { it.manga.title }.distinct().take(3).joinToString(" · ")).setContentIntent(pending).setAutoCancel(true).setOnlyAlertOnce(true).build()
+                        .setContentText(changed.map { it.manga.title }.distinct().take(3).joinToString(" · ")).setContentIntent(pending).setAutoCancel(true).build()
                     // Persist before posting: a crash cannot repeatedly alert the same update. A crash between
                     // this write and notify may miss one alert; Android delivery is deliberately best effort.
                     session.saveNotificationCheckpoint(Json.encodeToString(SuwayomiUpdateCheckpoint.serializer(), next))

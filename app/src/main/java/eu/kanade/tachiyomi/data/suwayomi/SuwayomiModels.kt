@@ -127,6 +127,7 @@ data class ServerManga(
     @Serializable(with = ServerLongSerializer::class) val sourceId: Long,
     val title: String,
     val thumbnailUrl: String? = null,
+    @Serializable(with = ServerLongSerializer::class) val thumbnailUrlLastFetched: Long? = null,
     val author: String? = null,
     val artist: String? = null,
     val description: String? = null,
@@ -171,6 +172,8 @@ data class ServerChapter(
     val url: String,
     val manga: ServerChapterMangaIdentity,
 )
+
+fun ServerManga.coverUrl(): String? = thumbnailUrl?.let { "$it${if ('?' in it) "&" else "?"}komikkuCover=${thumbnailUrlLastFetched ?: 0}" }
 
 internal fun ServerChapter.identity() = ChapterIdentity(mangaId, manga.sourceId, manga.url, url)
 

@@ -60,6 +60,7 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import tachiyomi.i18n.kmk.KMR
 import tachiyomi.presentation.core.i18n.stringResource
+import tachiyomi.presentation.core.util.collectAsState
 import uy.kohesive.injekt.Injekt
 import uy.kohesive.injekt.api.get
 
@@ -67,19 +68,20 @@ class SuwayomiTrackingModel(private val sessionId: String, private val mangaId: 
     private val backend = Injekt.get<SuwayomiBackend>()
     private val mutex = Mutex()
     fun load() = change {}
-    fun login(tracker: ServerTracker, username: String, password: String, callback: String?) = change { backend.requireSession(sessionId).trackerLogin(tracker.id, username, password, callback) }
+    fun login(tracker: ServerTracker, username: String, password: String, callback: String?) = change(writes = true) { backend.requireSession(sessionId).trackerLogin(tracker.id, username, password, callback) }
     fun search(tracker: ServerTracker, query: String) = change {
         val results = backend.requireSession(sessionId).searchTracker(tracker.id, query)
         mutableState.update { it.copy(searches = results, tracker = tracker) }
     }
-    fun bind(result: ServerTrackSearch) = change {
+    fun bind(result: ServerTrackSearch) = change(writes = true) {
         backend.requireSession(sessionId).bindTrack(mangaId!!, state.value.tracker!!.id, result.remoteId)
         mutableState.update { it.copy(searches = emptyList()) }
     }
-    fun unbind(record: ServerTrackRecord) = change { backend.requireSession(sessionId).unbindTrack(record.id) }
-    fun update(record: ServerTrackRecord, chapter: Double, status: Int, score: String) = change { backend.requireSession(sessionId).updateTrack(record.id, chapter, status, score) }
-    private fun change(action: suspend () -> Unit) = screenModelScope.launch(Dispatchers.IO) {
+    fun unbind(record: ServerTrackRecord) = change(writes = true) { backend.requireSession(sessionId).unbindTrack(record.id) }
+    fun update(record: ServerTrackRecord, chapter: Double, status: Int, score: String) = change(writes = true) { backend.requireSession(sessionId).updateTrack(record.id, chapter, status, score) }
+    private fun change(writes: Boolean = false, action: suspend () -> Unit) = screenModelScope.launch(Dispatchers.IO) {
         mutex.withLock {
+            if (writes && Injekt.get<eu.kanade.domain.base.BasePreferences>().incognitoMode().get()) return@withLock
             mutableState.update { it.copy(loading = true, error = null) }
             try {
                 action()
@@ -103,6 +105,7 @@ class SuwayomiTrackingScreen(private val sessionId: String, private val mangaId:
         val state by model.state.collectAsState()
         val navigator = LocalNavigator.currentOrThrow
         val context = LocalContext.current
+        val incognito by remember { Injekt.get<eu.kanade.domain.base.BasePreferences>().incognitoMode() }.collectAsState()
         var login by remember { mutableStateOf<ServerTracker?>(null) }
         var username by remember { mutableStateOf("") }
         var password by remember { mutableStateOf("") }
@@ -122,6 +125,7 @@ class SuwayomiTrackingScreen(private val sessionId: String, private val mangaId:
             Column(Modifier.padding(padding).fillMaxSize()) {
                 if (state.loading) LinearProgressIndicator(Modifier.fillMaxWidth())
                 state.error?.let { Text(failureText(it), Modifier.padding(16.dp), color = MaterialTheme.colorScheme.error) }
+                if (incognito) Text(stringResource(KMR.strings.suwayomi_incognito_notice), Modifier.padding(16.dp))
                 Text(stringResource(KMR.strings.suwayomi_tracking_notice), Modifier.padding(16.dp))
                 TextButton(onClick = { model.load() }, enabled = !state.loading) { Text(stringResource(KMR.strings.suwayomi_reload)) }
                 LazyColumn {
@@ -135,8 +139,8 @@ class SuwayomiTrackingScreen(private val sessionId: String, private val mangaId:
                                     chapter = record.lastChapterRead.toString()
                                     status = record.status
                                     score = record.displayScore
-                                }, enabled = !state.loading) { Text(stringResource(KMR.strings.suwayomi_edit_track)) }
-                                TextButton(onClick = { model.unbind(record) }, enabled = !state.loading) { Text(stringResource(KMR.strings.suwayomi_unbind)) }
+                                }, enabled = !state.loading && !incognito) { Text(stringResource(KMR.strings.suwayomi_edit_track)) }
+                                TextButton(onClick = { model.unbind(record) }, enabled = !state.loading && !incognito) { Text(stringResource(KMR.strings.suwayomi_unbind)) }
                             }
                         }
                     }
@@ -149,12 +153,12 @@ class SuwayomiTrackingScreen(private val sessionId: String, private val mangaId:
                                     username = ""
                                     password = ""
                                     callback = ""
-                                }, enabled = !state.loading) { Text(stringResource(KMR.strings.suwayomi_sign_in)) }
+                                }, enabled = !state.loading && !incognito) { Text(stringResource(KMR.strings.suwayomi_sign_in)) }
                             } else if (mangaId != null) {
                                 TextButton(onClick = {
                                     searching = tracker
                                     query = ""
-                                }, enabled = !state.loading) { Text(stringResource(KMR.strings.suwayomi_bind)) }
+                                }, enabled = !state.loading && !incognito) { Text(stringResource(KMR.strings.suwayomi_bind)) }
                             } else {
                                 Text(stringResource(KMR.strings.suwayomi_signed_in))
                             }
@@ -163,7 +167,7 @@ class SuwayomiTrackingScreen(private val sessionId: String, private val mangaId:
                     items(state.searches, key = { "search-${it.remoteId}" }) { result ->
                         Row(Modifier.padding(12.dp)) {
                             Text(result.title, Modifier.weight(1f))
-                            Button(onClick = { model.bind(result) }, enabled = !state.loading) { Text(stringResource(KMR.strings.suwayomi_bind)) }
+                            Button(onClick = { model.bind(result) }, enabled = !state.loading && !incognito) { Text(stringResource(KMR.strings.suwayomi_bind)) }
                         }
                     }
                 }
@@ -193,7 +197,7 @@ class SuwayomiTrackingScreen(private val sessionId: String, private val mangaId:
                         model.login(tracker, username, password, if (tracker.authUrl != null) callback else null)
                         login = null
                         password = ""
-                    }) { Text(stringResource(KMR.strings.suwayomi_sign_in)) }
+                    }, enabled = !incognito) { Text(stringResource(KMR.strings.suwayomi_sign_in)) }
                 },
                 dismissButton = {
                     TextButton(onClick = {
@@ -234,7 +238,7 @@ class SuwayomiTrackingScreen(private val sessionId: String, private val mangaId:
                     TextButton(onClick = {
                         model.update(record, chapter.toDouble(), status, score)
                         editing = null
-                    }, enabled = chapter.toDoubleOrNull()?.let { it.isFinite() && it >= 0 } == true) { Text(stringResource(KMR.strings.suwayomi_save)) }
+                    }, enabled = !incognito && chapter.toDoubleOrNull()?.let { it.isFinite() && it >= 0 } == true) { Text(stringResource(KMR.strings.suwayomi_save)) }
                 },
                 dismissButton = { TextButton(onClick = { editing = null }) { Text(stringResource(KMR.strings.suwayomi_cancel)) } },
             )

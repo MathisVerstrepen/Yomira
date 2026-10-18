@@ -35,6 +35,13 @@ data class ServerFilter(
     val filters: List<ServerFilter> = emptyList(),
 )
 
+/** Defaults are state; positional type, label, choices and nesting define the schema. */
+fun List<ServerFilter>.sameFilterSchema(other: List<ServerFilter>): Boolean = size == other.size && indices.all { index ->
+    val a = this[index]
+    val b = other[index]
+    a.type == b.type && a.name == b.name && a.values == b.values && a.filters.sameFilterSchema(b.filters)
+}
+
 @Serializable
 data class ServerSort(val index: Int, val ascending: Boolean)
 
@@ -177,20 +184,23 @@ suspend fun SuwayomiSession.serverDownloads(): ServerDownloads = result(
     "downloadStatus",
 )
 
-suspend fun SuwayomiSession.downloadAction(action: String, chapterId: Int? = null) {
+suspend fun SuwayomiSession.downloadAction(action: String, chapterId: Int? = null, position: Int? = null) {
     val (operation, inputType, selection) = when (action) {
         "enqueue" -> Triple("enqueueChapterDownload", "EnqueueChapterDownloadInput", "clientMutationId")
         "cancel" -> Triple("dequeueChapterDownload", "DequeueChapterDownloadInput", "clientMutationId")
         "delete" -> Triple("deleteDownloadedChapter", "DeleteDownloadedChapterInput", "clientMutationId")
         "start" -> Triple("startDownloader", "StartDownloaderInput", "clientMutationId")
         "stop" -> Triple("stopDownloader", "StopDownloaderInput", "clientMutationId")
+        "clear" -> Triple("clearDownloader", "ClearDownloaderInput", "clientMutationId")
+        "reorder" -> Triple("reorderChapterDownload", "ReorderChapterDownloadInput", "clientMutationId")
         else -> error("Unknown download operation")
     }
     execute(
         "mutation(\$input:$inputType!) { $operation(input:\$input) { $selection } }",
         variables(
             "input" to buildJsonObject {
-                chapterId?.let { put("id", it) }
+                chapterId?.let { put(if (action == "reorder") "chapterId" else "id", it) }
+                if (action == "reorder") put("to", requireNotNull(position).also { require(it >= 0) })
             },
         ),
     )

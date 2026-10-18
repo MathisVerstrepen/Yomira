@@ -76,6 +76,19 @@
             android:exported="false"
             android:process=":error_handler" />
 
+        <!-- KMK -->
+        <activity
+            android:name=".ui.suwayomi.SuwayomiLinkActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="komikku-suwayomi" android:host="manga" />
+            </intent-filter>
+        </activity>
+        <!-- KMK cloud link boundary end -->
+
         <!-- KMK cloud backend boundary -->
         <activity
             android:name=".ui.deeplink.DeepLinkActivity"

@@ -278,6 +278,7 @@ class SuwayomiSession internal constructor(
 
     fun enqueue(chapterId: Int, kind: ChapterIntentKind, patch: ChapterPatch, ticket: ReadingTicket? = null, identity: ChapterIdentity? = null) {
         assertActive()
+        if (incognito()) return
         if (outbox.enqueue(chapterId, kind, patch, ticket, identity)) {
             mutablePending.value = outbox.operations()
             scheduledFlush?.cancel()
@@ -291,9 +292,10 @@ class SuwayomiSession internal constructor(
     /** A timeout is reconciled by exact identity and values, never blindly reissued. */
     suspend fun flush() = drainMutex.withLock {
         assertActive()
-        if (uy.kohesive.injekt.Injekt.get<eu.kanade.domain.base.BasePreferences>().incognitoMode().get()) return@withLock
+        if (incognito()) return@withLock
         mutableFailure.value = null
         for (intent in outbox.operations()) {
+            if (incognito()) break
             if (outbox.operations().none { it.id == intent.id }) continue
             try {
                 val remote = chapter(intent.chapterId)
@@ -316,6 +318,7 @@ class SuwayomiSession internal constructor(
                     mutableFailure.value = SuwayomiFailure.SERVER
                     break
                 }
+                if (incognito()) break
                 outbox.setStatus(intent.id, ChapterIntentStatus.SENDING)
                 mutablePending.value = outbox.operations()
                 checked {
@@ -375,13 +378,15 @@ class SuwayomiSession internal constructor(
     }
 
     private suspend fun updateServerTracking(intent: ChapterIntent) {
-        if (intent.patch.isRead != true) return
+        if (intent.patch.isRead != true || incognito()) return
         val mangaId = chapter(intent.chapterId).mangaId
         execute(
             "mutation(\$input:TrackProgressInput!) { trackProgress(input:\$input) {clientMutationId} }",
             variables("input" to buildJsonObject { put("mangaId", mangaId) }),
         )
     }
+
+    private fun incognito(): Boolean = uy.kohesive.injekt.Injekt.get<eu.kanade.domain.base.BasePreferences>().incognitoMode().get()
 
     private fun matches(chapter: ServerChapter, patch: ChapterPatch): Boolean =
         (patch.isRead == null || patch.isRead == chapter.user.isRead) &&
@@ -433,7 +438,7 @@ class SuwayomiSession internal constructor(
     }
 
     companion object {
-        internal const val MANGA_FIELDS = "id url sourceId source {name lang} title thumbnailUrl author artist description genre status categories {nodes {id name order}} user { inLibrary inLibraryAt unreadCount downloadCount bookmarkCount lastReadChapter {user {lastReadAt}} } meta { key value }"
+        internal const val MANGA_FIELDS = "id url sourceId source {name lang} title thumbnailUrl thumbnailUrlLastFetched author artist description genre status categories {nodes {id name order}} user { inLibrary inLibraryAt unreadCount downloadCount bookmarkCount lastReadChapter {user {lastReadAt}} } meta { key value }"
         internal const val CHAPTER_FIELDS = "id mangaId url manga {sourceId url} name chapterNumber sourceOrder scanlator uploadDate pageCount user { isRead isBookmarked lastPageRead lastReadAt isDownloaded }"
     }
 }
