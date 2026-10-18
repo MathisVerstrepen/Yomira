@@ -117,6 +117,10 @@ object SuwayomiHomeScreen : Screen() {
                             menu = false
                             state.session?.let { navigator.push(SuwayomiTrackingScreen(it.id)) }
                         })
+                        DropdownMenuItem(text = { Text(stringResource(KMR.strings.suwayomi_administration)) }, onClick = {
+                            menu = false
+                            state.session?.let { navigator.push(SuwayomiAdministrationScreen(it.id)) }
+                        })
                         DropdownMenuItem(text = { Text(stringResource(KMR.strings.suwayomi_webui)) }, onClick = {
                             menu = false
                             state.session?.let { session -> context.startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(session.baseUrl))) }

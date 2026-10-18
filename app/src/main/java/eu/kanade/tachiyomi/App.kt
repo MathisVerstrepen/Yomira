@@ -236,7 +236,7 @@ class App : Application(), DefaultLifecycleObserver, SingletonImageLoader.Factor
         // KMK -->
         if (SuwayomiMode.enabled) {
             // Retire work scheduled by a previous local installation before it can write another library.
-            WorkManager.getInstance(this).cancelAllWork()
+            eu.kanade.tachiyomi.data.suwayomi.SuwayomiNotificationWorker.initialize(this, scope)
             return
         }
         // KMK <--

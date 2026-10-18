@@ -66,8 +66,10 @@ class SuwayomiBackend(private val context: Context) {
             synchronized(sessionLock) {
                 storage.write(latest.get())
                 val old = mutableSession.value
+                SuwayomiNotificationWorker.cancel(context)
                 mutableSession.value = SuwayomiSession(context, stored.id, candidate) { requireClient(stored.id, candidate) }
                 old?.close(clear = true)
+                SuwayomiNotificationWorker.schedule(context, stored.id)
             }
         } catch (e: Exception) {
             candidate.close()
@@ -111,7 +113,12 @@ class SuwayomiBackend(private val context: Context) {
             mutableSession.value = null
             storage.clear()
             old?.close(clear = true)
+            SuwayomiNotificationWorker.cancel(context)
         }
+    }
+
+    internal fun <T> inSession(id: String, block: (SuwayomiSession) -> T): T = synchronized(sessionLock) {
+        block(requireSession(id))
     }
 
     fun requireSession(id: String? = null): SuwayomiSession {
@@ -135,6 +142,7 @@ class SuwayomiSession internal constructor(
     private var scheduledFlush: Job? = null
     private val outboxFile = AtomicFile(File(context.noBackupFilesDir, "suwayomi-outbox-$id"))
     internal val pageCache = File(context.cacheDir, "suwayomi/$id/${java.util.UUID.randomUUID()}")
+    private val notificationFile = AtomicFile(File(context.noBackupFilesDir, "suwayomi-notifications-$id"))
     private val libraryFile = AtomicFile(File(context.noBackupFilesDir, "suwayomi-library-$id"))
     private val flagsFile = AtomicFile(File(context.noBackupFilesDir, "suwayomi-reader-$id"))
     private val outbox = ChapterOutbox(if (outboxFile.baseFile.exists()) outboxFile.readFully().decodeToString() else null) {
@@ -144,6 +152,18 @@ class SuwayomiSession internal constructor(
     val pending = mutablePending.asStateFlow()
     private val mutableFailure = MutableStateFlow<SuwayomiFailure?>(null)
     val mutationFailure = mutableFailure.asStateFlow()
+
+    @Synchronized
+    internal fun notificationCheckpoint(): String? {
+        assertActive()
+        return if (notificationFile.baseFile.exists()) notificationFile.readFully().decodeToString() else null
+    }
+
+    @Synchronized
+    internal fun saveNotificationCheckpoint(value: String) {
+        assertActive()
+        writeAtomic(notificationFile, value)
+    }
 
     @Synchronized
     fun libraryPresentation(): LibraryPresentation {
@@ -387,6 +407,7 @@ class SuwayomiSession internal constructor(
         return value
     }
 
+    @Synchronized
     internal fun close(clear: Boolean) {
         closed = true
         scope.coroutineContext[Job]?.cancel()
@@ -396,6 +417,7 @@ class SuwayomiSession internal constructor(
             outboxFile.delete()
             flagsFile.delete()
             libraryFile.delete()
+            notificationFile.delete()
         }
     }
 

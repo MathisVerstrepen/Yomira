@@ -114,6 +114,7 @@ class SuwayomiBrowseScreen(private val sessionId: String) : Screen() {
                         TextButton(onClick = { model.search("", "POPULAR", emptyList()) }, enabled = !state.loading) { Text(stringResource(KMR.strings.suwayomi_popular)) }
                         if (source.supportsLatest) TextButton(onClick = { model.search("", "LATEST", emptyList()) }, enabled = !state.loading) { Text(stringResource(KMR.strings.suwayomi_latest)) }
                     }
+                    TextButton(onClick = { navigator.push(SuwayomiAdministrationScreen(sessionId, source.id)) }) { Text(stringResource(KMR.strings.suwayomi_source_preferences)) }
                     if (state.filters.isNotEmpty()) TextButton(onClick = { filtersVisible = true }) { Text(stringResource(KMR.strings.suwayomi_filters)) }
                     LazyColumn(Modifier.weight(1f)) {
                         items(state.mangas, key = { it.id }) { manga ->

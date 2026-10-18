@@ -228,16 +228,27 @@ suspend fun SuwayomiSession.setMangaReadingMode(mangaId: Int, mode: Long) {
 }
 
 @Serializable
-data class ServerActivityChapter(val id: Int, val name: String, val manga: ServerManga, val user: ServerChapterUser)
+data class ServerActivityChapter(val id: Int, val name: String, val manga: ServerManga, val user: ServerChapterUser, @Serializable(with = ServerLongSerializer::class) val fetchedAt: Long = 0)
 
+/** Explicit timestamp/ID keysets avoid the reference server's descending timestamp cursor tie bug. */
 suspend fun SuwayomiSession.activityPage(history: Boolean, after: String?): ServerConnection<ServerActivityChapter> {
-    val filter = if (history) "filter: {lastReadAt: {greaterThan: \"0\"}}," else "filter: {inLibrary: {equalTo: true}},"
+    val field = if (history) "lastReadAt" else "fetchedAt"
+    val base = if (history) "lastReadAt: {greaterThan: \"0\"}" else "inLibrary: {equalTo: true}"
+    val seek = after?.let {
+        val parts = it.split(':')
+        require(parts.size == 2)
+        val time = parts[0].toLong()
+        val id = parts[1].toInt()
+        require(time >= 0 && id > 0)
+        ", or:[{$field:{lessThan:\"$time\"}},{$field:{equalTo:\"$time\"},id:{greaterThan:$id}}]"
+    }.orEmpty()
     val sort = if (history) "LAST_READ_AT" else "FETCHED_AT"
-    return result(
-        "query(\$after:Cursor) { chapters(first:60, after:\$after, $filter order:[{by:$sort,byType:DESC}]) { nodes { id name manga { ${SuwayomiSession.MANGA_FIELDS} } user { isRead isBookmarked lastPageRead lastReadAt isDownloaded } } pageInfo{hasNextPage endCursor} totalCount } }",
+    val page = result<ServerConnection<ServerActivityChapter>>(
+        "query { chapters(first:60, filter: {$base$seek}, order:[{by:$sort,byType:DESC}]) { nodes { id name fetchedAt manga { ${SuwayomiSession.MANGA_FIELDS} } user { isRead isBookmarked lastPageRead lastReadAt isDownloaded } } pageInfo{hasNextPage endCursor} totalCount } }",
         "chapters",
-        variables("after" to (after?.let(::JsonPrimitive) ?: JsonNull)),
     )
+    val cursor = page.nodes.lastOrNull()?.let { "${if (history) it.user.lastReadAt else it.fetchedAt}:${it.id}" }
+    return page.copy(pageInfo = page.pageInfo.copy(endCursor = cursor))
 }
 
 suspend fun SuwayomiSession.updateRunning(): Boolean {

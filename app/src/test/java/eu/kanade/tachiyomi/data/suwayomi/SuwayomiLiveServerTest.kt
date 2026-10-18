@@ -105,11 +105,36 @@ class SuwayomiLiveServerTest {
                 session.categoryMutation("delete", category.id)
             }
 
+            session.extensions()
+            session.extensionStores()
+            session.sourcePreferences(0)
+            session.refreshExtensions()
+            val options = session.userOptions()
+            try {
+                session.changeUserOption("updateMangas", JsonPrimitive(!options.updateMangas))
+                assertEquals(!options.updateMangas, session.userOptions().updateMangas)
+            } finally {
+                session.changeUserOption("updateMangas", JsonPrimitive(options.updateMangas))
+            }
+
             session.serverDownloads()
 
             session.activityPage(true, null)
 
-            session.activityPage(false, null)
+            val activities = mutableListOf<Int>()
+            var activityCursor: String? = null
+            var expectedActivities = 0
+            do {
+                val activity = session.activityPage(false, activityCursor)
+                if (activityCursor == null) expectedActivities = activity.totalCount
+                activities.addAll(activity.nodes.map { it.id })
+                if (!activity.pageInfo.hasNextPage) break
+                assertTrue(activity.pageInfo.endCursor != activityCursor)
+                activityCursor = activity.pageInfo.endCursor
+            } while (true)
+            assertTrue(expectedActivities > 60)
+            assertEquals(expectedActivities, activities.size)
+            assertEquals(activities.size, activities.toSet().size)
 
             session.setMangaReadingMode(1, 1)
             val manga = client.field<ServerManga>("query {manga(id:1) { ${SuwayomiSession.MANGA_FIELDS} }}", "manga")
