@@ -3,23 +3,14 @@ package eu.kanade.tachiyomi.ui.suwayomi
 
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.Checkbox
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -30,7 +21,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.unit.dp
 import cafe.adriel.voyager.core.model.StateScreenModel
 import cafe.adriel.voyager.core.model.rememberScreenModel
 import cafe.adriel.voyager.core.model.screenModelScope
@@ -58,6 +48,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.json.JsonPrimitive
+import tachiyomi.core.common.i18n.stringResource
 import tachiyomi.i18n.kmk.KMR
 import tachiyomi.presentation.core.i18n.stringResource
 import uy.kohesive.injekt.Injekt
@@ -101,71 +92,78 @@ class SuwayomiAdministrationScreen(private val sessionId: String, private val so
         val state by model.state.collectAsState()
         val context = LocalContext.current
         val snackbar = rememberRefreshErrors(state.error, state.hasLoaded) { model.load() }
+        val scope = androidx.compose.runtime.rememberCoroutineScope()
         var background by remember { mutableStateOf(SuwayomiNotificationWorker.enabled(context)) }
         val permission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
             background = granted
             SuwayomiNotificationWorker.setEnabled(context, granted, sessionId)
+            if (!granted) {
+                scope.launch {
+                    val result = snackbar.showSnackbar(
+                        context.stringResource(KMR.strings.suwayomi_settings_notification_permission),
+                        actionLabel = context.stringResource(KMR.strings.suwayomi_settings_open_android_settings),
+                    )
+                    if (result == androidx.compose.material3.SnackbarResult.ActionPerformed) {
+                        context.startActivity(android.content.Intent(android.provider.Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(android.provider.Settings.EXTRA_APP_PACKAGE, context.packageName))
+                    }
+                }
+            }
         }
-        var interval by remember(state.interval) { mutableStateOf(state.interval?.toString().orEmpty()) }
+        var refreshing by remember { mutableStateOf(false) }
+        fun reload() {
+            scope.launch {
+                refreshing = true
+                try {
+                    model.load().join()
+                } finally {
+                    refreshing = false
+                }
+            }
+        }
         LaunchedEffect(Unit) { model.load() }
         Scaffold(snackbarHost = { androidx.compose.material3.SnackbarHost(snackbar) }, topBar = {
-            TopAppBar(title = { Text(stringResource(if (sourceId == null) KMR.strings.suwayomi_server_settings else KMR.strings.suwayomi_source_preferences)) }, navigationIcon = {
+            TopAppBar(title = { Text(stringResource(KMR.strings.suwayomi_server_settings)) }, navigationIcon = {
                 IconButton(onClick = { navigator.pop() }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(KMR.strings.suwayomi_back)) }
-            }, actions = { TextButton(onClick = { model.load() }, enabled = !state.loading) { Text(stringResource(KMR.strings.suwayomi_reload)) } })
+            }, actions = {
+                IconButton(onClick = ::reload, enabled = !state.loading && !refreshing) {
+                    Icon(Icons.Filled.Refresh, stringResource(KMR.strings.suwayomi_reload))
+                }
+            })
         }) { padding ->
-            Column(Modifier.padding(padding).fillMaxSize()) {
-                RefreshProgress(state.loading)
-                if (!state.hasLoaded) state.error?.let { Text(failureText(it), Modifier.padding(16.dp), color = MaterialTheme.colorScheme.error) }
-                Column(Modifier.verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Text(stringResource(KMR.strings.suwayomi_background_notice))
-                    Row {
-                        Checkbox(background, { checked ->
-                            if (checked && android.os.Build.VERSION.SDK_INT >= 33 && !SuwayomiNotificationWorker.canNotify(context)) {
-                                permission.launch(android.Manifest.permission.POST_NOTIFICATIONS)
-                            } else {
-                                background = checked
-                                SuwayomiNotificationWorker.setEnabled(context, checked, sessionId)
-                            }
-                        })
-                        Text(stringResource(KMR.strings.suwayomi_background_checks), Modifier.padding(top = 12.dp))
+            ServerSettingsContent(
+                state = state,
+                busy = state.loading || refreshing,
+                background = background,
+                modifier = Modifier.padding(padding),
+                onBackground = { checked ->
+                    if (checked && android.os.Build.VERSION.SDK_INT >= 33 && !SuwayomiNotificationWorker.canNotify(context)) {
+                        permission.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+                    } else {
+                        background = checked
+                        SuwayomiNotificationWorker.setEnabled(context, checked, sessionId)
                     }
-                    Text(stringResource(if (state.sharedLibrary) KMR.strings.suwayomi_shared_settings_notice else KMR.strings.suwayomi_user_options_notice))
-                    state.options?.let { options ->
-                        val fields = listOf(
-                            Triple("excludeUnreadChapters", options.excludeUnreadChapters, KMR.strings.suwayomi_exclude_unread),
-                            Triple("excludeNotStarted", options.excludeNotStarted, KMR.strings.suwayomi_exclude_not_started),
-                            Triple("excludeCompleted", options.excludeCompleted, KMR.strings.suwayomi_exclude_completed),
-                            Triple("updateMangas", options.updateMangas, KMR.strings.suwayomi_update_details),
-                            Triple("autoDownloadNewChapters", options.autoDownloadNewChapters, KMR.strings.suwayomi_auto_download),
-                            Triple("excludeEntryWithUnreadChapters", options.excludeEntryWithUnreadChapters, KMR.strings.suwayomi_download_exclude_unread),
-                            Triple("autoDownloadIgnoreReUploads", options.autoDownloadIgnoreReUploads, KMR.strings.suwayomi_ignore_reuploads),
-                        )
-                        fields.forEach { (field, value, label) ->
-                            Row {
-                                Checkbox(value, { model.load { changeUserOption(field, JsonPrimitive(it)) } }, enabled = !state.loading && (!field.contains("Download") || state.user?.allowed("DOWNLOAD_CHAPTERS") == true))
-                                Text(stringResource(label), Modifier.padding(top = 12.dp))
-                            }
-                        }
-                    }
-                    if (state.interval != null) {
-                        Text(stringResource(KMR.strings.suwayomi_global_schedule_notice))
-                        OutlinedTextField(interval, { interval = it }, label = { Text(stringResource(KMR.strings.suwayomi_update_hours)) }, singleLine = true)
-                        TextButton(onClick = { interval.toDoubleOrNull()?.let { model.load { setUpdateInterval(it) } } }, enabled = !state.loading && interval.toDoubleOrNull()?.let { it == 0.0 || (it >= 6 && it.isFinite()) } == true) { Text(stringResource(KMR.strings.suwayomi_save)) }
-                    }
-                    TextButton(onClick = {
+                },
+                onOption = { field, value -> model.load { changeUserOption(field, JsonPrimitive(value)) } },
+                onInterval = { hours ->
+                    model.load { setUpdateInterval(hours) }.join()
+                    model.state.value.error == null
+                },
+                onRetry = ::reload,
+                onClearCache = {
+                    scope.launch {
                         model.load {
                             pageCache.deleteRecursively()
                             context.imageLoader.memoryCache?.clear()
                             context.imageLoader.diskCache?.clear()
-                        }
-                    }, enabled = !state.loading) { Text(stringResource(KMR.strings.suwayomi_clear_android_cache)) }
-                    Text(stringResource(KMR.strings.suwayomi_webui_admin_notice))
-                    TextButton(onClick = {
-                        val session = Injekt.get<SuwayomiBackend>().requireSession(sessionId)
-                        context.startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(session.baseUrl)))
-                    }) { Text(stringResource(KMR.strings.suwayomi_webui)) }
-                }
-            }
+                        }.join()
+                        if (model.state.value.error == null) snackbar.showSnackbar(context.stringResource(KMR.strings.suwayomi_settings_cache_cleared))
+                    }
+                },
+                onWebUi = {
+                    val session = Injekt.get<SuwayomiBackend>().requireSession(sessionId)
+                    context.startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(session.baseUrl)))
+                },
+            )
         }
     }
 }
