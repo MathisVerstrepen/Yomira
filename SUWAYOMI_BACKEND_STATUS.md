@@ -4,7 +4,9 @@ The implementation follows `SUWAYOMI_IMPLEMENTATION_HANDOFF.md`. The application
 
 ## Supported contract
 
-The baseline is Suwayomi-Server commit `e2ce828abb81f0f5ce1a3fb86194a2746b519c85`, inspected on 2026-10-18. This is a source contract, not a claim that every published server version supports it. Connecting probes `user`, `aboutServer`, per-user manga state, and cursor pagination. An incompatible GraphQL schema fails explicitly. Authentication mode is selected during setup: the inspected server does not expose a public auth-mode discovery operation to an unauthenticated visitor.
+Two API shapes are supported: stable Suwayomi-Server **v2.4.2366** with one shared library, and the per-user API at commit `e2ce828abb81f0f5ce1a3fb86194a2746b519c85` (v2.4.2424), inspected on 2026-10-18. These are validated contracts, not a claim that every published server version supports all operations. Connecting probes actual schema capabilities and protected reads; version strings alone do not select a protocol. Authentication mode is selected during setup because the inspected server does not expose public auth-mode discovery to an unauthenticated visitor.
+
+The stable API has no `Query.user`, `MangaType.user`, or `ChapterType.user`; requesting those fields prevented connection despite successful UI login. The client now adapts state selections/projections, shared settings, update status, and the older download subscription. A protected manga read verifies authentication before projecting the stable server's single library identity. The protocol is stored with encrypted credentials and rechecked once per restored transport. Switching between shared and per-user contracts requires explicit reconnection to isolate pending state. Shared library/settings/tracker scope is labeled in the UI; it is not presented as per-user isolation.
 
 HTTP GraphQL, image requests, and the subscription transport share a dedicated connection client. NONE, BASIC_AUTH, SIMPLE_LOGIN cookies, and UI_LOGIN access/refresh tokens are implemented. Refreshes are serialized and requests retry at most once following authentication renewal. HTTP redirects are refused to avoid sending session credentials to an unexpected host. Root-relative server page/cover URLs are resolved beneath the configured reverse-proxy prefix. Credentials are encrypted with Android Keystore and stored atomically in the app's no-backup directory.
 
@@ -70,3 +72,9 @@ KOMIKKU_SUWAYOMI_TEST_URL=http://127.0.0.1:4579 \
 ```
 
 Set `KOMIKKU_SUWAYOMI_TEST_AUTH` to `BASIC_AUTH`, `SIMPLE_LOGIN`, or `UI_LOGIN` and supply `KOMIKKU_SUWAYOMI_TEST_USER` and `KOMIKKU_SUWAYOMI_TEST_PASSWORD` to test a configured authentication mode. Optional live tests are skipped when the URL is absent. The regular protocol, ordering, transport, and preference tests require no server.
+
+### Stable connection regression checks (2026-10-19)
+
+Formatting, `spotlessCheck`, the debug APK build, and targeted protocol/transport tests pass. A separate `SuwayomiReadOnlyServerTest` passes against a deployed v2.4.2366 UI_LOGIN server and the v2.4.2424 disposable NONE server. It verifies negotiation, authenticated library/chapter reads and covers, categories/sources/trackers, settings/update status/activity, and WebSocket download status. It performs no library, chapter-state, settings, or download mutations. The existing `SuwayomiLiveServerTest` remains a mutation suite for disposable fixtures only; never point it at a personal server. The read-only suite is opt-in with `KOMIKKU_SUWAYOMI_READ_ONLY_URL`, `_AUTH`, `_USER`, and `_PASSWORD`. Credentials and tokens are not logged.
+
+The debug APK was installed on a physical Android phone and successfully connected with UI_LOGIN to the deployed v2.4.2366 server. Its 157 library entries and covers loaded with the shared-library notice, and the encrypted session restored after force-stopping and relaunching the app. Native verification also caught Android ICU's stricter handling of unescaped closing braces in regular expressions; the adapter now escapes those delimiters explicitly.
