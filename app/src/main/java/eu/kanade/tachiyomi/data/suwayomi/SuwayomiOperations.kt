@@ -185,6 +185,17 @@ suspend fun SuwayomiSession.serverDownloads(): ServerDownloads = result(
     "downloadStatus",
 )
 
+/** Starting Suwayomi's downloader alone does not reset jobs that exhausted their retries. */
+internal suspend fun SuwayomiSession.resumeServerDownloads(snapshot: ServerDownloads? = null) {
+    val failed = (snapshot ?: serverDownloads()).queue.filter { it.state.equals("ERROR", true) }.distinctBy { it.chapter.id }
+    // Validate the complete batch before changing any shared queue entry.
+    failed.forEach { expected ->
+        if (chapter(expected.chapter.id).identity() != expected.chapter.identity()) throw SuwayomiException(SuwayomiFailure.SESSION_CHANGED)
+    }
+    failed.forEach { downloadAction("enqueue", it.chapter.id) }
+    downloadAction("start")
+}
+
 suspend fun SuwayomiSession.downloadAction(action: String, chapterId: Int? = null, position: Int? = null) {
     val (operation, inputType, selection) = when (action) {
         "enqueue" -> Triple("enqueueChapterDownload", "EnqueueChapterDownloadInput", "clientMutationId")
