@@ -31,6 +31,9 @@ internal fun LibraryCompactGrid(
 
         items(
             items = items,
+            // KMK -->
+            key = { it.libraryManga.manga.id },
+            // KMK <--
             contentType = { "library_compact_grid_item" },
         ) { libraryItem ->
             val manga = libraryItem.libraryManga.manga

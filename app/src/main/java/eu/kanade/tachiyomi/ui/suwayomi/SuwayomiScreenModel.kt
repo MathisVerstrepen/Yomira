@@ -33,12 +33,14 @@ import uy.kohesive.injekt.api.get
 
 class SuwayomiScreenModel(private val backend: SuwayomiBackend = Injekt.get(), private val loadLibrary: Boolean = true) : StateScreenModel<SuwayomiScreenModel.State>(State()) {
     private val libraryMutex = Mutex()
+    private val refreshTask = SuwayomiRefreshTask()
 
     init {
         screenModelScope.launch(Dispatchers.IO) {
             backend.session.collectLatest { session ->
+                refreshTask.cancel()
                 mutableState.value = State(session = session, presentation = session?.libraryPresentation() ?: LibraryPresentation())
-                if (session != null) reload()
+                if (session != null) refresh().join()
             }
         }
     }
@@ -65,7 +67,7 @@ class SuwayomiScreenModel(private val backend: SuwayomiBackend = Injekt.get(), p
 
     fun disconnect() = screenModelScope.launch(Dispatchers.IO) { backend.disconnect() }
 
-    fun refresh() = screenModelScope.launch(Dispatchers.IO) { reload() }
+    fun refresh() = refreshTask.launch(screenModelScope) { reload() }
 
     fun readingPreferences(upload: Boolean) = screenModelScope.launch(Dispatchers.IO) {
         val session = state.value.session ?: return@launch
@@ -82,30 +84,23 @@ class SuwayomiScreenModel(private val backend: SuwayomiBackend = Injekt.get(), p
 
     private suspend fun reload() = libraryMutex.withLock {
         val session = state.value.session ?: return@withLock
-        mutableState.update { it.copy(loading = true, error = null, hasNext = false, cursor = null) }
+        mutableState.update { it.copy(loading = !it.hasLoaded, error = null) }
         try {
             session.flush()
             mutableState.update { it.copy(presentation = session.libraryPresentation()) }
             val user = session.user()
             val info = session.info()
             if (!loadLibrary) {
-                mutableState.update { it.copy(user = user, info = info, loading = false) }
+                mutableState.update { it.copy(user = user, info = info, loading = false, hasLoaded = true) }
                 return@withLock
             }
             val categories = session.serverCategories()
-            val all = linkedMapOf<Int, ServerManga>()
-            var cursor: String? = null
-            do {
-                val page = session.library(cursor)
-                backend.requireSession(session.id)
-                page.nodes.forEach { all[it.id] = it }
-                mutableState.update { it.copy(user = user, info = info, categories = categories, mangas = all.values.toList(), total = page.totalCount) }
-                if (!page.pageInfo.hasNextPage) break
-                val next = page.pageInfo.endCursor
-                if (next == null || next == cursor || page.nodes.isEmpty()) throw SuwayomiException(SuwayomiFailure.CONTRACT)
-                cursor = next
-            } while (true)
-            mutableState.update { it.copy(loading = false) }
+            val snapshot = readServerWindow(keyOf = ServerManga::id) { cursor ->
+                session.library(cursor).also { backend.requireSession(session.id) }
+            }
+            mutableState.update {
+                if (it.session !== session) it else it.copy(user = user, info = info, categories = categories, mangas = snapshot.items, total = snapshot.total, selected = it.selected.intersect(snapshot.items.map(ServerManga::id).toSet()), loading = false, hasLoaded = true)
+            }
         } catch (e: Exception) {
             if (e is CancellationException) throw e
             if (state.value.session?.id == session.id) mutableState.update { it.copy(loading = false, error = failure(e)) }
@@ -197,6 +192,7 @@ class SuwayomiScreenModel(private val backend: SuwayomiBackend = Injekt.get(), p
         val presentation: LibraryPresentation = LibraryPresentation(),
         val selected: Set<Int> = emptySet(),
         val loading: Boolean = false,
+        val hasLoaded: Boolean = false,
         val error: SuwayomiFailure? = null,
     )
 }
@@ -206,11 +202,10 @@ class SuwayomiMangaScreenModel(
     private val mangaId: Int,
     private val backend: SuwayomiBackend = Injekt.get(),
 ) : StateScreenModel<SuwayomiMangaScreenModel.State>(State()) {
-    private var job: Job? = null
-    fun refresh(fetch: Boolean = false) {
-        job?.cancel()
-        job = screenModelScope.launch(Dispatchers.IO) {
-            mutableState.update { it.copy(loading = true, error = null) }
+    private val refreshTask = SuwayomiRefreshTask()
+    fun refresh(fetch: Boolean = false, force: Boolean = false) = refreshTask.launch(screenModelScope, fetch to force) {
+        actionMutex.withLock {
+            mutableState.update { it.copy(loading = it.manga == null || fetch, refreshing = fetch, error = null) }
             try {
                 val session = backend.requireSession(sessionId)
                 session.flush()
@@ -223,10 +218,11 @@ class SuwayomiMangaScreenModel(
                 val chapters = session.chapters(mangaId)
                 val user = session.user()
                 val categories = session.serverCategories()
+                backend.requireSession(sessionId)
                 mutableState.value = State(manga = manga, chapters = chapters, loading = false, canDownload = user.roles.contains("ADMIN") || user.permissions.contains("DOWNLOAD_CHAPTERS"), categories = categories)
             } catch (e: Exception) {
                 if (e is CancellationException) throw e
-                mutableState.update { it.copy(loading = false, error = failure(e)) }
+                mutableState.update { it.copy(loading = false, refreshing = false, error = failure(e)) }
             }
         }
     }
@@ -242,7 +238,7 @@ class SuwayomiMangaScreenModel(
                 if (current.sourceId != expected.sourceId || current.url != expected.url) throw SuwayomiException(SuwayomiFailure.SESSION_CHANGED)
                 session.action()
                 backend.requireSession(sessionId)
-                refresh()
+                refresh(force = true)
             } catch (e: Exception) {
                 if (e is CancellationException) throw e
                 mutableState.update { it.copy(loading = false, error = failure(e)) }
@@ -309,6 +305,7 @@ class SuwayomiMangaScreenModel(
         val canDownload: Boolean = false,
         val categories: List<ServerCategory> = emptyList(),
         val chapters: List<ServerChapter> = emptyList(),
+        val refreshing: Boolean = false,
         val loading: Boolean = true,
         val error: SuwayomiFailure? = null,
     )

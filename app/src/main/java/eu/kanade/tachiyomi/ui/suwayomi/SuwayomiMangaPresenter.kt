@@ -147,7 +147,7 @@ internal fun SuwayomiMangaPresenter(presentationId: Long, expectedSession: Strin
             ChapterList.Item(it.toReaderChapter(), if (it.user.isDownloaded) Download.State.DOWNLOADED else Download.State.NOT_DOWNLOADED, 0, selected = SuwayomiMode.readerId(it.id) in selected, sourceName = null, showScanlator = true)
         },
         availableScanlators = state.chapters.mapNotNull { it.scanlator }.toImmutableSet(), excludedScanlators = excluded.toImmutableSet(),
-        isRefreshingData = state.loading, hideMissingChapters = prefs.hideMissingChapters().get(), trackingCount = 0, hasLoggedInTrackers = true,
+        isRefreshingData = state.refreshing, hideMissingChapters = prefs.hideMissingChapters().get(), trackingCount = 0, hasLoggedInTrackers = true,
         meta = null, mergedData = null, showRecommendationsInOverflow = false, showMergeInOverflow = false, showMergeWithAnother = false,
         pagePreviewsState = PagePreviewState.Unused, alwaysShowReadingProgress = true, previewsRowCount = 0,
         serverBacked = true, seedColor = seedColor,

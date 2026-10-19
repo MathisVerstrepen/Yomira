@@ -24,21 +24,20 @@ import uy.kohesive.injekt.api.get
 
 class SuwayomiBrowseScreenModel(private val sessionId: String, private val backend: SuwayomiBackend = Injekt.get()) : StateScreenModel<SuwayomiBrowseScreenModel.State>(State()) {
     private var task: Job? = null
+    private val refreshTask = SuwayomiRefreshTask()
     private var query = ""
     private var type = "POPULAR"
     private var changes = emptyList<JsonObject>()
 
-    fun sources() {
-        task?.cancel()
-        task = screenModelScope.launch(Dispatchers.IO) {
-            mutableState.value = State(loading = true)
-            try {
-                val sources = backend.requireSession(sessionId).browsableServerSources()
-                mutableState.value = State(sources = sources)
-            } catch (e: Exception) {
-                if (e is CancellationException) throw e
-                mutableState.update { it.copy(loading = false, error = failure(e)) }
-            }
+    fun sources() = refreshTask.launch(screenModelScope) {
+        mutableState.update { it.copy(loading = !it.hasLoadedSources, error = null) }
+        try {
+            val sources = backend.requireSession(sessionId).browsableServerSources()
+            backend.requireSession(sessionId)
+            mutableState.update { it.copy(sources = sources, loading = false, hasLoadedSources = true) }
+        } catch (e: Exception) {
+            if (e is CancellationException) throw e
+            mutableState.update { it.copy(loading = false, error = failure(e)) }
         }
     }
 
@@ -94,6 +93,7 @@ class SuwayomiBrowseScreenModel(private val sessionId: String, private val backe
 
     data class State(
         val sources: List<ServerSource> = emptyList(),
+        val hasLoadedSources: Boolean = false,
         val source: ServerSource? = null,
         val filters: List<ServerFilter> = emptyList(),
         val mangas: List<ServerManga> = emptyList(),

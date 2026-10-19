@@ -84,6 +84,7 @@ private class SuwayomiDownloadQueueController(
     private val queueError = MutableStateFlow<String?>(null)
     override val error = combine(service.state, queueError) { status, local -> status.error?.let { context.stringResource(failureResource(it)) } ?: local }
         .stateIn(screenModelScope, SharingStarted.Eagerly, null)
+    override val hasLoaded = service.state.map { it.downloads != null }.stateIn(screenModelScope, SharingStarted.Eagerly, false)
     override val isLoading = service.state.map { it.loading }.stateIn(screenModelScope, SharingStarted.Eagerly, true)
     override val canControlQueue = service.state.map { it.canDownload }.stateIn(screenModelScope, SharingStarted.Eagerly, false)
     override val isDownloaderRunning = service.state.map { it.downloads?.state.equals("STARTED", true) }.stateIn(screenModelScope, SharingStarted.Eagerly, false)

@@ -137,7 +137,7 @@ object SuwayomiHomeScreen : Screen() {
                         title = stringResource(KMR.strings.suwayomi_replace),
                         onPreferenceClick = { replacement = true },
                     )
-                    if (state.loading) LinearProgressIndicator(Modifier.fillMaxWidth())
+                    RefreshProgress(state.loading)
                 }
             }
         }
@@ -265,13 +265,17 @@ internal fun ServerCover(session: SuwayomiSession, path: String?, modifier: Modi
     AsyncImage(model = bytes, contentDescription = null, modifier = modifier, contentScale = ContentScale.Crop)
 }
 
+internal fun showPendingChanges(pending: List<eu.kanade.tachiyomi.data.suwayomi.ChapterIntent>, failure: SuwayomiFailure?, showRoutinePending: Boolean): Boolean = pending.isNotEmpty() && (
+    showRoutinePending || failure != null || pending.any { it.status == eu.kanade.tachiyomi.data.suwayomi.ChapterIntentStatus.AMBIGUOUS || it.status == eu.kanade.tachiyomi.data.suwayomi.ChapterIntentStatus.FAILED }
+    )
+
 @Composable
-internal fun PendingChanges(session: SuwayomiSession) {
+internal fun PendingChanges(session: SuwayomiSession, showRoutinePending: Boolean = true) {
     val pending by session.pending.collectAsState()
     val failure by session.mutationFailure.collectAsState()
     val scope = rememberCoroutineScope()
     var discard by remember { mutableStateOf(false) }
-    if (pending.isNotEmpty()) {
+    if (showPendingChanges(pending, failure, showRoutinePending)) {
         Column(Modifier.fillMaxWidth().padding(12.dp)) {
             Text(stringResource(KMR.strings.suwayomi_pending, pending.size), style = MaterialTheme.typography.labelMedium)
             if (failure != null) {

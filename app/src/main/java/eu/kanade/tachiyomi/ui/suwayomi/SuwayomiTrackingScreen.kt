@@ -67,7 +67,8 @@ import uy.kohesive.injekt.api.get
 class SuwayomiTrackingModel(private val sessionId: String, private val mangaId: Int?) : StateScreenModel<SuwayomiTrackingModel.State>(State()) {
     private val backend = Injekt.get<SuwayomiBackend>()
     private val mutex = Mutex()
-    fun load() = change {}
+    private val refreshTask = SuwayomiRefreshTask()
+    fun load() = refreshTask.launch(screenModelScope) { change(visible = false) {}.join() }
     fun login(tracker: ServerTracker, username: String, password: String, callback: String?) = change(writes = true) { backend.requireSession(sessionId).trackerLogin(tracker.id, username, password, callback) }
     fun search(tracker: ServerTracker, query: String) = change {
         val results = backend.requireSession(sessionId).searchTracker(tracker.id, query)
@@ -79,32 +80,33 @@ class SuwayomiTrackingModel(private val sessionId: String, private val mangaId: 
     }
     fun unbind(record: ServerTrackRecord) = change(writes = true) { backend.requireSession(sessionId).unbindTrack(record.id) }
     fun update(record: ServerTrackRecord, chapter: Double, status: Int, score: String) = change(writes = true) { backend.requireSession(sessionId).updateTrack(record.id, chapter, status, score) }
-    private fun change(writes: Boolean = false, action: suspend () -> Unit) = screenModelScope.launch(Dispatchers.IO) {
+    private fun change(writes: Boolean = false, visible: Boolean = true, action: suspend () -> Unit) = screenModelScope.launch(Dispatchers.IO) {
         mutex.withLock {
             if (writes && Injekt.get<eu.kanade.domain.base.BasePreferences>().incognitoMode().get()) return@withLock
-            mutableState.update { it.copy(loading = true, error = null) }
+            mutableState.update { it.copy(loading = visible || !it.hasLoaded, error = null) }
             try {
                 action()
                 val session = backend.requireSession(sessionId)
                 val trackers = session.serverTrackers()
                 val records = mangaId?.let { session.mangaTracks(it) }.orEmpty()
-                mutableState.update { it.copy(loading = false, trackers = trackers, records = records, sharedLibrary = session.sharedLibrary) }
+                mutableState.update { it.copy(loading = false, hasLoaded = true, trackers = trackers, records = records, sharedLibrary = session.sharedLibrary) }
             } catch (e: Exception) {
                 if (e is CancellationException) throw e
                 mutableState.update { it.copy(loading = false, error = failure(e)) }
             }
         }
     }
-    data class State(val trackers: List<ServerTracker> = emptyList(), val records: List<ServerTrackRecord> = emptyList(), val searches: List<ServerTrackSearch> = emptyList(), val tracker: ServerTracker? = null, val loading: Boolean = true, val error: SuwayomiFailure? = null, val sharedLibrary: Boolean = false)
+    data class State(val trackers: List<ServerTracker> = emptyList(), val records: List<ServerTrackRecord> = emptyList(), val searches: List<ServerTrackSearch> = emptyList(), val tracker: ServerTracker? = null, val loading: Boolean = true, val hasLoaded: Boolean = false, val error: SuwayomiFailure? = null, val sharedLibrary: Boolean = false)
 }
 
 class SuwayomiTrackingScreen(private val sessionId: String, private val mangaId: Int? = null) : Screen() {
     @Composable
     override fun Content() {
-        val model = rememberScreenModel { SuwayomiTrackingModel(sessionId, mangaId) }
-        val state by model.state.collectAsState()
         val navigator = LocalNavigator.currentOrThrow
+        val model = navigator.lastItem.rememberScreenModel(tag = "server-track-$sessionId-$mangaId") { SuwayomiTrackingModel(sessionId, mangaId) }
+        val state by model.state.collectAsState()
         val context = LocalContext.current
+        val snackbar = rememberRefreshErrors(state.error, state.hasLoaded) { model.load() }
         val incognito by remember { Injekt.get<eu.kanade.domain.base.BasePreferences>().incognitoMode() }.collectAsState()
         var login by remember { mutableStateOf<ServerTracker?>(null) }
         var username by remember { mutableStateOf("") }
@@ -117,14 +119,14 @@ class SuwayomiTrackingScreen(private val sessionId: String, private val mangaId:
         var score by remember { mutableStateOf("") }
         var status by remember { mutableStateOf(0) }
         LaunchedEffect(Unit) { model.load() }
-        Scaffold(topBar = {
+        Scaffold(snackbarHost = { androidx.compose.material3.SnackbarHost(snackbar) }, topBar = {
             TopAppBar(title = { Text(stringResource(KMR.strings.suwayomi_tracking)) }, navigationIcon = {
                 IconButton(onClick = { navigator.pop() }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(KMR.strings.suwayomi_back)) }
             })
         }) { padding ->
             Column(Modifier.padding(padding).fillMaxSize()) {
-                if (state.loading) LinearProgressIndicator(Modifier.fillMaxWidth())
-                state.error?.let { Text(failureText(it), Modifier.padding(16.dp), color = MaterialTheme.colorScheme.error) }
+                RefreshProgress(state.loading)
+                if (!state.hasLoaded) state.error?.let { Text(failureText(it), Modifier.padding(16.dp), color = MaterialTheme.colorScheme.error) }
                 if (incognito) Text(stringResource(KMR.strings.suwayomi_incognito_notice), Modifier.padding(16.dp))
                 Text(stringResource(if (state.sharedLibrary) KMR.strings.suwayomi_shared_tracking_notice else KMR.strings.suwayomi_tracking_notice), Modifier.padding(16.dp))
                 TextButton(onClick = { model.load() }, enabled = !state.loading) { Text(stringResource(KMR.strings.suwayomi_reload)) }

@@ -61,22 +61,29 @@ import uy.kohesive.injekt.api.get
 class SuwayomiActivityModel(private val sessionId: String, private val history: Boolean) : StateScreenModel<SuwayomiActivityModel.State>(State()) {
     private val backend = Injekt.get<SuwayomiBackend>()
     private val mutex = Mutex()
-    fun refresh(next: Boolean = false, fetch: Boolean = false) = screenModelScope.launch(Dispatchers.IO) {
+    private val refreshTask = SuwayomiRefreshTask()
+    fun refresh(next: Boolean = false, fetch: Boolean = false) = refreshTask.launch(screenModelScope, next to fetch) {
         mutex.withLock {
-            mutableState.update { it.copy(loading = true, error = null) }
+            mutableState.update { it.copy(loading = next || fetch || !it.hasLoaded, error = null) }
             try {
                 val session = backend.requireSession(sessionId)
                 if (fetch && !session.updateRunning()) session.updateLibraryOnServer()
-                val page = session.activityPage(history, if (next) state.value.cursor else null)
-                if (page.pageInfo.hasNextPage && (page.pageInfo.endCursor == null || (next && page.pageInfo.endCursor == state.value.cursor) || page.nodes.isEmpty())) throw eu.kanade.tachiyomi.data.suwayomi.SuwayomiException(SuwayomiFailure.CONTRACT)
+                val previous = state.value
+                if (next && previous.hasLoaded && !previous.hasNext) {
+                    mutableState.update { it.copy(loading = false) }
+                    return@withLock
+                }
+                val snapshot = readServerWindow(pages = if (next) 1 else previous.pages.coerceAtLeast(1), after = if (next) previous.cursor else null, keyOf = ServerActivityChapter::id) { cursor -> session.activityPage(history, cursor) }
                 backend.requireSession(sessionId)
                 val running = if (history) false else session.updateRunning()
                 mutableState.update {
                     it.copy(
-                        chapters = ((if (next) it.chapters else emptyList()) + page.nodes).distinctBy(ServerActivityChapter::id),
-                        cursor = page.pageInfo.endCursor,
-                        hasNext = page.pageInfo.hasNextPage,
+                        chapters = ((if (next) it.chapters else emptyList()) + snapshot.items).distinctBy(ServerActivityChapter::id),
+                        cursor = snapshot.cursor,
+                        hasNext = snapshot.hasNext,
+                        pages = if (next) it.pages + snapshot.pages else snapshot.pages,
                         loading = false,
+                        hasLoaded = true,
                         updating = running,
                     )
                 }
@@ -100,7 +107,7 @@ class SuwayomiActivityModel(private val sessionId: String, private val history: 
         }
         refresh()
     }
-    data class State(val chapters: List<ServerActivityChapter> = emptyList(), val cursor: String? = null, val hasNext: Boolean = false, val loading: Boolean = true, val updating: Boolean = false, val error: SuwayomiFailure? = null)
+    data class State(val chapters: List<ServerActivityChapter> = emptyList(), val cursor: String? = null, val hasNext: Boolean = false, val pages: Int = 0, val hasLoaded: Boolean = false, val loading: Boolean = true, val updating: Boolean = false, val error: SuwayomiFailure? = null)
 }
 
 /** Legacy saved navigation delegates to the standard tab presentation. */

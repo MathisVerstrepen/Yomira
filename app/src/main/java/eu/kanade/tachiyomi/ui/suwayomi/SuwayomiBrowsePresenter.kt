@@ -20,6 +20,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -105,12 +106,21 @@ internal fun SuwayomiBrowseTab() {
     val session = current ?: return
     val model = eu.kanade.tachiyomi.ui.browse.BrowseTab.rememberScreenModel(tag = "server-sources-${session.id}") { SuwayomiBrowseScreenModel(session.id) }
     val state by model.state.collectAsState()
-    var query by remember { mutableStateOf<String?>(null) }
+    var query by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf<String?>(null) }
     val navigator = LocalNavigator.currentOrThrow
+    val context = LocalContext.current
+    val snackbar = remember { SnackbarHostState() }
+    LaunchedEffect(state.error) {
+        if (state.hasLoadedSources) {
+            state.error?.let { error ->
+                if (snackbar.showSnackbar(context.stringResource(failureResource(error)), context.stringResource(MR.strings.action_retry)) == SnackbarResult.ActionPerformed) model.sources()
+            }
+        }
+    }
     androidx.lifecycle.compose.LifecycleEventEffect(androidx.lifecycle.Lifecycle.Event.ON_RESUME) { model.sources() }
     val sources = state.sources.filter { query.isNullOrBlank() || it.name.contains(query.orEmpty(), true) }
     val nativeState = SourcesScreenModel.State(
-        isLoading = state.loading,
+        isLoading = state.loading && !state.hasLoadedSources,
         items = sources.sortedBy { it.lang }.groupBy { it.lang }.flatMap { (lang, entries) ->
             listOf(SourceUiModel.Header(lang, false)) + entries.sortedBy { it.name }.map { SourceUiModel.Item(it.toKomikkuSource(session.id)) }
         }.toImmutableList(),
@@ -129,16 +139,19 @@ internal fun SuwayomiBrowseTab() {
                     AppBar.Action(stringResource(KMR.strings.suwayomi_administration), Icons.Outlined.Settings, onClick = { navigator.push(SuwayomiAdministrationScreen(session.id)) }),
                 ),
             ) { padding, _ ->
-                Column {
-                    state.error?.let { ConnectionError(it, { model.sources() }) }
-                    SourcesScreen(
-                        state = nativeState,
-                        contentPadding = padding,
-                        onClickItem = { item, listing -> state.sources.firstOrNull { it.id == item.id }?.let { navigator.push(SuwayomiSourceScreen(session.id, it, listing == Listing.Latest)) } },
-                        onClickPin = {},
-                        onLongClickItem = { navigator.push(SuwayomiAdministrationScreen(session.id, it.id)) },
-                        onChangeSearchQuery = { query = it },
-                    )
+                androidx.compose.foundation.layout.Box {
+                    Column {
+                        if (!state.hasLoadedSources) state.error?.let { ConnectionError(it, { model.sources() }) }
+                        SourcesScreen(
+                            state = nativeState,
+                            contentPadding = padding,
+                            onClickItem = { item, listing -> state.sources.firstOrNull { it.id == item.id }?.let { navigator.push(SuwayomiSourceScreen(session.id, it, listing == Listing.Latest)) } },
+                            onClickPin = {},
+                            onLongClickItem = { navigator.push(SuwayomiAdministrationScreen(session.id, it.id)) },
+                            onChangeSearchQuery = { query = it },
+                        )
+                    }
+                    SnackbarHost(snackbar, Modifier.align(androidx.compose.ui.Alignment.BottomCenter))
                 }
             },
         ),

@@ -146,7 +146,7 @@ internal fun SuwayomiActivityPresenter(history: Boolean) {
         LaunchedEffect(state.loading, entries.isEmpty(), state.hasNext) { if (!state.loading && state.error == null && entries.isEmpty() && state.hasNext) model.refresh(next = true) }
         val nativeState = HistoryScreenModel.State(
             searchQuery = search,
-            isLoading = state.loading && state.chapters.isEmpty(),
+            isLoading = state.loading && !state.hasLoaded,
             list = entries.map { chapter ->
                 val manga = chapter.manga.toKomikkuManga(session.id)
                 HistoryWithRelations(
@@ -183,7 +183,7 @@ internal fun SuwayomiActivityPresenter(history: Boolean) {
         val entries = state.chapters.filter { unread.matches(!it.user.isRead) && downloaded.matches(it.user.isDownloaded) && started.matches(it.user.lastPageRead > 0 && !it.user.isRead) && bookmarked.matches(it.user.isBookmarked) }
         LaunchedEffect(state.loading, entries.isEmpty(), state.hasNext) { if (!state.loading && state.error == null && entries.isEmpty() && state.hasNext) model.refresh(next = true) }
         val nativeState = UpdatesScreenModel.State(
-            isLoading = state.loading && state.chapters.isEmpty(),
+            isLoading = state.loading && !state.hasLoaded,
             expandedState = expanded,
             items = entries.map { chapter ->
                 val manga = chapter.manga.toKomikkuManga(session.id)

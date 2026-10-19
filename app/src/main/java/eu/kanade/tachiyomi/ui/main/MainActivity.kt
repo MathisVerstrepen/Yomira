@@ -208,7 +208,10 @@ class MainActivity : BaseActivity() {
             enableEdgeToEdge()
             ready = true
             setComposeContent {
-                Navigator(HomeScreen) { cloudNavigator ->
+                Navigator(
+                    HomeScreen,
+                    disposeBehavior = NavigatorDisposeBehavior(disposeNestedNavigators = false, disposeSteps = true),
+                ) { cloudNavigator ->
                     DefaultNavigatorScreenTransition(navigator = cloudNavigator)
                     CheckForUpdates()
                 }

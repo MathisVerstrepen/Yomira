@@ -91,6 +91,7 @@ internal fun DownloadQueueContent(screenModel: DownloadQueueController) {
     val scope = rememberCoroutineScope()
     val context = androidx.compose.ui.platform.LocalContext.current
     val loading by screenModel.isLoading.collectAsState()
+    val hasLoaded by screenModel.hasLoaded.collectAsState()
     val error by screenModel.error.collectAsState()
     val controls by screenModel.canControlQueue.collectAsState()
     val snack = remember { androidx.compose.material3.SnackbarHostState() }
@@ -283,11 +284,11 @@ internal fun DownloadQueueContent(screenModel: DownloadQueueController) {
         },
     ) { contentPadding ->
         // KMK -->
-        if (downloadList.isEmpty() && loading) {
+        if (downloadList.isEmpty() && !hasLoaded && loading) {
             tachiyomi.presentation.core.screens.LoadingScreen(Modifier.padding(contentPadding))
             return@Scaffold
         }
-        if (downloadList.isEmpty() && error != null) {
+        if (downloadList.isEmpty() && !hasLoaded && error != null) {
             EmptyScreen(
                 message = error.orEmpty(),
                 modifier = Modifier.padding(contentPadding),

@@ -7,9 +7,9 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -121,6 +121,13 @@ internal fun SuwayomiLibraryTab() {
     val exclude by prefs.filterCategoriesExclude().collectAsState()
     val hasFilters = listOf(unread, downloaded, bookmarked, started, completed).any { it != TriState.DISABLED } || filterCategories
     val snack = remember { SnackbarHostState() }
+    LaunchedEffect(state.error) {
+        if (state.hasLoaded) {
+            state.error?.let { error ->
+                if (snack.showSnackbar(context.stringResource(failureResource(error)), context.stringResource(MR.strings.action_retry)) == SnackbarResult.ActionPerformed) model.refresh()
+            }
+        }
+    }
     val allLabel = stringResource(MR.strings.label_library)
     val defaultLabel = stringResource(MR.strings.label_default)
     val remoteCategories = state.categories.sortedBy { it.order }.map {
@@ -230,13 +237,12 @@ internal fun SuwayomiLibraryTab() {
         },
         snackbarHost = { SnackbarHost(snack) },
     ) { padding ->
-        if (state.loading && state.mangas.isEmpty()) {
+        if (state.loading && !state.hasLoaded) {
             LoadingScreen(Modifier.padding(padding))
         } else {
             Column(Modifier.fillMaxSize().padding(top = padding.calculateTopPadding())) {
-                PendingChanges(session)
-                state.error?.let { ConnectionError(it, { model.refresh() }, { navigator.push(SuwayomiHomeScreen) }) }
-                if (state.loading) LinearProgressIndicator()
+                PendingChanges(session, showRoutinePending = false)
+                if (!state.hasLoaded) state.error?.let { ConnectionError(it, { model.refresh() }, { navigator.push(SuwayomiHomeScreen) }) }
                 LibraryContent(
                     categories = categories, activeCategoryIndex = activePage, currentPage = activePage, searchQuery = search,
                     selection = state.selected.map { SuwayomiMode.readerId(it) }.toSet(), contentPadding = PaddingValues(bottom = padding.calculateBottomPadding()),

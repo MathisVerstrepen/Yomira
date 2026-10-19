@@ -64,25 +64,26 @@ import uy.kohesive.injekt.api.get
 class SuwayomiCategoriesModel(private val sessionId: String, private val mangaId: Int?) : StateScreenModel<SuwayomiCategoriesModel.State>(State()) {
     private val mutex = Mutex()
     private val backend = Injekt.get<SuwayomiBackend>()
-    fun load() = change {}
+    private val refreshTask = SuwayomiRefreshTask()
+    fun load() = refreshTask.launch(screenModelScope) { change(visible = false) {}.join() }
     fun edit(action: String, id: Int? = null, name: String? = null, position: Int? = null) = change { backend.requireSession(sessionId).categoryMutation(action, id, name, position) }
     fun membership(categoryId: Int, member: Boolean) = change { backend.requireSession(sessionId).setCategoryMembership(mangaId!!, categoryId, member) }
-    private fun change(action: suspend () -> Unit) = screenModelScope.launch(Dispatchers.IO) {
+    private fun change(visible: Boolean = true, action: suspend () -> Unit) = screenModelScope.launch(Dispatchers.IO) {
         mutex.withLock {
-            mutableState.update { it.copy(loading = true, error = null) }
+            mutableState.update { it.copy(loading = visible || !it.hasLoaded, error = null) }
             try {
                 action()
                 val session = backend.requireSession(sessionId)
                 val categories = session.serverCategories()
                 val selected = mangaId?.let { session.mangaCategories(it).map(ServerCategory::id).toSet() }.orEmpty()
-                mutableState.value = State(categories, selected, loading = false)
+                mutableState.value = State(categories, selected, loading = false, hasLoaded = true)
             } catch (e: Exception) {
                 if (e is CancellationException) throw e
                 mutableState.update { it.copy(loading = false, error = failure(e)) }
             }
         }
     }
-    data class State(val categories: List<ServerCategory> = emptyList(), val selected: Set<Int> = emptySet(), val loading: Boolean = true, val error: SuwayomiFailure? = null)
+    data class State(val categories: List<ServerCategory> = emptyList(), val selected: Set<Int> = emptySet(), val hasLoaded: Boolean = false, val loading: Boolean = true, val error: SuwayomiFailure? = null)
 }
 
 /** Restore old navigation through Komikku's category screen. */
@@ -96,7 +97,8 @@ class SuwayomiCategoriesScreen(private val sessionId: String, private val mangaI
 class SuwayomiDownloadsModel(private val sessionId: String) : StateScreenModel<SuwayomiDownloadsModel.State>(State()) {
     private val backend = Injekt.get<SuwayomiBackend>()
     private val mutex = Mutex()
-    fun load() = screenModelScope.launch(Dispatchers.IO) { refresh() }
+    private val refreshTask = SuwayomiRefreshTask()
+    fun load() = refreshTask.launch(screenModelScope) { refresh() }
     private val actionMutex = Mutex()
     fun action(action: String, chapterId: Int? = null, position: Int? = null) = batch { downloadAction(action, chapterId, position) }
     fun batch(action: suspend eu.kanade.tachiyomi.data.suwayomi.SuwayomiSession.() -> Unit) = screenModelScope.launch(Dispatchers.IO) {
@@ -126,7 +128,7 @@ class SuwayomiDownloadsModel(private val sessionId: String) : StateScreenModel<S
             }.collect { refresh() }
     }
     private suspend fun refresh() = mutex.withLock {
-        mutableState.update { it.copy(loading = true, error = null) }
+        mutableState.update { it.copy(loading = it.downloads == null, error = null) }
         try {
             val session = backend.requireSession(sessionId)
             val user = session.user()

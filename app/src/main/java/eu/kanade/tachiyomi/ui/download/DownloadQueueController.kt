@@ -13,6 +13,7 @@ import kotlinx.coroutines.flow.StateFlow
 interface DownloadQueueController : ScreenModel {
     val state: StateFlow<List<DownloadHeaderItem>>
     val isDownloaderRunning: StateFlow<Boolean>
+    val hasLoaded: StateFlow<Boolean> get() = defaultsAllowed
     val isLoading: StateFlow<Boolean> get() = defaultsNotLoading
     val canControlQueue: StateFlow<Boolean> get() = defaultsAllowed
     val error: StateFlow<String?> get() = defaultsNoError
