@@ -14,10 +14,12 @@ class SuwayomiReader private constructor(
     private val ticket: ReadingTicket,
 ) {
     companion object {
-        suspend fun open(session: SuwayomiSession, mangaId: Int): SuwayomiReader {
-            session.flush()
-            val remoteManga = session.manga(mangaId)
-            val remoteChapters = session.chapters(mangaId)
+        suspend fun open(session: SuwayomiSession, mangaId: Int, chapterId: Int? = null): SuwayomiReader {
+            session.flushSoon()
+            val cached = session.offline.state.value.titles[mangaId]
+            val data = if (chapterId != null && session.offline.files(chapterId) != null && cached != null) cached.copy(chapters = session.overlay(cached.chapters)) else session.readerData(mangaId)
+            val remoteManga = data.manga
+            val remoteChapters = data.chapters
             val manga = Manga.create().copy(
                 id = SuwayomiMode.readerId(mangaId),
                 source = SuwayomiMode.SOURCE_ID,
@@ -34,7 +36,13 @@ class SuwayomiReader private constructor(
                 viewerFlags = session.readerFlags(mangaId).let { local ->
                     val remote = remoteManga.meta.firstOrNull { it.key == "komikku.reader.v1.mode" }?.value?.toLongOrNull()
                     val mask = ReadingMode.MASK.toLong()
-                    if (remote != null && ReadingMode.entries.any { it.flagValue.toLong() == remote }) (local and mask.inv()) or remote else local
+                    if (chapterId != null && session.offline.files(chapterId) != null) {
+                        local
+                    } else if (remote != null && ReadingMode.entries.any { it.flagValue.toLong() == remote }) {
+                        (local and mask.inv()) or remote
+                    } else {
+                        local
+                    }
                 },
                 chapterFlags = Manga.CHAPTER_SORTING_SOURCE or Manga.CHAPTER_SORT_ASC,
             )
@@ -56,10 +64,16 @@ class SuwayomiReader private constructor(
     }
 
     suspend fun setFlags(flag: Long, mask: Long): Manga {
-        if (mask == ReadingMode.MASK.toLong()) session.setMangaReadingMode(SuwayomiMode.remoteId(manga.id), flag)
         val flags = manga.viewerFlags and mask.inv() or (flag and mask)
         session.setReaderFlags(SuwayomiMode.remoteId(manga.id), flags)
         manga = manga.copy(viewerFlags = flags)
+        if (mask == ReadingMode.MASK.toLong()) {
+            try {
+                session.setMangaReadingMode(SuwayomiMode.remoteId(manga.id), flag)
+            } catch (e: SuwayomiException) {
+                if (e.failure !in listOf(SuwayomiFailure.NETWORK, SuwayomiFailure.SERVER)) throw e
+            }
+        }
         return manga
     }
 }

@@ -28,9 +28,11 @@ internal object SuwayomiImages {
             val address = url.toHttpUrl()
             val sessionId = address.pathSegments.firstOrNull() ?: throw SuwayomiException(SuwayomiFailure.SESSION_CHANGED)
             val session = Injekt.get<SuwayomiBackend>().requireSession(sessionId)
-            val bytes = session.image(requireNotNull(address.queryParameter("asset")))
+            val asset = requireNotNull(address.queryParameter("asset"))
+            val cached = session.offline.state.value.titles.values.firstOrNull { it.manga.coverUrl() == asset }?.manga?.id?.let { session.offline.cover(it) }
+            val bytes = cached?.readBytes() ?: session.image(asset)
             Injekt.get<SuwayomiBackend>().requireSession(sessionId)
-            return SourceFetchResult(ImageSource(Buffer().write(bytes), options.fileSystem), null, DataSource.NETWORK)
+            return SourceFetchResult(ImageSource(Buffer().write(bytes), options.fileSystem), null, if (cached != null) DataSource.DISK else DataSource.NETWORK)
         }
     }
 }

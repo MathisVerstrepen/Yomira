@@ -430,4 +430,32 @@
     <string name="suwayomi_server_downloads_summary">Show titles with chapters downloaded on the server. A server connection is still required.</string>
     <string name="suwayomi_download_failed">Server download failed</string>
     <string name="suwayomi_queue_changed">The server queue changed. Review its current order and try again.</string>
+    <!-- KMK: device offline reading -->
+    <string name="suwayomi_phone_downloads">Phone downloads</string>
+    <string name="suwayomi_download_to_phone">Download to phone</string>
+    <string name="suwayomi_offline_wifi">Download only on Wi-Fi</string>
+    <string name="suwayomi_offline_wifi_summary">Pause phone downloads when Wi-Fi is unavailable. Reading saved chapters does not use the network.</string>
+    <string name="suwayomi_offline_limit">Phone download storage limit</string>
+    <string name="suwayomi_offline_usage">%1$s used of %2$s</string>
+    <string name="suwayomi_offline_storage_notice">New downloads wait when the limit is reached. Saved chapters are kept until you delete them. Lowering the limit does not delete existing files.</string>
+    <string name="suwayomi_offline_limit_mib">Storage limit (MiB)</string>
+    <string name="suwayomi_offline_limit_range">128–1048576 MiB. 1024 MiB = 1 GiB.</string>
+    <string name="suwayomi_offline_empty">Download chapters to your phone from a title’s chapter list to read without the server.</string>
+    <string name="suwayomi_offline_queued">Queued</string>
+    <string name="suwayomi_offline_progress">Downloading · %1$d / %2$d pages</string>
+    <string name="suwayomi_offline_wait_wifi">Waiting for Wi-Fi</string>
+    <string name="suwayomi_offline_wait_storage">Storage limit reached. Delete phone downloads or increase the limit.</string>
+    <string name="suwayomi_offline_wait_network">Waiting for the server</string>
+    <string name="suwayomi_offline_error">Download failed. Check your connection and sign-in, then retry.</string>
+    <string name="suwayomi_offline_complete">Available offline</string>
+    <string name="suwayomi_offline_read">Read offline</string>
+    <string name="suwayomi_offline_delete">Remove from phone</string>
+    <string name="suwayomi_offline_delete_notice">Remove this phone download? Server files and reading progress are kept.</string>
+    <string name="suwayomi_offline_download_notice">Save chapters on this phone for offline reading, or manage the server’s copies. Wi-Fi and storage settings are available in More → Phone downloads.</string>
+    <string name="suwayomi_offline_show_only">Downloaded on phone only</string>
+    <string name="suwayomi_offline_show_only_summary">Show titles with chapters saved on this phone.</string>
+    <string name="suwayomi_offline_available_notice">Server unavailable. Chapters saved on this phone remain available; reading progress will synchronize after reconnecting.</string>
+    <string name="suwayomi_offline_pause">Pause downloads</string>
+    <string name="suwayomi_offline_resume">Resume downloads</string>
+    <string name="suwayomi_offline_paused">Phone downloads paused</string>
 </resources>

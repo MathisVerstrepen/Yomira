@@ -272,8 +272,18 @@ internal class SuwayomiClient(
 
     suspend fun image(path: String): ByteArray = fetchImage(path) { it.bytes() }
 
-    suspend fun imageFile(path: String, destination: File) = fetchImage(path) { body ->
-        destination.outputStream().use { output -> body.byteStream().use { it.copyTo(output) } }
+    suspend fun imageFile(path: String, destination: File, beforeWrite: (Int) -> Unit = {}) = fetchImage(path) { body ->
+        destination.outputStream().use { output ->
+            body.byteStream().use { input ->
+                val buffer = ByteArray(64 * 1024)
+                while (true) {
+                    val count = input.read(buffer)
+                    if (count < 0) break
+                    beforeWrite(count)
+                    output.write(buffer, 0, count)
+                }
+            }
+        }
         Unit
     }
 

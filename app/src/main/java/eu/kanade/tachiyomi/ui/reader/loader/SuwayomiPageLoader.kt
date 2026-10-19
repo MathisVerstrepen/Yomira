@@ -31,6 +31,8 @@ internal class SuwayomiPageLoader(
     private val preferences: ReaderPreferences = Injekt.get(),
 ) : PageLoader() {
     override var isLocal = false
+    private var localFiles: List<File>? = null
+    private val remoteId = SuwayomiMode.remoteId(chapter.chapter.id!!)
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val slots = Semaphore(preferences.readerThreads().get().coerceIn(1, 8))
     private val locks = mutableMapOf<Int, Mutex>()
@@ -38,6 +40,16 @@ internal class SuwayomiPageLoader(
     private var pages: List<ReaderPage> = emptyList()
 
     override suspend fun getPages(): List<ReaderPage> {
+        session.offline.acquire(remoteId)?.let { files ->
+            localFiles = files
+            isLocal = true
+            return files.mapIndexed { index, file ->
+                ReaderPage(index).apply {
+                    stream = file::inputStream
+                    status = Page.State.Ready
+                }
+            }.also { pages = it }
+        }
         val result = session.pages(SuwayomiMode.remoteId(chapter.chapter.id!!))
         result.syncConflict?.let { onConflict(it.deviceName, it.remotePage) }
         // Page fetching may pull newer resume state from a server-owned integration.
@@ -50,6 +62,7 @@ internal class SuwayomiPageLoader(
     }
 
     override suspend fun loadPage(page: ReaderPage) {
+        if (isLocal) return
         load(page)
         pages.drop(page.index + 1).take(preferences.preloadSize().get().coerceIn(0, 20)).forEach { next -> scope.launch { load(next) } }
     }
@@ -85,6 +98,7 @@ internal class SuwayomiPageLoader(
     }
 
     override fun retryPage(page: ReaderPage) {
+        if (isLocal) return
         page.status = Page.State.Queue
         scope.launch { load(page) }
     }
@@ -93,6 +107,8 @@ internal class SuwayomiPageLoader(
         super.recycle()
         scope.cancel()
         directory.deleteRecursively()
+        if (localFiles != null) session.offline.release(remoteId)
+        localFiles = null
         pages.forEach { it.stream = null }
         pages = emptyList()
     }

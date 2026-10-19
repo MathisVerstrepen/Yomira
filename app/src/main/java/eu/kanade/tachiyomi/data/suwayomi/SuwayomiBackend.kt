@@ -2,6 +2,9 @@
 package eu.kanade.tachiyomi.data.suwayomi
 
 import android.content.Context
+import android.net.ConnectivityManager
+import android.net.Network
+import android.net.NetworkCapabilities
 import android.util.AtomicFile
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
@@ -25,6 +28,9 @@ import java.util.concurrent.atomic.AtomicReference
 
 /** Single connection authority; late responses from replaced sessions cannot affect the new one. */
 class SuwayomiBackend(private val context: Context) {
+    internal val offlineDownloadMutex = Mutex()
+    private val networkScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val networkKey = AtomicReference<String?>(null)
     private val storage = SuwayomiStorage(context)
     private val sessionLock = Any()
     private val connectionMutex = Mutex()
@@ -34,6 +40,22 @@ class SuwayomiBackend(private val context: Context) {
     init {
         File(context.cacheDir, "suwayomi").deleteRecursively()
         storage.read()?.let { stored -> mutableSession.value = createSession(stored) }
+        context.getSystemService(ConnectivityManager::class.java).registerDefaultNetworkCallback(object : ConnectivityManager.NetworkCallback() {
+            override fun onCapabilitiesChanged(network: Network, capabilities: NetworkCapabilities) {
+                val key = "$network:${capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)}"
+                if (networkKey.getAndSet(key) == key) return
+                networkScope.launch {
+                    delay(1000)
+                    val active = session.value ?: return@launch
+                    active.flushSoon()
+                    val snapshot = active.offline.state.value
+                    if (!snapshot.paused && snapshot.downloads.any { it.state in listOf(OfflineState.QUEUED, OfflineState.WIFI, OfflineState.NETWORK) }) SuwayomiOfflineWorker.schedule(context, active, replace = true)
+                }
+            }
+            override fun onLost(network: Network) {
+                networkKey.set(null)
+            }
+        })
     }
 
     private fun createSession(stored: StoredSession): SuwayomiSession {
@@ -71,6 +93,7 @@ class SuwayomiBackend(private val context: Context) {
                 mutableSession.value = SuwayomiSession(context, stored.id, candidate) { requireClient(stored.id, candidate) }
                 old?.close(clear = true)
                 SuwayomiNotificationWorker.schedule(context, stored.id)
+                mutableSession.value?.resumeOfflineWork()
             }
         } catch (e: Exception) {
             candidate.close()
@@ -98,6 +121,7 @@ class SuwayomiBackend(private val context: Context) {
                 storage.write(latest.get())
                 old.close(clear = false)
                 mutableSession.value = SuwayomiSession(context, saved.id, client) { requireClient(saved.id, client) }
+                mutableSession.value?.resumeOfflineWork()
             }
         } catch (e: Exception) {
             client.close()
@@ -131,11 +155,12 @@ class SuwayomiBackend(private val context: Context) {
 }
 
 class SuwayomiSession internal constructor(
-    context: Context,
+    private val context: Context,
     val id: String,
     internal val client: SuwayomiClient,
     private val assertActive: () -> Unit,
 ) {
+    internal val offline = SuwayomiOfflineStore(File(context.noBackupFilesDir, "suwayomi-offline/$id"))
     val baseUrl: String get() = client.url.base.toString()
     val sharedLibrary: Boolean get() = client.apiContract == SuwayomiApiContract.SHARED_LIBRARY
 
@@ -252,6 +277,77 @@ class SuwayomiSession internal constructor(
     }
 
     suspend fun image(path: String): ByteArray = checked { client.image(path) }
+    internal suspend fun offlineImage(path: String, file: File, beforeWrite: (Int) -> Unit) = checked {
+        client.imageFile(path, file) { count ->
+            assertActive()
+            beforeWrite(count)
+        }
+    }
+
+    internal fun enqueueOffline(manga: ServerManga, chapters: List<ServerChapter>, ids: List<Int>) {
+        assertActive()
+        offline.enqueue(manga, chapters, ids)
+        SuwayomiOfflineWorker.schedule(context, this, replace = true)
+    }
+
+    internal fun configureOffline(wifiOnly: Boolean, limitMiB: Int) {
+        assertActive()
+        offline.configure(wifiOnly, limitMiB)
+        SuwayomiOfflineWorker.schedule(context, this, replace = true)
+    }
+
+    internal fun pauseOffline(paused: Boolean) {
+        assertActive()
+        offline.pause(paused)
+        if (paused) SuwayomiOfflineWorker.cancel(context, id) else SuwayomiOfflineWorker.schedule(context, this, replace = true)
+    }
+
+    internal fun retryOffline() {
+        assertActive()
+        offline.pause(false)
+        offline.retry()
+        SuwayomiOfflineWorker.schedule(context, this, replace = true)
+    }
+
+    internal fun removeOffline(id: Int) {
+        assertActive()
+        offline.remove(id)
+        scope.launch {
+            uy.kohesive.injekt.Injekt.get<SuwayomiBackend>().offlineDownloadMutex.withLock {
+                if (!closed && offline.state.value.downloads.none { it.chapterId == id }) offline.discardPartial(id)
+            }
+        }
+        SuwayomiOfflineWorker.schedule(context, this, replace = true)
+    }
+
+    internal fun resumeOfflineWork() {
+        assertActive()
+        if (offline.next() != null) SuwayomiOfflineWorker.schedule(context, this)
+        if (pending.value.isNotEmpty()) SuwayomiProgressWorker.schedule(context, id)
+    }
+
+    internal suspend fun readerData(mangaId: Int): OfflineTitle {
+        val cached = offline.state.value.titles[mangaId]
+        try {
+            val manga = manga(mangaId)
+            val chapters = chapters(mangaId)
+            val projected = overlay(chapters)
+            offline.remember(manga, projected)
+            return OfflineTitle(manga, projected)
+        } catch (e: Exception) {
+            if (e is CancellationException) throw e
+            if (cached == null || (e as? SuwayomiException)?.failure !in listOf(SuwayomiFailure.NETWORK, SuwayomiFailure.SERVER)) throw e
+            assertActive()
+            return cached.copy(chapters = overlay(cached.chapters))
+        }
+    }
+
+    internal fun overlay(chapters: List<ServerChapter>): List<ServerChapter> = chapters.map { chapter ->
+        pending.value.filter { it.chapterId == chapter.id && it.identity == chapter.identity() }.fold(chapter) { value, intent ->
+            value.copy(user = value.user.copy(isRead = intent.patch.isRead ?: value.user.isRead, lastPageRead = intent.patch.lastPageRead ?: value.user.lastPageRead, isBookmarked = intent.patch.isBookmarked ?: value.user.isBookmarked))
+        }
+    }
+
     internal suspend fun imageFile(path: String, file: File) = checked { client.imageFile(path, file) }
 
     suspend fun setLibrary(mangaId: Int, inLibrary: Boolean) = checked {
@@ -291,9 +387,11 @@ class SuwayomiSession internal constructor(
         if (incognito()) return
         if (outbox.enqueue(chapterId, kind, patch, ticket, identity)) {
             mutablePending.value = outbox.operations()
+            offline.patch(chapterId, outbox.operations().last { it.chapterId == chapterId }.patch)
             scheduledFlush?.cancel()
             scheduledFlush = scope.launch {
                 if (kind == ChapterIntentKind.PROGRESS && patch.isRead != true) delay(1200)
+                SuwayomiProgressWorker.schedule(context, id)
                 scope.launch { flush() }
             }
         }
@@ -307,6 +405,7 @@ class SuwayomiSession internal constructor(
         for (intent in outbox.operations()) {
             if (incognito()) break
             if (outbox.operations().none { it.id == intent.id }) continue
+            var sent = false
             try {
                 val remote = chapter(intent.chapterId)
                 if (intent.identity == null || remote.identity() != intent.identity) {
@@ -330,6 +429,7 @@ class SuwayomiSession internal constructor(
                 }
                 if (incognito()) break
                 outbox.setStatus(intent.id, ChapterIntentStatus.SENDING)
+                sent = true
                 mutablePending.value = outbox.operations()
                 checked {
                     client.graphql(
@@ -354,11 +454,11 @@ class SuwayomiSession internal constructor(
                 outbox.acknowledge(intent.id)
             } catch (e: CancellationException) {
                 // Persist uncertainty even when the process/activity or HTTP call was cancelled.
-                outbox.setStatus(intent.id, ChapterIntentStatus.AMBIGUOUS)
+                if (sent) outbox.setStatus(intent.id, ChapterIntentStatus.AMBIGUOUS)
                 throw e
             } catch (e: Exception) {
                 val failure = (e as? SuwayomiException)?.failure ?: SuwayomiFailure.SERVER
-                outbox.setStatus(intent.id, if (failure == SuwayomiFailure.NETWORK || failure == SuwayomiFailure.SERVER) ChapterIntentStatus.AMBIGUOUS else ChapterIntentStatus.FAILED)
+                outbox.setStatus(intent.id, failedIntentStatus(intent.status, sent, failure))
                 mutableFailure.value = failure
                 break
             } finally {
@@ -428,6 +528,11 @@ class SuwayomiSession internal constructor(
         closed = true
         scope.coroutineContext[Job]?.cancel()
         client.close()
+        offline.close(clear)
+        if (clear) {
+            SuwayomiOfflineWorker.cancel(context, id)
+            SuwayomiProgressWorker.cancel(context, id)
+        }
         pageCache.deleteRecursively()
         if (clear) {
             outboxFile.delete()
@@ -453,4 +558,10 @@ class SuwayomiSession internal constructor(
         internal const val CHAPTER_FIELDS = "id mangaId url manga {sourceId url} name chapterNumber sourceOrder scanlator uploadDate pageCount user { isRead isBookmarked lastPageRead lastReadAt isDownloaded }"
     }
 }
+internal fun failedIntentStatus(previous: ChapterIntentStatus, sent: Boolean, failure: SuwayomiFailure): ChapterIntentStatus =
+    if (failure in listOf(SuwayomiFailure.NETWORK, SuwayomiFailure.SERVER)) {
+        if (sent) ChapterIntentStatus.AMBIGUOUS else previous
+    } else {
+        ChapterIntentStatus.FAILED
+    }
 // KMK <--
