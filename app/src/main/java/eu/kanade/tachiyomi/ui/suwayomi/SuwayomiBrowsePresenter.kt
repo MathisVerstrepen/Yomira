@@ -15,6 +15,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material.icons.outlined.TravelExplore
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.SnackbarHost
@@ -122,6 +123,7 @@ internal fun SuwayomiBrowseTab() {
             TabContent(
                 titleRes = MR.strings.label_sources,
                 actions = persistentListOf(
+                    AppBar.Action(stringResource(MR.strings.action_global_search), Icons.Outlined.TravelExplore, onClick = { navigator.push(eu.kanade.tachiyomi.ui.browse.source.globalsearch.GlobalSearchScreen()) }),
                     AppBar.Action(stringResource(KMR.strings.suwayomi_reload), Icons.Outlined.Refresh, onClick = { model.sources() }),
                     AppBar.Action(stringResource(KMR.strings.suwayomi_administration), Icons.Outlined.Settings, onClick = { navigator.push(SuwayomiAdministrationScreen(session.id)) }),
                 ),
