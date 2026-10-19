@@ -157,7 +157,7 @@ internal fun SuwayomiActivityPresenter(history: Boolean) {
         )
         HistoryScreen(
             state = nativeState, snackbarHostState = snack, onSearchQueryChange = { search = it },
-            onClickCover = { navigator.push(SuwayomiMangaScreen(session.id, SuwayomiMode.remoteId(it))) }, onClickResume = ::open,
+            onClickCover = { navigator.push(serverMangaScreen(session.id, SuwayomiMode.remoteId(it))) }, onClickResume = ::open,
             onClickFavorite = { id -> model.act { it.setLibrary(SuwayomiMode.remoteId(id), true) } },
             onDialogChange = {}, toggleSelectionMode = {}, onSelectAll = {}, onInvertSelection = {}, onHistorySelected = { _, _ -> },
             onFilterClicked = { filter = true }, hasActiveFilters = listOf(unfinishedManga, unfinishedChapter, nonLibrary).any { it != TriState.DISABLED },
@@ -202,7 +202,7 @@ internal fun SuwayomiActivityPresenter(history: Boolean) {
         fun ids(items: List<UpdatesItem>) = items.map { SuwayomiMode.remoteId(it.update.chapterId) }
         UpdateScreen(
             state = nativeState, snackbarHostState = snack, lastUpdated = 0, preserveReadingPosition = true,
-            onClickCover = { navigator.push(SuwayomiMangaScreen(session.id, SuwayomiMode.remoteId(it.update.mangaId))) },
+            onClickCover = { navigator.push(serverMangaScreen(session.id, SuwayomiMode.remoteId(it.update.mangaId))) },
             onSelectAll = { selected = if (it) entries.map { chapter -> chapter.id }.toSet() else emptySet() },
             onInvertSelection = { selected = entries.map { it.id }.toSet() - selected }, onCalendarClicked = {}, showCalendar = false,
             onUpdateLibrary = {

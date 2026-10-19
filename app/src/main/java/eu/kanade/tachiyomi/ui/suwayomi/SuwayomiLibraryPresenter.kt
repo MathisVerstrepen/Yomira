@@ -98,6 +98,7 @@ internal fun SuwayomiLibraryTab() {
     val sort by prefs.sortingMode().collectAsState()
     val perCategory by prefs.categorizedDisplaySettings().collectAsState()
     val showTabs by prefs.categoryTabs().collectAsState()
+    val showHidden by prefs.showHiddenCategories().collectAsState()
     val showCount by prefs.categoryNumberOfItems().collectAsState()
     val downloadBadge by prefs.downloadBadge().collectAsState()
     val unreadBadge by prefs.unreadBadge().collectAsState()
@@ -121,7 +122,7 @@ internal fun SuwayomiLibraryTab() {
         Category(it.id.toLong(), if (it.id == 0) defaultLabel else it.name, it.order.toLong(), 0, false)
     }.let { values -> if (values.any { it.id == 0L }) values else listOf(Category(0, defaultLabel, -1, 0, false)) + values }
     val categories = when (group) {
-        LibraryGroup.BY_DEFAULT -> remoteCategories
+        LibraryGroup.BY_DEFAULT -> remoteCategories.filter { it.id == 0L || showHidden || !state.presentation.category(it.id.toInt()).hidden }
         LibraryGroup.BY_SOURCE -> state.mangas.groupBy { it.sourceId }.map { (id, mangas) -> Category(id, mangas.first().source?.name.orEmpty(), 0, 0, false) }.sortedBy { it.name }
         LibraryGroup.BY_STATUS -> state.mangas.map { it.status }.distinct().sorted().mapIndexed { index, status -> Category(index.toLong() + 1, status, 0, 0, false) }
         else -> listOf(Category(-1, allLabel, 0, 0, false))
@@ -149,7 +150,7 @@ internal fun SuwayomiLibraryTab() {
     }.let { orderLibrary(it, LibrarySort.valueOf(category.flags)) }
     val visible = members(active)
     fun open(id: Long) {
-        navigator.push(SuwayomiMangaScreen(session.id, SuwayomiMode.remoteId(id)))
+        navigator.push(serverMangaScreen(session.id, SuwayomiMode.remoteId(id)))
     }
     fun updateLibrary() {
         scope.launch { runCatching { session.updateLibraryOnServer() }.onFailure { snack.showSnackbar(context.stringResource(failureResource(failure(it as? Exception ?: Exception())))) } }
@@ -239,7 +240,7 @@ internal fun SuwayomiLibraryTab() {
                 else -> tachiyomi.core.common.preference.CheckboxState.TriState.Exclude(category)
             }
         }.toImmutableList()
-        ChangeCategoryDialog(selection, { changeCategory = false }, { navigator.push(SuwayomiCategoriesScreen(session.id)) }) { add, removeIds ->
+        ChangeCategoryDialog(selection, { changeCategory = false }, { navigator.push(eu.kanade.tachiyomi.ui.category.CategoryScreen(serverSessionId = session.id)) }) { add, removeIds ->
             model.selectionOperation { connection, manga ->
                 add.forEach { connection.setCategoryMembership(manga.id, it.toInt(), true) }
                 removeIds.forEach { connection.setCategoryMembership(manga.id, it.toInt(), false) }

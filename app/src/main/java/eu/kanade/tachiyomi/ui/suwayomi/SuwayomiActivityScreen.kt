@@ -103,63 +103,14 @@ class SuwayomiActivityModel(private val sessionId: String, private val history: 
     data class State(val chapters: List<ServerActivityChapter> = emptyList(), val cursor: String? = null, val hasNext: Boolean = false, val loading: Boolean = true, val updating: Boolean = false, val error: SuwayomiFailure? = null)
 }
 
+/** Legacy saved navigation delegates to the standard tab presentation. */
 class SuwayomiActivityScreen(private val sessionId: String, private val history: Boolean) : Screen() {
     @Composable
     override fun Content() {
-        val model = rememberScreenModel { SuwayomiActivityModel(sessionId, history) }
-        val state by model.state.collectAsState()
-        val navigator = LocalNavigator.currentOrThrow
-        val context = LocalContext.current
+        val navigator = cafe.adriel.voyager.navigator.LocalNavigator.currentOrThrow
         val backend = remember { Injekt.get<SuwayomiBackend>() }
         val current by backend.session.collectAsState()
-        val session = current?.takeIf { it.id == sessionId }
-        LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { model.refresh() }
-        // The server lacks general chapter change events. Bound polling to a visible active update.
-        LaunchedEffect(state.updating) {
-            if (state.updating) {
-                repeat(60) {
-                    delay(5000)
-                    model.refresh()
-                }
-            }
-        }
-        Scaffold(topBar = {
-            TopAppBar(title = { Text(stringResource(if (history) KMR.strings.suwayomi_recent_reading else KMR.strings.suwayomi_updates)) }, navigationIcon = {
-                IconButton(onClick = { navigator.pop() }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(KMR.strings.suwayomi_back)) }
-            })
-        }) { padding ->
-            Column(Modifier.padding(padding).fillMaxSize()) {
-                if (session == null) {
-                    Text(stringResource(KMR.strings.suwayomi_session_changed))
-                    return@Column
-                }
-                if (state.loading) LinearProgressIndicator(Modifier.fillMaxWidth())
-                state.error?.let { Text(failureText(it), Modifier.padding(16.dp), color = MaterialTheme.colorScheme.error) }
-                Row {
-                    TextButton(onClick = { model.refresh() }, enabled = !state.loading) { Text(stringResource(KMR.strings.suwayomi_reload)) }
-                    if (!history) Button(onClick = { model.refresh(fetch = true) }, enabled = !state.loading && !state.updating) { Text(stringResource(KMR.strings.suwayomi_update_library)) }
-                }
-                if (state.updating) Text(stringResource(KMR.strings.suwayomi_updating), Modifier.padding(16.dp))
-                if (history) Text(stringResource(KMR.strings.suwayomi_history_notice), Modifier.padding(16.dp), style = MaterialTheme.typography.bodySmall)
-                LazyColumn(Modifier.weight(1f)) {
-                    items(state.chapters, key = { it.id }) { chapter ->
-                        Row(
-                            Modifier.fillMaxWidth().clickable {
-                                if (backend.session.value?.id == sessionId) context.startActivity(ReaderActivity.newIntent(context, SuwayomiMode.readerId(chapter.manga.id), SuwayomiMode.readerId(chapter.id)))
-                            }.padding(12.dp),
-                        ) {
-                            ServerCover(session, chapter.manga.coverUrl(), Modifier.size(56.dp, 84.dp))
-                            Column(Modifier.padding(horizontal = 12.dp)) {
-                                Text(chapter.manga.title, style = MaterialTheme.typography.titleMedium)
-                                Text(chapter.name)
-                                if (history) Text(stringResource(KMR.strings.suwayomi_page, chapter.user.lastPageRead + 1))
-                            }
-                        }
-                    }
-                }
-                if (state.hasNext) TextButton(onClick = { model.refresh(next = true) }, enabled = !state.loading) { Text(stringResource(KMR.strings.suwayomi_load_more)) }
-            }
-        }
+        if (current?.id == sessionId) SuwayomiActivityPresenter(history) else ConnectionError(SuwayomiFailure.SESSION_CHANGED, { navigator.replaceAll(eu.kanade.tachiyomi.ui.home.HomeScreen) })
     }
 }
 // KMK <--

@@ -4,6 +4,7 @@ package eu.kanade.tachiyomi.ui.suwayomi
 import android.content.Intent
 import android.content.res.Configuration
 import android.net.Uri
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -50,6 +51,7 @@ import eu.kanade.presentation.browse.SourceUiModel
 import eu.kanade.presentation.browse.SourcesScreen
 import eu.kanade.presentation.browse.components.BrowseSourceToolbar
 import eu.kanade.presentation.components.AppBar
+import eu.kanade.presentation.components.BulkSelectionToolbar
 import eu.kanade.presentation.components.TabContent
 import eu.kanade.presentation.components.TabbedScreen
 import eu.kanade.presentation.util.Screen
@@ -61,6 +63,7 @@ import eu.kanade.tachiyomi.data.suwayomi.SuwayomiFailure
 import eu.kanade.tachiyomi.data.suwayomi.SuwayomiMode
 import eu.kanade.tachiyomi.data.suwayomi.browseSource
 import eu.kanade.tachiyomi.data.suwayomi.sameFilterSchema
+import eu.kanade.tachiyomi.data.suwayomi.snapshot
 import eu.kanade.tachiyomi.data.suwayomi.sourceFilters
 import eu.kanade.tachiyomi.data.suwayomi.toKomikkuFilters
 import eu.kanade.tachiyomi.data.suwayomi.toKomikkuManga
@@ -141,9 +144,23 @@ internal fun SuwayomiBrowseTab() {
 private data class ServerBrowseRequest(val query: String, val type: String, val changes: List<JsonObject>, val schema: List<ServerFilter>, val revision: Int)
 
 /** Android paging delegates every source request to Suwayomi and retains only view projections. */
-private class SuwayomiSourceModel(private val sessionId: String, val source: ServerSource, latest: Boolean) : ScreenModel {
+private class SuwayomiSourceModel(private val sessionId: String, val source: ServerSource, latest: Boolean, initialQuery: String?) : ScreenModel {
     private val backend = Injekt.get<SuwayomiBackend>()
-    private val request = MutableStateFlow(ServerBrowseRequest("", if (latest) "LATEST" else "POPULAR", emptyList(), emptyList(), 0))
+    private val request = MutableStateFlow(
+        ServerBrowseRequest(
+            initialQuery.orEmpty(),
+            if (initialQuery != null) {
+                "SEARCH"
+            } else if (latest) {
+                "LATEST"
+            } else {
+                "POPULAR"
+            },
+            emptyList(),
+            emptyList(),
+            0,
+        ),
+    )
     val schema = MutableStateFlow(emptyList<ServerFilter>())
     val filterVersion = MutableStateFlow(0)
     val error = MutableStateFlow<SuwayomiFailure?>(null)
@@ -191,6 +208,7 @@ private class SuwayomiSourceModel(private val sessionId: String, val source: Ser
         }
     }
     fun filterChanged() {
+        filters = filters.snapshot(schema.value).toKomikkuFilters()
         filterVersion.value++
     }
     fun search(query: String, type: String, filtered: Boolean = false) {
@@ -219,12 +237,12 @@ private class SuwayomiSourceModel(private val sessionId: String, val source: Ser
     }
 }
 
-internal class SuwayomiSourceScreen(private val sessionId: String, private val source: ServerSource, private val latest: Boolean = false) : Screen() {
+internal class SuwayomiSourceScreen(private val sessionId: String, private val source: ServerSource, private val latest: Boolean = false, private val initialQuery: String? = null) : Screen() {
     @Composable
     override fun Content() {
         val navigator = LocalNavigator.currentOrThrow
         val context = LocalContext.current
-        val model = rememberScreenModel { SuwayomiSourceModel(sessionId, source, latest) }
+        val model = rememberScreenModel { SuwayomiSourceModel(sessionId, source, latest, initialQuery) }
         val pages = model.pages.collectAsLazyPagingItems()
         val version by model.filterVersion.collectAsState()
         val error by model.error.collectAsState()
@@ -238,29 +256,61 @@ internal class SuwayomiSourceScreen(private val sessionId: String, private val s
         val columns = if (LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE) landscape else portrait
         val base = remember { Injekt.get<BasePreferences>() }
         val incognito by base.incognitoMode().collectAsState()
-        var query by remember { mutableStateOf<String?>(null) }
-        var type by remember { mutableStateOf(if (latest) "LATEST" else "POPULAR") }
+        var query by remember { mutableStateOf<String?>(initialQuery) }
+        var type by remember {
+            mutableStateOf(
+                if (initialQuery != null) {
+                    "SEARCH"
+                } else if (latest) {
+                    "LATEST"
+                } else {
+                    "POPULAR"
+                },
+            )
+        }
         var filter by remember { mutableStateOf(false) }
         var selected by remember { mutableStateOf(emptyList<Manga>()) }
-        var favorite by remember { mutableStateOf<Manga?>(null) }
+        var desiredFavorite by remember { mutableStateOf<Boolean?>(null) }
+        var selectionMode by remember { mutableStateOf(false) }
+        BackHandler(selectionMode) {
+            selectionMode = false
+            selected = emptyList()
+        }
         val snackbar = remember { SnackbarHostState() }
         LaunchedEffect(error) { error?.let { snackbar.showSnackbar(context.stringResource(failureResource(it))) } }
         Scaffold(
             topBar = { behavior ->
-                BrowseSourceToolbar(
-                    source = nativeSource, searchQuery = query, onSearchQueryChange = { query = it },
-                    onSearch = {
-                        type = "SEARCH"
-                        model.search(it, type)
-                    }, displayMode = display, onDisplayModeChange = { prefs.displayMode().set(it) },
-                    navigateUp = { navigator.pop() }, onWebViewClick = { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(Injekt.get<SuwayomiBackend>().requireSession(sessionId).baseUrl))) },
-                    onHelpClick = { navigator.push(SuwayomiCompatibilityScreen()) }, onToggleIncognito = { base.incognitoMode().set(!incognito) },
-                    onSettingsClick = { navigator.push(SuwayomiAdministrationScreen(sessionId, source.id)) }, scrollBehavior = behavior,
-                    toggleSelectionMode = {
-                        selected = pages.itemSnapshotList.items.map { it.value.first }
-                        if (selected.isNotEmpty()) favorite = selected.first()
-                    }, isRunning = working,
-                )
+                if (selectionMode) {
+                    BulkSelectionToolbar(
+                        selectedCount = selected.size,
+                        isRunning = working,
+                        onClickClearSelection = {
+                            selected = emptyList()
+                            selectionMode = false
+                        },
+                        onChangeCategoryClick = { if (selected.isNotEmpty()) desiredFavorite = true },
+                        onSelectAll = { selected = pages.itemSnapshotList.items.map { it.value.first } },
+                        onReverseSelection = {
+                            val ids = selected.map { it.id }.toSet()
+                            selected = pages.itemSnapshotList.items.map { it.value.first }.filterNot { it.id in ids }
+                        },
+                    )
+                } else {
+                    BrowseSourceToolbar(
+                        source = nativeSource, searchQuery = query, onSearchQueryChange = { query = it },
+                        onSearch = {
+                            type = "SEARCH"
+                            model.search(it, type)
+                        }, displayMode = display, onDisplayModeChange = { prefs.displayMode().set(it) },
+                        navigateUp = { navigator.pop() }, onWebViewClick = { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(Injekt.get<SuwayomiBackend>().requireSession(sessionId).baseUrl))) },
+                        onHelpClick = { navigator.push(SuwayomiCompatibilityScreen()) }, onToggleIncognito = { base.incognitoMode().set(!incognito) },
+                        onSettingsClick = { navigator.push(SuwayomiAdministrationScreen(sessionId, source.id)) }, scrollBehavior = behavior,
+                        toggleSelectionMode = {
+                            selectionMode = true
+                            selected = emptyList()
+                        }, isRunning = working,
+                    )
+                }
             },
             bottomBar = {
                 Row(Modifier.horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -284,11 +334,21 @@ internal class SuwayomiSourceScreen(private val sessionId: String, private val s
             BrowseSourceContent(
                 source = nativeSource, mangaList = pages, columns = if (columns == 0) GridCells.Adaptive(128.dp) else GridCells.Fixed(columns),
                 ehentaiBrowseDisplayMode = false, displayMode = display, snackbarHostState = snackbar, contentPadding = padding,
-                onWebViewClick = null, onHelpClick = null, onLocalSourceHelpClick = null, selection = emptyList(),
-                onMangaClick = { navigator.push(SuwayomiMangaScreen(sessionId, SuwayomiMode.remoteId(it.id))) },
-                onMangaLongClick = {
-                    selected = listOf(it)
-                    favorite = it
+                onWebViewClick = null, onHelpClick = null, onLocalSourceHelpClick = null, selection = selected,
+                onMangaClick = { manga ->
+                    if (selectionMode) {
+                        selected = if (selected.any { it.id == manga.id }) selected.filterNot { it.id == manga.id } else selected + manga
+                    } else {
+                        navigator.push(serverMangaScreen(sessionId, SuwayomiMode.remoteId(manga.id)))
+                    }
+                },
+                onMangaLongClick = { manga ->
+                    if (selectionMode) {
+                        navigator.push(serverMangaScreen(sessionId, SuwayomiMode.remoteId(manga.id)))
+                    } else {
+                        selected = listOf(manga)
+                        desiredFavorite = !manga.favorite
+                    }
                 },
             )
         }
@@ -305,24 +365,24 @@ internal class SuwayomiSourceScreen(private val sessionId: String, private val s
                 onSavedSearchPressDesc = "", shouldShowSavingButton = false, openMangaDexRandom = null, openMangaDexFollows = null,
             )
         }
-        favorite?.let { manga ->
+        desiredFavorite?.let { value ->
             AlertDialog(
                 onDismissRequest = {
-                    favorite = null
+                    desiredFavorite = null
                     selected = emptyList()
                 },
-                title = { Text(stringResource(if (manga.favorite) KMR.strings.suwayomi_remove_library else KMR.strings.suwayomi_add_library)) },
+                title = { Text(stringResource(if (!value) KMR.strings.suwayomi_remove_library else KMR.strings.suwayomi_add_library)) },
                 text = { Text(stringResource(KMR.strings.suwayomi_bulk_notice, selected.size)) },
                 confirmButton = {
                     TextButton(onClick = {
-                        model.favorite(selected, !manga.favorite)
-                        favorite = null
+                        model.favorite(selected, value)
+                        desiredFavorite = null
                         selected = emptyList()
                     }) { Text(stringResource(MR.strings.action_ok)) }
                 },
                 dismissButton = {
                     TextButton(onClick = {
-                        favorite = null
+                        desiredFavorite = null
                         selected = emptyList()
                     }) { Text(stringResource(MR.strings.action_cancel)) }
                 },

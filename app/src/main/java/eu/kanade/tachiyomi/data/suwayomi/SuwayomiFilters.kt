@@ -53,4 +53,20 @@ internal fun FilterList.toServerChanges(parent: List<Int> = emptyList()): List<J
         change?.let { listOf(sourceFilterChange(path, it.first, it.second)) }.orEmpty()
     }
 }
+/** Copy edited widget values without mutating the server schema used for positional validation. */
+internal fun FilterList.snapshot(schema: List<ServerFilter>): List<ServerFilter> {
+    require(size == schema.size)
+    return mapIndexed { index, filter ->
+        val descriptor = schema[index]
+        when (filter) {
+            is Filter.Text -> descriptor.copy(text = filter.state)
+            is Filter.CheckBox -> descriptor.copy(checked = filter.state)
+            is Filter.TriState -> descriptor.copy(triState = listOf("IGNORE", "INCLUDE", "EXCLUDE")[filter.state])
+            is Filter.Select<*> -> descriptor.copy(selected = filter.state)
+            is Filter.Sort -> descriptor.copy(sort = filter.state?.let { ServerSort(it.index, it.ascending) })
+            is Filter.Group<*> -> descriptor.copy(filters = FilterList(filter.state.filterIsInstance<Filter<*>>()).snapshot(descriptor.filters))
+            else -> descriptor
+        }
+    }
+}
 // KMK <--

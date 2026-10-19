@@ -60,7 +60,7 @@ private class SuwayomiLinkScreen(private val value: String) : Screen() {
             try {
                 val manga = session.manga(link.mangaId)
                 Injekt.get<SuwayomiBackend>().requireSession(session.id)
-                if (link.matches(manga)) navigator.replace(SuwayomiMangaScreen(session.id, manga.id)) else error = SuwayomiFailure.SESSION_CHANGED
+                if (link.matches(manga)) navigator.replace(serverMangaScreen(session.id, manga.id)) else error = SuwayomiFailure.SESSION_CHANGED
             } catch (e: Exception) {
                 if (e is CancellationException) throw e
                 error = failure(e)

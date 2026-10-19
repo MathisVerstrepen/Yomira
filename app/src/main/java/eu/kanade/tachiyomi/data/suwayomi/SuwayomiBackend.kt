@@ -185,6 +185,13 @@ class SuwayomiSession internal constructor(
     }
 
     @Synchronized
+    fun updateLibraryPresentation(transform: (LibraryPresentation) -> LibraryPresentation): LibraryPresentation {
+        val updated = transform(libraryPresentation())
+        saveLibraryPresentation(updated)
+        return updated
+    }
+
+    @Synchronized
     fun readerFlags(mangaId: Int): Long {
         assertActive()
         if (!flagsFile.baseFile.exists()) return 0

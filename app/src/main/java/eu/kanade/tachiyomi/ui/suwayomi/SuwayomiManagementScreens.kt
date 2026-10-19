@@ -85,92 +85,11 @@ class SuwayomiCategoriesModel(private val sessionId: String, private val mangaId
     data class State(val categories: List<ServerCategory> = emptyList(), val selected: Set<Int> = emptySet(), val loading: Boolean = true, val error: SuwayomiFailure? = null)
 }
 
+/** Restore old navigation through Komikku's category screen. */
 class SuwayomiCategoriesScreen(private val sessionId: String, private val mangaId: Int? = null) : Screen() {
     @Composable
     override fun Content() {
-        val model = rememberScreenModel { SuwayomiCategoriesModel(sessionId, mangaId) }
-        val state by model.state.collectAsState()
-        val navigator = LocalNavigator.currentOrThrow
-        var edit by remember { mutableStateOf<ServerCategory?>(null) }
-        var creating by remember { mutableStateOf(false) }
-        var name by remember { mutableStateOf("") }
-        var deleting by remember { mutableStateOf<ServerCategory?>(null) }
-        LaunchedEffect(Unit) { model.load() }
-        Scaffold(topBar = {
-            TopAppBar(title = { Text(stringResource(KMR.strings.suwayomi_categories)) }, navigationIcon = {
-                IconButton(onClick = { navigator.pop() }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(KMR.strings.suwayomi_back)) }
-            }, actions = {
-                TextButton(onClick = {
-                    name = ""
-                    creating = true
-                }, enabled = !state.loading) { Text(stringResource(KMR.strings.suwayomi_create)) }
-            })
-        }) { padding ->
-            Column(Modifier.padding(padding).fillMaxSize()) {
-                if (state.loading) LinearProgressIndicator(Modifier.fillMaxWidth())
-                state.error?.let {
-                    Text(failureText(it), Modifier.padding(16.dp), color = MaterialTheme.colorScheme.error)
-                    TextButton(onClick = { model.load() }) { Text(stringResource(KMR.strings.suwayomi_reload)) }
-                }
-                LazyColumn {
-                    items(state.categories, key = { it.id }) { category ->
-                        Column(Modifier.fillMaxWidth().padding(12.dp)) {
-                            Row {
-                                if (mangaId != null && category.id != 0) Checkbox(category.id in state.selected, { model.membership(category.id, it) }, enabled = !state.loading)
-                                Text(category.name, Modifier.weight(1f).padding(8.dp), style = MaterialTheme.typography.titleMedium)
-                            }
-                            if (category.id != 0 && mangaId == null) {
-                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    TextButton(onClick = {
-                                        edit = category
-                                        name = category.name
-                                    }, enabled = !state.loading) { Text(stringResource(KMR.strings.suwayomi_rename)) }
-                                    TextButton(onClick = { model.edit("reorder", category.id, position = (category.order - 1).coerceAtLeast(1)) }, enabled = !state.loading && category.order > 1) { Text(stringResource(KMR.strings.suwayomi_move_up)) }
-                                    TextButton(onClick = { deleting = category }, enabled = !state.loading) { Text(stringResource(KMR.strings.suwayomi_delete)) }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        if (creating || edit != null) {
-            AlertDialog(
-                onDismissRequest = {
-                    creating = false
-                    edit = null
-                },
-                title = { Text(stringResource(KMR.strings.suwayomi_categories)) },
-                text = { OutlinedTextField(name, { name = it }, label = { Text(stringResource(KMR.strings.suwayomi_name)) }, singleLine = true) },
-                confirmButton = {
-                    TextButton(onClick = {
-                        model.edit(if (creating) "create" else "rename", edit?.id, name.trim())
-                        creating = false
-                        edit = null
-                    }, enabled = name.isNotBlank()) { Text(stringResource(KMR.strings.suwayomi_save)) }
-                },
-                dismissButton = {
-                    TextButton(onClick = {
-                        creating = false
-                        edit = null
-                    }) { Text(stringResource(KMR.strings.suwayomi_cancel)) }
-                },
-            )
-        }
-        deleting?.let { category ->
-            AlertDialog(
-                onDismissRequest = { deleting = null },
-                title = { Text(stringResource(KMR.strings.suwayomi_delete_category)) },
-                text = { Text(category.name) },
-                confirmButton = {
-                    TextButton(onClick = {
-                        model.edit("delete", category.id)
-                        deleting = null
-                    }) { Text(stringResource(KMR.strings.suwayomi_delete)) }
-                },
-                dismissButton = { TextButton(onClick = { deleting = null }) { Text(stringResource(KMR.strings.suwayomi_cancel)) } },
-            )
-        }
+        eu.kanade.tachiyomi.ui.category.CategoryScreen(serverSessionId = sessionId).Content()
     }
 }
 

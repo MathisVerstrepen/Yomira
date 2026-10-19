@@ -484,20 +484,26 @@ private fun MangaScreenSmallImpl(
                 onClickMigrate = onMigrateClicked,
                 onClickEditNotes = onEditNotesClicked,
                 // SY -->
-                onClickEditInfo = onEditInfoClicked.takeIf { state.manga.favorite },
+                onClickEditInfo = onEditInfoClicked.takeIf {
+                    /* KMK --> */ !state.serverBacked && /* KMK <-- */ state.manga.favorite
+                },
                 // KMK -->
                 onClickSourceSettings = onClickSourceSettingsClicked,
                 onClearManga = onClearManga,
                 onOpenMangaFolder = onOpenMangaFolder,
                 onClickRelatedMangas = onRelatedMangasScreenClick.takeIf {
-                    !expandRelatedMangas &&
+                    /* KMK --> */ !state.serverBacked && /* KMK <-- */ !expandRelatedMangas &&
                         showRelatedMangasInOverflow &&
                         state.manga.source != MERGED_SOURCE_ID
                 },
                 // KMK <--
-                onClickRecommend = onRecommendClicked.takeIf { state.showRecommendationsInOverflow },
+                onClickRecommend = onRecommendClicked.takeIf {
+                    /* KMK --> */ !state.serverBacked && /* KMK <-- */ state.showRecommendationsInOverflow
+                },
                 onClickMergedSettings = onMergedSettingsClicked.takeIf { state.manga.source == MERGED_SOURCE_ID },
-                onClickMerge = onMergeClicked.takeIf { state.showMergeInOverflow },
+                onClickMerge = onMergeClicked.takeIf {
+                    /* KMK --> */ !state.serverBacked && /* KMK <-- */ state.showMergeInOverflow
+                },
                 // SY <--
                 actionModeCounter = selectedChapterCount,
                 onCancelActionMode = { onAllChapterSelected(false) },
@@ -507,6 +513,7 @@ private fun MangaScreenSmallImpl(
                 backgroundAlphaProvider = { backgroundAlpha },
                 // KMK -->
                 onPaletteScreenClick = onPaletteScreenClick,
+                showLocalActions = !state.serverBacked,
                 // KMK <--
             )
         },
@@ -618,7 +625,9 @@ private fun MangaScreenSmallImpl(
                             appBarPadding = topPadding,
                             manga = state.manga,
                             sourceName = remember { state.source.getNameForMangaInfo(state.mergedData?.sources) },
-                            isStubSource = remember { state.source is StubSource },
+                            isStubSource = remember {
+                                /* KMK --> */ !state.serverBacked && /* KMK <-- */ state.source is StubSource
+                            },
                             // KMK -->
                             isSourceIncognito = remember { state.source.isIncognitoModeEnabled() },
                             // KMK <--
@@ -649,7 +658,9 @@ private fun MangaScreenSmallImpl(
                             onEditIntervalClicked = onEditIntervalClicked,
                             onEditCategory = onEditCategoryClicked,
                             // SY -->
-                            onMergeClicked = onMergeClicked.takeUnless { state.showMergeInOverflow },
+                            onMergeClicked = onMergeClicked.takeUnless {
+                                /* KMK --> */ state.serverBacked || /* KMK <-- */ state.showMergeInOverflow
+                            },
                             // SY <--
                             // KMK -->
                             status = state.manga.status,
@@ -742,7 +753,7 @@ private fun MangaScreenSmallImpl(
                     // KMK <--
 
                     // SY -->
-                    if (!state.showRecommendationsInOverflow || state.showMergeWithAnother) {
+                    if (/* KMK --> */ !state.serverBacked && (/* KMK <-- */!state.showRecommendationsInOverflow || state.showMergeWithAnother/* KMK --> */)/* KMK <-- */) {
                         item(
                             key = MangaScreenItem.INFO_BUTTONS,
                             contentType = MangaScreenItem.INFO_BUTTONS,
@@ -936,20 +947,26 @@ private fun MangaScreenLargeImpl(
                 onClickEditNotes = onEditNotesClicked,
                 onCancelActionMode = { onAllChapterSelected(false) },
                 // SY -->
-                onClickEditInfo = onEditInfoClicked.takeIf { state.manga.favorite },
+                onClickEditInfo = onEditInfoClicked.takeIf {
+                    /* KMK --> */ !state.serverBacked && /* KMK <-- */ state.manga.favorite
+                },
                 // KMK -->
                 onClickSourceSettings = onClickSourceSettingsClicked,
                 onClearManga = onClearManga,
                 onOpenMangaFolder = onOpenMangaFolder,
                 onClickRelatedMangas = onRelatedMangasScreenClick.takeIf {
-                    !expandRelatedMangas &&
+                    /* KMK --> */ !state.serverBacked && /* KMK <-- */ !expandRelatedMangas &&
                         showRelatedMangasInOverflow &&
                         state.manga.source != MERGED_SOURCE_ID
                 },
                 // KMK <--
-                onClickRecommend = onRecommendClicked.takeIf { state.showRecommendationsInOverflow },
+                onClickRecommend = onRecommendClicked.takeIf {
+                    /* KMK --> */ !state.serverBacked && /* KMK <-- */ state.showRecommendationsInOverflow
+                },
                 onClickMergedSettings = onMergedSettingsClicked.takeIf { state.manga.source == MERGED_SOURCE_ID },
-                onClickMerge = onMergeClicked.takeIf { state.showMergeInOverflow },
+                onClickMerge = onMergeClicked.takeIf {
+                    /* KMK --> */ !state.serverBacked && /* KMK <-- */ state.showMergeInOverflow
+                },
                 // SY <--
                 actionModeCounter = selectedChapterCount,
                 onSelectAll = { onAllChapterSelected(true) },
@@ -958,6 +975,7 @@ private fun MangaScreenLargeImpl(
                 backgroundAlphaProvider = { 1f },
                 // KMK -->
                 onPaletteScreenClick = onPaletteScreenClick,
+                showLocalActions = !state.serverBacked,
                 // KMK <--
             )
         },
@@ -1070,7 +1088,9 @@ private fun MangaScreenLargeImpl(
                             appBarPadding = contentPadding.calculateTopPadding(),
                             manga = state.manga,
                             sourceName = remember { state.source.getNameForMangaInfo(state.mergedData?.sources) },
-                            isStubSource = remember { state.source is StubSource },
+                            isStubSource = remember {
+                                /* KMK --> */ !state.serverBacked && /* KMK <-- */ state.source is StubSource
+                            },
                             // KMK -->
                             isSourceIncognito = remember { state.source.isIncognitoModeEnabled() },
                             // KMK <--
@@ -1095,7 +1115,9 @@ private fun MangaScreenLargeImpl(
                             onEditIntervalClicked = onEditIntervalClicked,
                             onEditCategory = onEditCategoryClicked,
                             // SY -->
-                            onMergeClicked = onMergeClicked.takeUnless { state.showMergeInOverflow },
+                            onMergeClicked = onMergeClicked.takeUnless {
+                                /* KMK --> */ state.serverBacked || /* KMK <-- */ state.showMergeInOverflow
+                            },
                             // SY <--
                             // KMK -->
                             status = state.manga.status,
@@ -1126,7 +1148,7 @@ private fun MangaScreenLargeImpl(
                             // SY <--
                         )
                         // SY -->
-                        if (!state.showRecommendationsInOverflow || state.showMergeWithAnother) {
+                        if (/* KMK --> */ !state.serverBacked && (/* KMK <-- */!state.showRecommendationsInOverflow || state.showMergeWithAnother/* KMK --> */)/* KMK <-- */) {
                             MangaInfoButtons(
                                 showRecommendsButton = !state.showRecommendationsInOverflow,
                                 showMergeWithAnotherButton = state.showMergeWithAnother,

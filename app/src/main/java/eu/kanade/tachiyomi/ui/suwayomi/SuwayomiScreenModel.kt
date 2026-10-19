@@ -31,7 +31,7 @@ import kotlinx.coroutines.sync.withLock
 import uy.kohesive.injekt.Injekt
 import uy.kohesive.injekt.api.get
 
-class SuwayomiScreenModel(private val backend: SuwayomiBackend = Injekt.get()) : StateScreenModel<SuwayomiScreenModel.State>(State()) {
+class SuwayomiScreenModel(private val backend: SuwayomiBackend = Injekt.get(), private val loadLibrary: Boolean = true) : StateScreenModel<SuwayomiScreenModel.State>(State()) {
     private val libraryMutex = Mutex()
 
     init {
@@ -85,8 +85,13 @@ class SuwayomiScreenModel(private val backend: SuwayomiBackend = Injekt.get()) :
         mutableState.update { it.copy(loading = true, error = null, hasNext = false, cursor = null) }
         try {
             session.flush()
+            mutableState.update { it.copy(presentation = session.libraryPresentation()) }
             val user = session.user()
             val info = session.info()
+            if (!loadLibrary) {
+                mutableState.update { it.copy(user = user, info = info, loading = false) }
+                return@withLock
+            }
             val categories = session.serverCategories()
             val all = linkedMapOf<Int, ServerManga>()
             var cursor: String? = null
@@ -109,8 +114,8 @@ class SuwayomiScreenModel(private val backend: SuwayomiBackend = Injekt.get()) :
 
     fun presentation(value: LibraryPresentation) {
         try {
-            state.value.session?.saveLibraryPresentation(value)
-            mutableState.update { it.copy(presentation = value) }
+            val saved = state.value.session?.updateLibraryPresentation { current -> current.copy(group = value.group, categories = value.categories) } ?: value
+            mutableState.update { it.copy(presentation = saved) }
         } catch (e: Exception) {
             mutableState.update { it.copy(error = failure(e)) }
         }
@@ -140,6 +145,7 @@ class SuwayomiScreenModel(private val backend: SuwayomiBackend = Injekt.get()) :
                             val patch = if (action == "read") ChapterPatch(isRead = true) else ChapterPatch(isRead = false, lastPageRead = 0)
                             session.chapters(manga.id).forEach { session.enqueue(it.id, kind, patch, identity = it.identity()) }
                             session.flush()
+                            mutableState.update { it.copy(presentation = session.libraryPresentation()) }
                         }
                         else -> error("Unsupported library action")
                     }
@@ -212,7 +218,8 @@ class SuwayomiMangaScreenModel(
                 val manga = session.manga(mangaId)
                 val chapters = session.chapters(mangaId)
                 val user = session.user()
-                mutableState.value = State(manga = manga, chapters = chapters, loading = false, canDownload = user.roles.contains("ADMIN") || user.permissions.contains("DOWNLOAD_CHAPTERS"))
+                val categories = session.serverCategories()
+                mutableState.value = State(manga = manga, chapters = chapters, loading = false, canDownload = user.roles.contains("ADMIN") || user.permissions.contains("DOWNLOAD_CHAPTERS"), categories = categories)
             } catch (e: Exception) {
                 if (e is CancellationException) throw e
                 mutableState.update { it.copy(loading = false, error = failure(e)) }
@@ -220,6 +227,24 @@ class SuwayomiMangaScreenModel(
         }
     }
 
+    private val actionMutex = Mutex()
+    fun perform(action: suspend SuwayomiSession.() -> Unit) = screenModelScope.launch(Dispatchers.IO) {
+        actionMutex.withLock {
+            val expected = state.value.manga ?: return@withLock
+            mutableState.update { it.copy(loading = true, error = null) }
+            try {
+                val session = backend.requireSession(sessionId)
+                val current = session.manga(mangaId)
+                if (current.sourceId != expected.sourceId || current.url != expected.url) throw SuwayomiException(SuwayomiFailure.SESSION_CHANGED)
+                session.action()
+                backend.requireSession(sessionId)
+                refresh()
+            } catch (e: Exception) {
+                if (e is CancellationException) throw e
+                mutableState.update { it.copy(loading = false, error = failure(e)) }
+            }
+        }
+    }
     fun setLibrary(inLibrary: Boolean) = screenModelScope.launch(Dispatchers.IO) {
         mutableState.update { it.copy(loading = true, error = null) }
         try {
@@ -278,6 +303,7 @@ class SuwayomiMangaScreenModel(
     data class State(
         val manga: ServerManga? = null,
         val canDownload: Boolean = false,
+        val categories: List<ServerCategory> = emptyList(),
         val chapters: List<ServerChapter> = emptyList(),
         val loading: Boolean = true,
         val error: SuwayomiFailure? = null,

@@ -71,6 +71,7 @@ fun MangaToolbar(
     backgroundAlphaProvider: () -> Float,
     // KMK -->
     onPaletteScreenClick: () -> Unit,
+    showLocalActions: Boolean = true,
     // KMK <--
     modifier: Modifier = Modifier,
 ) {
@@ -184,12 +185,18 @@ fun MangaToolbar(
                             ),
                         )
                     }
-                    add(
-                        AppBar.OverflowAction(
-                            title = stringResource(MR.strings.action_notes),
-                            onClick = onClickEditNotes,
-                        ),
-                    )
+                    // KMK -->
+                    if (showLocalActions) {
+                        // KMK <--
+                        add(
+                            AppBar.OverflowAction(
+                                title = stringResource(MR.strings.action_notes),
+                                onClick = onClickEditNotes,
+                            ),
+                        )
+                        // KMK -->
+                    }
+                    // KMK <--
                     // SY -->
                     if (onClickMerge != null) {
                         add(
@@ -243,12 +250,14 @@ fun MangaToolbar(
                             ),
                         )
                     }
-                    add(
-                        AppBar.OverflowAction(
-                            title = stringResource(KMR.strings.action_clear_manga),
-                            onClick = onClearManga,
-                        ),
-                    )
+                    if (showLocalActions) {
+                        add(
+                            AppBar.OverflowAction(
+                                title = stringResource(KMR.strings.action_clear_manga),
+                                onClick = onClearManga,
+                            ),
+                        )
+                    }
                     if (onClickSourceSettings != null) {
                         add(
                             AppBar.OverflowAction(
@@ -257,7 +266,7 @@ fun MangaToolbar(
                             ),
                         )
                     }
-                    if (isDebugBuildType) {
+                    if (isDebugBuildType && showLocalActions) {
                         add(
                             AppBar.OverflowAction(
                                 title = "Colors Palette",

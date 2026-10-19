@@ -1990,6 +1990,9 @@ class MangaScreenModel(
             val dialog: Dialog? = null,
             val hasPromptedToAddBefore: Boolean = false,
             val hideMissingChapters: Boolean = false,
+            // KMK -->
+            val serverBacked: Boolean = false,
+            // KMK <--
 
             // SY -->
             val meta: RaisedSearchMetadata?,

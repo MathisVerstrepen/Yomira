@@ -20,6 +20,8 @@ data class CategoryPresentation(val grid: Boolean = true, val sort: LibrarySort 
 data class LibraryPresentation(
     val group: LibraryGroup = LibraryGroup.NONE,
     val categories: Map<Int, CategoryPresentation> = emptyMap(),
+    val chapterFlags: Map<Int, Long> = emptyMap(),
+    val excludedScanlators: Map<Int, Set<String>> = emptyMap(),
 ) {
     fun category(id: Int?) = categories[id ?: -1] ?: CategoryPresentation()
     fun withCategory(id: Int?, value: CategoryPresentation) = copy(categories = categories + ((id ?: -1) to value))
