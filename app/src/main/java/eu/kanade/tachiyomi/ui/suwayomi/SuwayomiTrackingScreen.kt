@@ -2,23 +2,33 @@
 package eu.kanade.tachiyomi.ui.suwayomi
 
 import android.content.Intent
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.outlined.Groups
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -28,10 +38,11 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import cafe.adriel.voyager.core.model.StateScreenModel
@@ -108,6 +119,20 @@ class SuwayomiTrackingScreen(private val sessionId: String, private val mangaId:
         val context = LocalContext.current
         val snackbar = rememberRefreshErrors(state.error, state.hasLoaded) { model.load() }
         val incognito by remember { Injekt.get<eu.kanade.domain.base.BasePreferences>().incognitoMode() }.collectAsState()
+        val scope = rememberCoroutineScope()
+        var refreshing by remember { mutableStateOf(false) }
+        var loginFailure by remember { mutableStateOf<SuwayomiFailure?>(null) }
+        var loginRejected by remember { mutableStateOf(false) }
+        fun reload() {
+            scope.launch {
+                refreshing = true
+                try {
+                    model.load().join()
+                } finally {
+                    refreshing = false
+                }
+            }
+        }
         var login by remember { mutableStateOf<ServerTracker?>(null) }
         var username by remember { mutableStateOf("") }
         var password by remember { mutableStateOf("") }
@@ -119,99 +144,155 @@ class SuwayomiTrackingScreen(private val sessionId: String, private val mangaId:
         var score by remember { mutableStateOf("") }
         var status by remember { mutableStateOf(0) }
         LaunchedEffect(Unit) { model.load() }
+        val busy = state.loading || refreshing
         Scaffold(snackbarHost = { androidx.compose.material3.SnackbarHost(snackbar) }, topBar = {
             TopAppBar(title = { Text(stringResource(KMR.strings.suwayomi_tracking)) }, navigationIcon = {
                 IconButton(onClick = { navigator.pop() }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(KMR.strings.suwayomi_back)) }
+            }, actions = {
+                IconButton(onClick = ::reload, enabled = !busy) { Icon(Icons.Filled.Refresh, stringResource(KMR.strings.suwayomi_reload)) }
             })
         }) { padding ->
-            Column(Modifier.padding(padding).fillMaxSize()) {
-                RefreshProgress(state.loading)
-                if (!state.hasLoaded) state.error?.let { Text(failureText(it), Modifier.padding(16.dp), color = MaterialTheme.colorScheme.error) }
-                if (incognito) Text(stringResource(KMR.strings.suwayomi_incognito_notice), Modifier.padding(16.dp))
-                Text(stringResource(if (state.sharedLibrary) KMR.strings.suwayomi_shared_tracking_notice else KMR.strings.suwayomi_tracking_notice), Modifier.padding(16.dp))
-                TextButton(onClick = { model.load() }, enabled = !state.loading) { Text(stringResource(KMR.strings.suwayomi_reload)) }
-                LazyColumn {
-                    items(state.records, key = { "record-${it.id}" }) { record ->
-                        Column(Modifier.padding(16.dp)) {
-                            Text(record.title, style = MaterialTheme.typography.titleMedium)
-                            Text("${state.trackers.find { it.id == record.trackerId }?.name.orEmpty()} · ${record.lastChapterRead} · ${record.displayScore}")
-                            Row {
-                                TextButton(onClick = {
-                                    editing = record
-                                    chapter = record.lastChapterRead.toString()
-                                    status = record.status
-                                    score = record.displayScore
-                                }, enabled = !state.loading && !incognito) { Text(stringResource(KMR.strings.suwayomi_edit_track)) }
-                                TextButton(onClick = { model.unbind(record) }, enabled = !state.loading && !incognito) { Text(stringResource(KMR.strings.suwayomi_unbind)) }
+            Box(Modifier.padding(padding).fillMaxSize(), contentAlignment = Alignment.TopCenter) {
+                LazyColumn(Modifier.widthIn(max = 600.dp).fillMaxWidth().padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    item {
+                        Box(Modifier.fillMaxWidth().padding(top = 8.dp).height(4.dp)) {
+                            if (busy) LinearProgressIndicator(Modifier.fillMaxWidth())
+                        }
+                    }
+                    if (!state.hasLoaded) {
+                        state.error?.let { error ->
+                            item { Text(failureText(error), color = MaterialTheme.colorScheme.error) }
+                        }
+                    }
+                    if (incognito) item { Text(stringResource(KMR.strings.suwayomi_incognito_notice), style = MaterialTheme.typography.bodySmall) }
+                    if (state.hasLoaded) {
+                        item {
+                            Row(Modifier.padding(vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                                Icon(Icons.Outlined.Groups, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(20.dp))
+                                Text(
+                                    stringResource(if (state.sharedLibrary) KMR.strings.suwayomi_tracker_shared_summary else KMR.strings.suwayomi_tracker_account_summary),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
                             }
                         }
                     }
-                    items(state.trackers, key = { "tracker-${it.id}" }) { tracker ->
-                        Row(Modifier.fillMaxWidth().padding(12.dp)) {
-                            Text(tracker.name, Modifier.weight(1f))
-                            if (!tracker.isLoggedIn) {
-                                TextButton(onClick = {
-                                    login = tracker
-                                    username = ""
-                                    password = ""
-                                    callback = ""
-                                }, enabled = !state.loading && !incognito) { Text(stringResource(KMR.strings.suwayomi_sign_in)) }
-                            } else if (mangaId != null) {
-                                TextButton(onClick = {
-                                    searching = tracker
-                                    query = ""
-                                }, enabled = !state.loading && !incognito) { Text(stringResource(KMR.strings.suwayomi_bind)) }
-                            } else {
-                                Text(stringResource(KMR.strings.suwayomi_signed_in))
+                    items(state.records, key = { "record-${it.id}" }) { record ->
+                        Surface(shape = RoundedCornerShape(16.dp), color = MaterialTheme.colorScheme.surfaceContainer) {
+                            Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                                    ServerTrackerLogo(state.trackers.find { it.id == record.trackerId }?.name.orEmpty())
+                                    Column(Modifier.weight(1f)) {
+                                        Text(record.title, style = MaterialTheme.typography.titleMedium)
+                                        Text("${state.trackers.find { it.id == record.trackerId }?.name.orEmpty()} · ${record.lastChapterRead} · ${record.displayScore}", style = MaterialTheme.typography.bodySmall)
+                                    }
+                                }
+                                Row {
+                                    TextButton(onClick = {
+                                        editing = record
+                                        chapter = record.lastChapterRead.toString()
+                                        status = record.status
+                                        score = record.displayScore
+                                    }, enabled = !busy && !incognito) { Text(stringResource(KMR.strings.suwayomi_edit_track)) }
+                                    TextButton(onClick = { model.unbind(record) }, enabled = !busy && !incognito) { Text(stringResource(KMR.strings.suwayomi_unbind)) }
+                                }
                             }
+                        }
+                    }
+                    if (state.trackers.isNotEmpty()) {
+                        item(key = "services") {
+                            Surface(shape = RoundedCornerShape(16.dp), color = MaterialTheme.colorScheme.surfaceContainer) {
+                                Column {
+                                    state.trackers.forEachIndexed { index, tracker ->
+                                        if (index > 0) HorizontalDivider(Modifier.padding(start = 76.dp, end = 16.dp), color = MaterialTheme.colorScheme.outlineVariant)
+                                        ServerTrackerRow(tracker, canBind = mangaId != null, enabled = !busy && !incognito) {
+                                            if (!tracker.isLoggedIn) {
+                                                login = tracker
+                                                username = ""
+                                                password = ""
+                                                callback = ""
+                                                loginFailure = null
+                                                loginRejected = false
+                                            } else {
+                                                searching = tracker
+                                                query = ""
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    if (state.hasLoaded && state.trackers.isEmpty()) {
+                        item {
+                            Text(stringResource(KMR.strings.suwayomi_tracker_empty), style = MaterialTheme.typography.bodyMedium)
                         }
                     }
                     items(state.searches, key = { "search-${it.remoteId}" }) { result ->
                         Row(Modifier.padding(12.dp)) {
                             Text(result.title, Modifier.weight(1f))
-                            Button(onClick = { model.bind(result) }, enabled = !state.loading && !incognito) { Text(stringResource(KMR.strings.suwayomi_bind)) }
+                            Button(onClick = { model.bind(result) }, enabled = !busy && !incognito) { Text(stringResource(KMR.strings.suwayomi_bind)) }
                         }
                     }
+                    item { Box(Modifier.height(4.dp)) }
                 }
             }
         }
         login?.let { tracker ->
-            AlertDialog(
-                onDismissRequest = {
-                    login = null
-                    password = ""
+            ServerTrackerLoginDialog(
+                tracker = tracker, username = username, password = password, callback = callback,
+                busy = busy || incognito,
+                error = when {
+                    loginRejected || loginFailure == SuwayomiFailure.AUTHENTICATION_REQUIRED -> stringResource(KMR.strings.suwayomi_tracker_login_failed)
+                    loginFailure != null -> failureText(loginFailure!!)
+                    else -> null
                 },
-                title = { Text(tracker.name) },
-                text = {
-                    Column {
-                        if (tracker.authUrl != null) {
-                            TextButton(onClick = { context.startActivity(Intent(Intent.ACTION_VIEW, tracker.authUrl.toUri())) }) { Text(stringResource(KMR.strings.suwayomi_authorize)) }
-                            Text(stringResource(KMR.strings.suwayomi_callback_notice))
-                            OutlinedTextField(callback, { callback = it }, label = { Text(stringResource(KMR.strings.suwayomi_callback)) })
+                onUsername = {
+                    username = it
+                    loginFailure = null
+                    loginRejected = false
+                },
+                onPassword = {
+                    password = it
+                    loginFailure = null
+                    loginRejected = false
+                },
+                onCallback = {
+                    callback = it
+                    loginFailure = null
+                    loginRejected = false
+                },
+                onAuthorize = { context.startActivity(Intent(Intent.ACTION_VIEW, tracker.authUrl!!.toUri())) },
+                onSubmit = {
+                    val submittedUsername = username.trim()
+                    val submittedPassword = password
+                    val submittedCallback = if (tracker.authUrl != null) callback.trim() else null
+                    scope.launch {
+                        loginFailure = null
+                        loginRejected = false
+                        model.login(tracker, submittedUsername, submittedPassword, submittedCallback).join()
+                        val result = model.state.value
+                        if (result.error == null && result.trackers.any { it.id == tracker.id && it.isLoggedIn }) {
+                            login = null
+                            password = ""
+                            callback = ""
                         } else {
-                            OutlinedTextField(username, { username = it }, label = { Text(stringResource(KMR.strings.suwayomi_username)) })
-                            OutlinedTextField(password, { password = it }, visualTransformation = PasswordVisualTransformation(), label = { Text(stringResource(KMR.strings.suwayomi_password)) })
+                            loginFailure = result.error
+                            loginRejected = result.error == null
                         }
                     }
                 },
-                confirmButton = {
-                    TextButton(onClick = {
-                        model.login(tracker, username, password, if (tracker.authUrl != null) callback else null)
-                        login = null
-                        password = ""
-                    }, enabled = !incognito) { Text(stringResource(KMR.strings.suwayomi_sign_in)) }
-                },
-                dismissButton = {
-                    TextButton(onClick = {
-                        login = null
-                        password = ""
-                    }) { Text(stringResource(KMR.strings.suwayomi_cancel)) }
+                onDismiss = {
+                    login = null
+                    password = ""
+                    callback = ""
                 },
             )
         }
         searching?.let { tracker ->
             AlertDialog(
                 onDismissRequest = { searching = null },
+                icon = { ServerTrackerLogo(tracker.name) },
                 title = { Text(tracker.name) },
                 text = { OutlinedTextField(query, { query = it }, label = { Text(stringResource(KMR.strings.suwayomi_search)) }) },
                 confirmButton = {

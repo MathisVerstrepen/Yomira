@@ -554,4 +554,11 @@
     <string name="suwayomi_settings_webui_summary">Backups, server storage, and advanced settings. Browser sign-in is separate.</string>
     <string name="suwayomi_settings_notification_permission">Allow notifications in Android settings to receive chapter alerts.</string>
     <string name="suwayomi_settings_open_android_settings">Settings</string>
+    <string name="suwayomi_tracker_shared_summary">Tracking accounts and progress are shared across server clients.</string>
+    <string name="suwayomi_tracker_account_summary">Tracking accounts and progress are managed by your server account.</string>
+    <string name="suwayomi_tracker_not_connected">Not connected</string>
+    <string name="suwayomi_tracker_login_summary">Connect this service on your Suwayomi server to synchronize reading progress.</string>
+    <string name="suwayomi_tracker_callback_hint">After authorizing, paste the complete redirected URL below. You can also connect from the server WebUI.</string>
+    <string name="suwayomi_tracker_login_failed">Couldn’t sign in to this service. Check your credentials or authorize again.</string>
+    <string name="suwayomi_tracker_empty">No tracking services are available on this server.</string>
 </resources>
