@@ -120,7 +120,7 @@ internal fun ServerSetup(
         modifier = modifier.fillMaxSize().background(
             Brush.verticalGradient(listOf(colors.primaryContainer.copy(alpha = 0.3f), colors.surface, colors.surface)),
         ).imePadding(),
-        contentAlignment = Alignment.TopCenter,
+        contentAlignment = Alignment.Center,
     ) {
         Column(
             modifier = Modifier.widthIn(max = 480.dp).fillMaxWidth().verticalScroll(rememberScrollState()).padding(24.dp),
