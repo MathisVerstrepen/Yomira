@@ -24,6 +24,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import cafe.adriel.voyager.core.model.rememberScreenModel
@@ -39,6 +40,7 @@ import eu.kanade.presentation.library.components.LibraryToolbar
 import eu.kanade.presentation.library.components.LibraryToolbarTitle
 import eu.kanade.presentation.manga.DownloadAction
 import eu.kanade.presentation.manga.components.LibraryBottomActionMenu
+import eu.kanade.tachiyomi.data.suwayomi.OfflineState
 import eu.kanade.tachiyomi.data.suwayomi.ServerManga
 import eu.kanade.tachiyomi.data.suwayomi.SuwayomiBackend
 import eu.kanade.tachiyomi.data.suwayomi.SuwayomiMode
@@ -81,6 +83,8 @@ internal fun SuwayomiLibraryTab() {
     val model = LibraryTab.rememberScreenModel { SuwayomiScreenModel() }
     val state by model.state.collectAsState()
     val session = state.session?.takeIf { it.id == activeConnection?.id } ?: return
+    val offline by session.offline.state.collectAsState()
+    val mangas = state.mangas.map { manga -> manga.copy(user = manga.user.copy(downloadCount = offline.downloads.count { it.mangaId == manga.id && it.state == OfflineState.COMPLETE })) }
     val navigator = LocalNavigator.currentOrThrow
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -122,7 +126,7 @@ internal fun SuwayomiLibraryTab() {
     val hasFilters = listOf(unread, downloaded, bookmarked, started, completed).any { it != TriState.DISABLED } || filterCategories
     val snack = remember { SnackbarHostState() }
     LaunchedEffect(state.error) {
-        if (state.hasLoaded) {
+        if (state.hasLoaded && !(state.error == eu.kanade.tachiyomi.data.suwayomi.SuwayomiFailure.NETWORK && offline.titles.isNotEmpty())) {
             state.error?.let { error ->
                 if (snack.showSnackbar(context.stringResource(failureResource(error)), context.stringResource(MR.strings.action_retry)) == SnackbarResult.ActionPerformed) model.refresh()
             }
@@ -144,7 +148,7 @@ internal fun SuwayomiLibraryTab() {
     }
     val activePage = page.coerceIn(categories.indices)
     val active = categories[activePage]
-    val filtered = state.mangas.filter { manga ->
+    val filtered = mangas.filter { manga ->
         val ids = manga.categories.nodes.map { it.id.toString() }.ifEmpty { listOf("0") }
         val query = search.orEmpty().trim()
         listOfNotNull(manga.title, manga.author, manga.artist, manga.description, manga.genre.joinToString(" ")).any { it.contains(query, true) } &&
@@ -241,6 +245,7 @@ internal fun SuwayomiLibraryTab() {
             LoadingScreen(Modifier.padding(padding))
         } else {
             Column(Modifier.fillMaxSize().padding(top = padding.calculateTopPadding())) {
+                if (state.error == eu.kanade.tachiyomi.data.suwayomi.SuwayomiFailure.NETWORK && offline.titles.isNotEmpty()) androidx.compose.material3.Text(stringResource(KMR.strings.suwayomi_offline_available_notice), Modifier.padding(16.dp))
                 PendingChanges(session, showRoutinePending = false)
                 if (!state.hasLoaded) state.error?.let { ConnectionError(it, { model.refresh() }, { navigator.push(SuwayomiHomeScreen) }) }
                 LibraryContent(
@@ -251,7 +256,10 @@ internal fun SuwayomiLibraryTab() {
                         { manga ->
                             scope.launch {
                                 runCatching {
-                                    val chapter = session.chapters(SuwayomiMode.remoteId(manga.id)).filterNot { it.user.isRead }.minByOrNull { it.sourceOrder }
+                                    val id = SuwayomiMode.remoteId(manga.id)
+                                    val cached = offline.titles[id]
+                                    val chapters = if (downloaded == TriState.ENABLED_IS && cached != null) session.overlay(cached.chapters).filter { chapter -> session.offline.files(chapter.id) != null } else session.readerData(id).chapters
+                                    val chapter = chapters.filterNot { it.user.isRead }.minByOrNull { it.sourceOrder }
                                     if (chapter != null) context.startActivity(ReaderActivity.newIntent(context, manga.id, SuwayomiMode.readerId(chapter.id)))
                                 }.onFailure { snack.showSnackbar(context.stringResource(failureResource(failure(it as? Exception ?: Exception())))) }
                             }
@@ -304,22 +312,46 @@ internal fun SuwayomiLibraryTab() {
                 remove = false
                 download = null
             },
-            title = { Text(stringResource(if (remove) KMR.strings.suwayomi_remove_library else KMR.strings.suwayomi_download_on_server)) },
+            title = { Text(stringResource(if (remove) KMR.strings.suwayomi_remove_library else KMR.strings.suwayomi_phone_downloads)) },
             text = { Text(stringResource(KMR.strings.suwayomi_bulk_notice, state.selected.size)) },
             confirmButton = {
-                TextButton(onClick = {
-                    if (remove) {
-                        model.bulk("remove")
-                    } else {
-                        download?.let { action ->
-                            model.selectionOperation { connection, manga ->
-                                downloadChapters(connection.chapters(manga.id), action).forEach { connection.downloadAction("enqueue", it.id) }
+                Column {
+                    if (!remove) {
+                        TextButton(onClick = {
+                            val ids = state.selected.toList()
+                            val action = download ?: return@TextButton
+                            scope.launch(kotlinx.coroutines.Dispatchers.IO) {
+                                try {
+                                    for (id in ids) {
+                                        val active = backend.requireSession(session.id)
+                                        val data = active.readerData(id)
+                                        val candidates = data.chapters.map { chapter -> chapter.copy(user = chapter.user.copy(isDownloaded = active.offline.files(chapter.id) != null)) }
+                                        active.enqueueOffline(data.manga, data.chapters, downloadChapters(candidates, action).map { it.id })
+                                    }
+                                    model.clearSelection()
+                                } catch (e: kotlinx.coroutines.CancellationException) {
+                                    throw e
+                                } catch (_: Exception) {
+                                    snack.showSnackbar(context.stringResource(KMR.strings.suwayomi_offline_error))
+                                }
+                            }
+                            download = null
+                        }) { Text(stringResource(KMR.strings.suwayomi_download_to_phone)) }
+                    }
+                    TextButton(onClick = {
+                        if (remove) {
+                            model.bulk("remove")
+                        } else {
+                            download?.let { action ->
+                                model.selectionOperation { connection, manga ->
+                                    downloadChapters(connection.chapters(manga.id), action).forEach { connection.downloadAction("enqueue", it.id) }
+                                }
                             }
                         }
-                    }
-                    remove = false
-                    download = null
-                }) { Text(stringResource(MR.strings.action_ok)) }
+                        remove = false
+                        download = null
+                    }) { Text(stringResource(if (remove) MR.strings.action_ok else KMR.strings.suwayomi_download_on_server)) }
+                }
             },
             dismissButton = {
                 TextButton(onClick = {

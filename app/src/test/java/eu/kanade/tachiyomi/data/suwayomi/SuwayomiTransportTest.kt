@@ -170,6 +170,32 @@ class SuwayomiTransportTest {
         }
     }
 
+    @Test
+    fun `streaming image guard aborts an oversized response before writing past the phone quota`() = runBlocking {
+        withServer({ exchange ->
+            exchange.responseHeaders.add("Content-Type", "image/png")
+            exchange.sendResponseHeaders(200, 65536)
+            exchange.responseBody.use { it.write(ByteArray(65536)) }
+        }) { base ->
+            val client = SuwayomiClient(StoredSession(baseUrl = base, mode = SuwayomiAuthMode.NONE)) {}
+            val destination = kotlin.io.path.createTempFile().toFile()
+            try {
+                var received = 0
+                val result = runCatching {
+                    client.imageFile("/image", destination) { count ->
+                        received += count
+                        if (received > 4096) throw OfflineStorageFull()
+                    }
+                }
+                assertTrue(result.exceptionOrNull() is OfflineStorageFull)
+                assertTrue(destination.length() <= 4096)
+            } finally {
+                client.close()
+                destination.delete()
+            }
+        }
+    }
+
     private suspend fun withServer(handler: (TestExchange) -> Unit, block: suspend (String) -> Unit) {
         val executor = Executors.newCachedThreadPool()
         val server = ServerSocket().apply { bind(InetSocketAddress("127.0.0.1", 0)) }

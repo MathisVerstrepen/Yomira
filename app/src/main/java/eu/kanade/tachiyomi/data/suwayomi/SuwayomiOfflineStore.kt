@@ -83,6 +83,9 @@ internal class SuwayomiOfflineStore(private val root: File) {
 
     @Synchronized
     fun enqueue(manga: ServerManga, chapters: List<ServerChapter>, ids: List<Int>) {
+        check(!closed)
+        if (ids.isEmpty()) return
+        remember(manga, chapters)
         require(ids.all { id -> chapters.any { it.id == id && it.mangaId == manga.id } })
         require(ids.none { it in retired }) { "Chapter is still open in the reader" }
         val before = state.value

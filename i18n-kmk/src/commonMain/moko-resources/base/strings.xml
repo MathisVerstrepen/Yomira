@@ -255,7 +255,7 @@
     <string name="suwayomi_empty_library">No matching titles in your server library.</string>
     <string name="suwayomi_unread_count">%1$d unread</string>
     <string name="suwayomi_load_more">Load more from server</string>
-    <string name="suwayomi_disconnect_notice">Disconnecting clears this account’s session, temporary state, and any unsent reading changes on this device. The server library stays on the server.</string>
+    <string name="suwayomi_disconnect_notice">Disconnecting clears this account’s session, phone downloads, temporary state, and any unsent reading changes on this device. The server library stays on the server.</string>
     <string name="suwayomi_disconnect">Disconnect</string>
     <string name="suwayomi_cancel">Cancel</string>
     <string name="suwayomi_connect">Connect to Suwayomi</string>
@@ -312,7 +312,7 @@
     <string name="suwayomi_save">Save</string>
     <string name="suwayomi_delete_category">Delete this server category?</string>
     <string name="suwayomi_server_downloads">Server downloads</string>
-    <string name="suwayomi_download_notice">These files and this queue are on Suwayomi. Saving chapters to this device and offline reading are not available yet.</string>
+    <string name="suwayomi_download_notice">These files and this queue are on Suwayomi. To save chapters on this phone for offline reading, choose Download to phone from the chapter list.</string>
     <string name="suwayomi_start_queue">Start queue</string>
     <string name="suwayomi_stop_queue">Pause queue</string>
     <string name="suwayomi_cancel_server_download">Cancel server download</string>
@@ -421,7 +421,7 @@
     <string name="suwayomi_availability_core">Reading, library categories, source browsing, tracking, updates, and server downloads use your connected server. Reader layout, gestures, themes, brightness, and orientation run on this device.</string>
     <string name="suwayomi_availability_deferred">Saved feeds and searches, merged manga, metadata overrides and custom covers, recommendations, source migration, release predictions, source-specific enhancements, and home-screen widgets are not available in server mode yet. Android never falls back to running a source directly.</string>
     <string name="suwayomi_availability_history">Recent reading uses server chapter progress. Clearing history independently of read state and complete reading-duration statistics need additional server support, so these controls are unavailable.</string>
-    <string name="suwayomi_availability_offline">Saving chapters to this device and airplane-mode reading are planned for a later phase. Server downloads still require a server connection.</string>
+    <string name="suwayomi_availability_offline">Completed phone downloads can be read without the server. Use More → Phone downloads to manage device storage. Server downloads remain separate and require a server connection.</string>
     <string name="suwayomi_filter_schema_changed">The server source filters changed. Your old filter choices were cleared. Choose filters again before searching.</string>
     <string name="suwayomi_shared_library_notice">This server uses one shared library. Reading state, categories, and server settings are shared by its clients.</string>
     <string name="suwayomi_shared_settings_notice">These update and download options apply to the shared server library.</string>

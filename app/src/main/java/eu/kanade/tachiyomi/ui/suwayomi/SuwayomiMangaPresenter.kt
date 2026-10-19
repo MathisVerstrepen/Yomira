@@ -49,6 +49,7 @@ import eu.kanade.tachiyomi.data.coil.getBestColor
 import eu.kanade.tachiyomi.data.download.model.Download
 import eu.kanade.tachiyomi.data.suwayomi.ChapterIntentKind
 import eu.kanade.tachiyomi.data.suwayomi.ChapterPatch
+import eu.kanade.tachiyomi.data.suwayomi.OfflineState
 import eu.kanade.tachiyomi.data.suwayomi.SuwayomiBackend
 import eu.kanade.tachiyomi.data.suwayomi.SuwayomiException
 import eu.kanade.tachiyomi.data.suwayomi.SuwayomiFailure
@@ -107,6 +108,7 @@ internal fun SuwayomiMangaPresenter(presentationId: Long, expectedSession: Strin
     }
     val model = owner.rememberScreenModel(tag = "server-manga-$sessionId-$mangaId") { SuwayomiMangaScreenModel(session.id, mangaId) }
     val state by model.state.collectAsState()
+    val offline by session.offline.state.collectAsState()
     val prefs = remember { Injekt.get<LibraryPreferences>() }
     val base = remember { Injekt.get<BasePreferences>() }
     val incognito by base.incognitoMode().collectAsState()
@@ -126,6 +128,7 @@ internal fun SuwayomiMangaPresenter(presentationId: Long, expectedSession: Strin
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { model.refresh() }
     LaunchedEffect(state.error) {
         state.error?.let { error ->
+            if (error == SuwayomiFailure.NETWORK && state.manga != null && offline.titles.containsKey(mangaId)) return@let
             if (snack.showSnackbar(context.stringResource(failureResource(error)), context.stringResource(MR.strings.action_retry)) == SnackbarResult.ActionPerformed) model.refresh()
         }
     }
@@ -144,7 +147,20 @@ internal fun SuwayomiMangaPresenter(presentationId: Long, expectedSession: Strin
     val native = MangaScreenModel.State.Success(
         manga = manga, source = StubSource(remote.sourceId, remote.source?.lang.orEmpty(), remote.source?.name ?: "Suwayomi"), isFromSource = fromSource,
         chapters = state.chapters.filterNot { it.scanlator in excluded }.map {
-            ChapterList.Item(it.toReaderChapter(), if (it.user.isDownloaded) Download.State.DOWNLOADED else Download.State.NOT_DOWNLOADED, 0, selected = SuwayomiMode.readerId(it.id) in selected, sourceName = null, showScanlator = true)
+            ChapterList.Item(
+                it.toReaderChapter(),
+                when (offline.downloads.firstOrNull { download -> download.chapterId == it.id }?.state) {
+                    OfflineState.COMPLETE -> Download.State.DOWNLOADED
+                    OfflineState.DOWNLOADING -> Download.State.DOWNLOADING
+                    OfflineState.ERROR -> Download.State.ERROR
+                    null -> Download.State.NOT_DOWNLOADED
+                    else -> Download.State.QUEUE
+                },
+                0,
+                selected = SuwayomiMode.readerId(it.id) in selected,
+                sourceName = null,
+                showScanlator = true,
+            )
         },
         availableScanlators = state.chapters.mapNotNull { it.scanlator }.toImmutableSet(), excludedScanlators = excluded.toImmutableSet(),
         isRefreshingData = state.refreshing, hideMissingChapters = prefs.hideMissingChapters().get(), trackingCount = 0, hasLoggedInTrackers = true,
@@ -171,13 +187,21 @@ internal fun SuwayomiMangaPresenter(presentationId: Long, expectedSession: Strin
             scope.launch { snack.showSnackbar(context.stringResource(KMR.strings.suwayomi_incognito_notice)) }
             return
         }
-        model.perform {
-            for (item in chapters) {
-                val chapter = chapter(SuwayomiMode.remoteId(item.id))
-                if (chapter.mangaId != mangaId || chapter.manga.sourceId != remote.sourceId || chapter.manga.url != remote.url) throw SuwayomiException(SuwayomiFailure.SESSION_CHANGED)
-                enqueue(chapter.id, kind, patch, identity = chapter.identity())
+        scope.launch(Dispatchers.IO) {
+            try {
+                val active = backend.requireSession(session.id)
+                for (item in chapters) {
+                    val chapter = state.chapters.first { it.id == SuwayomiMode.remoteId(item.id) }
+                    if (chapter.mangaId != mangaId || chapter.manga.sourceId != remote.sourceId || chapter.manga.url != remote.url) throw SuwayomiException(SuwayomiFailure.SESSION_CHANGED)
+                    active.enqueue(chapter.id, kind, patch, identity = chapter.identity())
+                }
+                active.flushSoon()
+                model.refresh(force = true)
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                snack.showSnackbar(context.stringResource(failureResource(failure(e))))
             }
-            flush()
         }
         selected = emptySet()
     }
@@ -209,14 +233,14 @@ internal fun SuwayomiMangaPresenter(presentationId: Long, expectedSession: Strin
         MangaContent(
             state = native, snackbarHostState = snack, nextUpdate = null, isTabletUi = isTabletUi(),
             chapterSwipeStartAction = swipeStart, chapterSwipeEndAction = swipeEnd, navigateUp = { navigator.pop() }, onChapterClicked = ::open,
-            onDownloadChapter = if (state.canDownload) { items, action -> download = items.map { SuwayomiMode.remoteId(it.id) } to action } else null,
+            onDownloadChapter = { items, action -> download = items.map { SuwayomiMode.remoteId(it.id) } to action },
             onAddToLibraryClicked = { model.perform { setLibrary(mangaId, !remote.user.inLibrary) } },
             onWebViewClicked = { context.startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse(session.baseUrl))) }, onWebViewLongClicked = null,
             onTrackingClicked = { navigator.push(SuwayomiTrackingScreen(session.id, mangaId)) }, onTagSearch = { source(it) },
             onFilterButtonClicked = { settings = true }, onRefresh = { model.refresh(fetch = true) },
             onContinueReading = { native.processedChapters.map { it.chapter }.filterNot { it.read }.sortedWith(getChapterSort(manga, false)).firstOrNull()?.let(::open) },
             onSearch = { query, _ -> source(query) }, onCoverClicked = { cover = true }, onShareClicked = ::share,
-            onDownloadActionClicked = if (state.canDownload) { action -> download = downloadChapters(state.chapters, action).map { it.id } to ChapterDownloadAction.START } else null,
+            onDownloadActionClicked = { action -> download = downloadChapters(state.chapters.map { chapter -> chapter.copy(user = chapter.user.copy(isDownloaded = offline.downloads.any { it.chapterId == chapter.id && it.state == OfflineState.COMPLETE })) }, action).map { it.id } to ChapterDownloadAction.START },
             onEditCategoryClicked = { categoryDialog = true }, onEditFetchIntervalClicked = null, onMigrateClicked = null,
             onEditNotesClicked = { navigator.push(SuwayomiCompatibilityScreen()) }, onMetadataViewerClicked = { navigator.push(SuwayomiCompatibilityScreen()) },
             onEditInfoClicked = { navigator.push(SuwayomiCompatibilityScreen()) }, onRecommendClicked = { navigator.push(SuwayomiCompatibilityScreen()) },
@@ -337,28 +361,49 @@ internal fun SuwayomiMangaPresenter(presentationId: Long, expectedSession: Strin
     download?.let { (ids, action) ->
         AlertDialog(
             onDismissRequest = { download = null },
-            title = { Text(stringResource(if (action == ChapterDownloadAction.DELETE) KMR.strings.suwayomi_delete_server_download else KMR.strings.suwayomi_download_on_server)) },
-            text = { Text(stringResource(KMR.strings.suwayomi_download_notice)) },
+            title = { Text(stringResource(KMR.strings.suwayomi_phone_downloads)) },
+            text = { Text(stringResource(KMR.strings.suwayomi_offline_download_notice)) },
             confirmButton = {
-                TextButton(onClick = {
-                    model.perform {
-                        ids.forEach { id ->
-                            val currentChapter = chapter(id)
-                            if (currentChapter.mangaId != mangaId) throw SuwayomiException(SuwayomiFailure.SESSION_CHANGED)
-                            downloadAction(
+                Column {
+                    TextButton(onClick = {
+                        scope.launch(Dispatchers.IO) {
+                            try {
+                                val active = backend.requireSession(session.id)
                                 when (action) {
-                                    ChapterDownloadAction.DELETE -> "delete"
-                                    ChapterDownloadAction.CANCEL -> "cancel"
-                                    else -> "enqueue"
-                                },
-                                id,
-                            )
-                            if (action == ChapterDownloadAction.START_NOW) downloadAction("reorder", id, 0)
+                                    ChapterDownloadAction.DELETE, ChapterDownloadAction.CANCEL -> ids.forEach { active.removeOffline(it) }
+                                    else -> active.enqueueOffline(remote, state.chapters, ids)
+                                }
+                            } catch (e: kotlinx.coroutines.CancellationException) {
+                                throw e
+                            } catch (_: Exception) {
+                                snack.showSnackbar(context.stringResource(KMR.strings.suwayomi_offline_error))
+                            }
                         }
+                        download = null
+                        selected = emptySet()
+                    }) { Text(stringResource(if (action == ChapterDownloadAction.DELETE || action == ChapterDownloadAction.CANCEL) KMR.strings.suwayomi_offline_delete else KMR.strings.suwayomi_download_to_phone)) }
+                    if (state.canDownload) {
+                        TextButton(onClick = {
+                            model.perform {
+                                ids.forEach { id ->
+                                    val currentChapter = chapter(id)
+                                    if (currentChapter.mangaId != mangaId) throw SuwayomiException(SuwayomiFailure.SESSION_CHANGED)
+                                    downloadAction(
+                                        when (action) {
+                                            ChapterDownloadAction.DELETE -> "delete"
+                                            ChapterDownloadAction.CANCEL -> "cancel"
+                                            else -> "enqueue"
+                                        },
+                                        id,
+                                    )
+                                    if (action == ChapterDownloadAction.START_NOW) downloadAction("reorder", id, 0)
+                                }
+                            }
+                            download = null
+                            selected = emptySet()
+                        }) { Text(stringResource(if (action == ChapterDownloadAction.DELETE) KMR.strings.suwayomi_delete_server_download else KMR.strings.suwayomi_download_on_server)) }
                     }
-                    download = null
-                    selected = emptySet()
-                }) { Text(stringResource(MR.strings.action_ok)) }
+                }
             },
             dismissButton = { TextButton(onClick = { download = null }) { Text(stringResource(MR.strings.action_cancel)) } },
         )

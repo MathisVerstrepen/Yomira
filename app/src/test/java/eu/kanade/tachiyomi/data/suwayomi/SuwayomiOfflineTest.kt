@@ -46,6 +46,7 @@ class SuwayomiOfflineTest {
         assertEquals(manga, restarted.state.value.titles.getValue(17).manga)
         val session = mockk<SuwayomiSession>()
         every { session.offline } returns restarted
+        every { session.pageCache } returns File(directory, "temporary-reader-cache")
         coEvery { session.pages(any()) } throws AssertionError("Offline reading must not contact the server")
         val databaseChapter = mockk<eu.kanade.tachiyomi.data.database.models.Chapter>()
         every { databaseChapter.id } returns SuwayomiMode.readerId(44)
