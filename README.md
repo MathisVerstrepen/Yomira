@@ -1,6 +1,6 @@
 # Komikku Suwayomi
 
-<img src="./.github/readme-images/app-icon.png" alt="Komikku icon" width="120" height="120" />
+<img src="./.github/readme-images/app-icon-suwayomi.png" alt="Komikku Suwayomi icon" width="120" height="120" />
 
 An Android client for **Suwayomi-Server**, adapted from [Komikku](https://github.com/komikku-app/komikku). It retains Komikku's native navigation, library, manga details, and configurable reader while using Suwayomi for the library, sources, reading progress, trackers, and downloads.
 
