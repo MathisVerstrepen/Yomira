@@ -4,11 +4,8 @@ package eu.kanade.tachiyomi.ui.suwayomi
 import android.content.Intent
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -367,70 +364,70 @@ internal fun SuwayomiMangaPresenter(presentationId: Long, expectedSession: Strin
         val removeServer = action != ChapterDownloadAction.CANCEL && (action == ChapterDownloadAction.DELETE || ids.all { it in serverComplete })
         val phoneIds = if (removePhone) phoneCopies.map { it.chapterId } else ids.filterNot { it in phoneComplete }
         val serverIds = if (removeServer) ids.filter { it in serverComplete } else ids.filterNot { it in serverComplete }
-        AlertDialog(
+        SuwayomiChapterDownloadDialog(
+            chapterLabel = state.chapters.singleOrNull { it.id in ids }?.name
+                ?: stringResource(KMR.strings.suwayomi_download_selection_count, ids.size),
+            count = ids.size,
+            phoneSaved = phoneComplete.size,
+            serverSaved = serverComplete.size,
             onDismissRequest = { download = null },
-            title = { Text(stringResource(KMR.strings.suwayomi_chapter_downloads)) },
-            text = {
-                Column {
-                    if (ids.isNotEmpty() && ids.all { it in phoneComplete }) Text(stringResource(KMR.strings.suwayomi_downloaded_on_phone))
-                    if (ids.isNotEmpty() && ids.all { it in serverComplete }) Text(stringResource(KMR.strings.suwayomi_downloaded_on_server))
-                    Text(stringResource(KMR.strings.suwayomi_offline_download_notice))
-                }
-            },
-            confirmButton = {
-                Column {
-                    TextButton(onClick = {
-                        scope.launch(Dispatchers.IO) {
-                            try {
-                                val active = backend.requireSession(session.id)
-                                if (removePhone) {
-                                    phoneIds.forEach { active.removeOffline(it) }
-                                } else {
-                                    active.enqueueOffline(remote, state.chapters, phoneIds)
-                                }
-                            } catch (e: kotlinx.coroutines.CancellationException) {
-                                throw e
-                            } catch (_: Exception) {
-                                snack.showSnackbar(context.stringResource(KMR.strings.suwayomi_offline_error))
+            phoneAction = ChapterDownloadDestinationAction(
+                label = stringResource(if (removePhone) KMR.strings.suwayomi_offline_delete else KMR.strings.suwayomi_download_to_phone),
+                enabled = phoneIds.isNotEmpty(),
+                destructive = removePhone,
+                onClick = {
+                    scope.launch(Dispatchers.IO) {
+                        try {
+                            val active = backend.requireSession(session.id)
+                            if (removePhone) {
+                                phoneIds.forEach { active.removeOffline(it) }
+                            } else {
+                                active.enqueueOffline(remote, state.chapters, phoneIds)
+                            }
+                        } catch (e: kotlinx.coroutines.CancellationException) {
+                            throw e
+                        } catch (_: Exception) {
+                            snack.showSnackbar(context.stringResource(KMR.strings.suwayomi_offline_error))
+                        }
+                    }
+                    download = null
+                    selected = emptySet()
+                },
+            ),
+            serverAction = if (state.canDownload) {
+                ChapterDownloadDestinationAction(
+                    label = stringResource(
+                        when {
+                            removeServer -> KMR.strings.suwayomi_remove_from_server
+                            action == ChapterDownloadAction.CANCEL -> KMR.strings.suwayomi_cancel_server_download
+                            else -> KMR.strings.suwayomi_download_on_server
+                        },
+                    ),
+                    enabled = serverIds.isNotEmpty(),
+                    destructive = removeServer,
+                    onClick = {
+                        model.perform {
+                            serverIds.forEach { id ->
+                                val currentChapter = chapter(id)
+                                if (currentChapter.mangaId != mangaId) throw SuwayomiException(SuwayomiFailure.SESSION_CHANGED)
+                                downloadAction(
+                                    when {
+                                        removeServer -> "delete"
+                                        action == ChapterDownloadAction.CANCEL -> "cancel"
+                                        else -> "enqueue"
+                                    },
+                                    id,
+                                )
+                                if (action == ChapterDownloadAction.START_NOW) downloadAction("reorder", id, 0)
                             }
                         }
                         download = null
                         selected = emptySet()
-                    }, enabled = phoneIds.isNotEmpty()) { Text(stringResource(if (removePhone) KMR.strings.suwayomi_offline_delete else KMR.strings.suwayomi_download_to_phone)) }
-                    if (state.canDownload) {
-                        TextButton(onClick = {
-                            model.perform {
-                                serverIds.forEach { id ->
-                                    val currentChapter = chapter(id)
-                                    if (currentChapter.mangaId != mangaId) throw SuwayomiException(SuwayomiFailure.SESSION_CHANGED)
-                                    downloadAction(
-                                        when {
-                                            removeServer -> "delete"
-                                            action == ChapterDownloadAction.CANCEL -> "cancel"
-                                            else -> "enqueue"
-                                        },
-                                        id,
-                                    )
-                                    if (action == ChapterDownloadAction.START_NOW) downloadAction("reorder", id, 0)
-                                }
-                            }
-                            download = null
-                            selected = emptySet()
-                        }, enabled = serverIds.isNotEmpty()) {
-                            Text(
-                                stringResource(
-                                    when {
-                                        removeServer -> KMR.strings.suwayomi_delete_server_download
-                                        action == ChapterDownloadAction.CANCEL -> KMR.strings.suwayomi_cancel_server_download
-                                        else -> KMR.strings.suwayomi_download_on_server
-                                    },
-                                ),
-                            )
-                        }
-                    }
-                }
+                    },
+                )
+            } else {
+                null
             },
-            dismissButton = { TextButton(onClick = { download = null }) { Text(stringResource(MR.strings.action_cancel)) } },
         )
     }
 }

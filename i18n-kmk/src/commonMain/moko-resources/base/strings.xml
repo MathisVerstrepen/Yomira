@@ -480,4 +480,9 @@
     <string name="suwayomi_downloaded_on_phone">Downloaded on phone</string>
     <string name="suwayomi_chapter_downloads">Chapter downloads</string>
     <string name="suwayomi_cancel_server_download">Cancel server download</string>
+    <string name="suwayomi_download_destination_phone_summary">Read offline</string>
+    <string name="suwayomi_download_destination_server_summary">Shared server storage</string>
+    <string name="suwayomi_download_saved_count">%1$d of %2$d downloaded</string>
+    <string name="suwayomi_download_selection_count">Selected chapters: %1$d</string>
+    <string name="suwayomi_remove_from_server">Remove from server</string>
 </resources>
