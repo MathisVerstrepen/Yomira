@@ -22,7 +22,8 @@ On servers with a shared library, changes to manga, categories, reading state, s
 - **Browse:** authenticated provider logos, individual source browsing and search, popular/latest lists, source filters, and global manga search across providers. Browse and global search respect the server WebUI's saved language and enabled-source restrictions.
 - **Downloads:** save chapters to the phone for offline reading, with a persistent queue, pause/resume, resumable page transfers, Wi-Fi-only downloads, and a storage limit. Separately view and control the server queue, including start/pause, reorder, cancel, and clear.
 - **Trackers:** use server-managed accounts, manga bindings, search, and record updates.
-- **Administration:** manage server extensions, repositories, source preferences, and supported update/download settings. Some administration opens the server WebUI, which authenticates separately.
+- **Browse:** switch between Sources and Extensions. Search, install, update, or remove server extensions, configure their source preferences, and manage repositories from the Extensions menu. Changes apply to the shared server.
+- **Server settings:** manage supported update/download settings. Additional administration opens the server WebUI, which authenticates separately.
 - **Synchronization:** background revalidation preserves loaded content. Reading changes use a persistent, connection-specific queue; failures or conflicting results remain visible for retry or discard.
 
 ## Connect to a server

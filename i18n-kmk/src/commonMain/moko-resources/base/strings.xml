@@ -458,4 +458,11 @@
     <string name="suwayomi_offline_pause">Pause downloads</string>
     <string name="suwayomi_offline_resume">Resume downloads</string>
     <string name="suwayomi_offline_paused">Phone downloads paused</string>
+    <!-- KMK server extension browsing -->
+    <string name="suwayomi_server_settings">Server settings</string>
+    <string name="suwayomi_extension_updates">Updates available</string>
+    <string name="suwayomi_extensions_installed">Installed</string>
+    <string name="suwayomi_extensions_available">Available</string>
+    <string name="suwayomi_no_extensions">No extensions found. Check your search or extension repositories.</string>
+    <!-- KMK end -->
 </resources>

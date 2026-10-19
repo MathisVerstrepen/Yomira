@@ -204,7 +204,7 @@ object SettingsMainScreen : Screen() {
         return items.filter { it.screen == SettingsAppearanceScreen || it.screen == SettingsReaderScreen || it.screen == SettingsSecurityScreen || it.screen is AboutScreen } + buildList {
             add(Item(KMR.strings.suwayomi_connect, KMR.strings.suwayomi_setup_notice, icon = Icons.Outlined.Link, screen = eu.kanade.tachiyomi.ui.suwayomi.SuwayomiHomeScreen))
             if (session != null) {
-                add(Item(KMR.strings.suwayomi_administration, KMR.strings.suwayomi_shared_source_notice, icon = Icons.Outlined.Storage, screen = eu.kanade.tachiyomi.ui.suwayomi.SuwayomiAdministrationScreen(session.id)))
+                add(Item(KMR.strings.suwayomi_server_settings, KMR.strings.suwayomi_shared_settings_notice, icon = Icons.Outlined.Storage, screen = eu.kanade.tachiyomi.ui.suwayomi.SuwayomiAdministrationScreen(session.id)))
                 add(Item(KMR.strings.suwayomi_tracking, KMR.strings.suwayomi_tracking_notice, icon = Icons.Outlined.Sync, screen = eu.kanade.tachiyomi.ui.suwayomi.SuwayomiTrackingScreen(session.id)))
             }
             add(Item(KMR.strings.suwayomi_feature_availability, KMR.strings.suwayomi_availability_deferred, icon = Icons.Outlined.Info, screen = eu.kanade.tachiyomi.ui.suwayomi.SuwayomiCompatibilityScreen()))
