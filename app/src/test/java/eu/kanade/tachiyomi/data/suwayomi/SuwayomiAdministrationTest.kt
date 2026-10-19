@@ -8,10 +8,41 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.jsonObject
+import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Test
 
 class SuwayomiAdministrationTest {
+    @Test
+    fun `source list summary shows selected entry label with default fallback`() {
+        val preference = ServerPreference("ListPreference", summary = "%s", valueString = "medium", defaultString = "original", entries = listOf("Original", "Medium"), entryValues = listOf("original", "medium"))
+        assertEquals("Medium", preference.displaySummary())
+        assertEquals("Original", preference.copy(valueString = null).displaySummary())
+        assertEquals("Quality: Medium", preference.copy(summary = "Quality: %1\$s").displaySummary())
+        assertEquals("%s", preference.copy(type = "EditTextPreference").displaySummary())
+    }
+
+    @Test
+    fun `extension details use package identity and retain every source language`() = runBlocking<Unit> {
+        val session = mockk<SuwayomiSession>()
+        coEvery { session.execute(any(), any()) } returns Json.parseToJsonElement("""{"extension":{"source":{"nodes":[{"id":"7","name":"Provider","lang":"en","iconUrl":"/icon.png","supportsLatest":true},{"id":"8","name":"Provider","lang":"fr","iconUrl":"/icon.png","supportsLatest":false}]}}}""").jsonObject
+        val sources = session.extensionSources("provider.package")
+        assertEquals(listOf("en", "fr"), sources.map { it.lang })
+        coVerify {
+            session.execute(match { it.contains("extension(pkgName:\$pkgName)") }, match { it["pkgName"] == JsonPrimitive("provider.package") })
+        }
+    }
+
+    @Test
+    fun `extension actions enforce server permissions before sending mutation`() = runBlocking<Unit> {
+        val session = mockk<SuwayomiSession>()
+        coEvery { session.user() } returns ServerUser(1, "Reader", emptyList(), emptyList())
+        for (action in listOf("install", "update", "uninstall")) {
+            assertThrows(SuwayomiException::class.java) { runBlocking { session.changeExtension("provider.package", action) } }
+        }
+        coVerify(exactly = 0) { session.execute(any(), any()) }
+    }
+
     @Test
     fun `changed source preference position cannot write a different setting`() = runBlocking<Unit> {
         val session = mockk<SuwayomiSession>()

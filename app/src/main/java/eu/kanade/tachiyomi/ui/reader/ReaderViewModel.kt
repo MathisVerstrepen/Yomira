@@ -302,6 +302,9 @@ class ReaderViewModel @JvmOverloads constructor(
             }
         }
         fun isChapterDownloaded(chapter: Chapter): Boolean {
+            // KMK -->
+            if (cloudReader != null) return cloudReader!!.session.offline.files(SuwayomiMode.remoteId(chapter.id)) != null
+            // KMK <--
             val chapterManga = mangaMap?.get(chapter.mangaId) ?: manga
             return downloadManager.isChapterDownloaded(
                 chapterName = chapter.name,
@@ -462,7 +465,7 @@ class ReaderViewModel @JvmOverloads constructor(
                     if (sessionId == null || mangaId >= -1 || initialChapterId >= -1) {
                         throw SuwayomiException(SuwayomiFailure.CONNECTION_REQUIRED)
                     }
-                    SuwayomiReader.open(cloudBackend.requireSession(sessionId), SuwayomiMode.remoteId(mangaId))
+                    SuwayomiReader.open(cloudBackend.requireSession(sessionId), SuwayomiMode.remoteId(mangaId), SuwayomiMode.remoteId(initialChapterId))
                         .also { cloudReader = it }.manga
                 } else {
                     getManga.await(mangaId)

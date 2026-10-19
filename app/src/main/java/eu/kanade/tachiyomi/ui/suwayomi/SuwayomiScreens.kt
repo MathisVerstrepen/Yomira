@@ -26,14 +26,13 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -44,13 +43,11 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
@@ -64,7 +61,6 @@ import eu.kanade.presentation.more.settings.screen.SettingsAppearanceScreen
 import eu.kanade.presentation.more.settings.screen.SettingsReaderScreen
 import eu.kanade.presentation.util.Screen
 import eu.kanade.tachiyomi.data.suwayomi.ChapterIntentKind
-import eu.kanade.tachiyomi.data.suwayomi.SuwayomiAuthMode
 import eu.kanade.tachiyomi.data.suwayomi.SuwayomiBackend
 import eu.kanade.tachiyomi.data.suwayomi.SuwayomiFailure
 import eu.kanade.tachiyomi.data.suwayomi.SuwayomiMode
@@ -76,6 +72,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import okio.Buffer
 import okio.BufferedSource
+import tachiyomi.core.common.i18n.stringResource
 import tachiyomi.i18n.kmk.KMR
 import tachiyomi.presentation.core.components.material.Scaffold
 import tachiyomi.presentation.core.i18n.stringResource
@@ -96,84 +93,114 @@ object SuwayomiHomeScreen : Screen() {
             androidx.compose.runtime.LaunchedEffect(Unit) { navigator.replaceAll(eu.kanade.tachiyomi.ui.home.HomeScreen) }
             return
         }
+        val scope = rememberCoroutineScope()
+        val context = LocalContext.current
+        val snackbar = remember { SnackbarHostState() }
+        var checking by remember { mutableStateOf(false) }
+        var reauthError by remember { mutableStateOf<SuwayomiFailure?>(null) }
         var reauthenticate by remember { mutableStateOf(false) }
         var replacement by remember { mutableStateOf(false) }
         var preferenceSync by remember { mutableStateOf(false) }
         var username by remember { mutableStateOf("") }
         var password by remember { mutableStateOf("") }
         LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { model.refresh() }
-        Scaffold(topBar = {
-            eu.kanade.presentation.components.AppBar(
-                title = stringResource(KMR.strings.suwayomi_connect),
-                navigateUp = if (navigator.canPop) {
-                    { navigator.pop() }
-                } else {
-                    null
-                },
-            )
+        fun checkConnection() {
+            scope.launch {
+                checking = true
+                val verified = try {
+                    model.refresh().join()
+                    model.state.value.error == null
+                } finally {
+                    checking = false
+                }
+                if (verified) snackbar.showSnackbar(context.stringResource(KMR.strings.suwayomi_connection_verified))
+            }
+        }
+        val busy = state.loading || checking
+        Scaffold(snackbarHost = { SnackbarHost(snackbar) }, topBar = {
+            if (state.session != null) {
+                eu.kanade.presentation.components.AppBar(
+                    title = stringResource(KMR.strings.suwayomi_setup_connection),
+                    actions = {
+                        IconButton(onClick = ::checkConnection, enabled = !busy) {
+                            Icon(Icons.Filled.Refresh, contentDescription = stringResource(KMR.strings.suwayomi_connection_check))
+                        }
+                    },
+                    navigateUp = if (navigator.canPop) {
+                        { navigator.pop() }
+                    } else {
+                        null
+                    },
+                )
+            }
         }) { padding ->
             if (state.session == null) {
-                Column(Modifier.padding(padding)) { ServerSetup(state.loading, state.error, model::connect) }
-            } else {
-                val session = state.session!!
-                Column(Modifier.padding(padding).verticalScroll(rememberScrollState())) {
-                    Text(listOfNotNull(state.user?.username, state.info?.let { "${it.name} ${it.version}" }).joinToString(" · "), Modifier.padding(16.dp))
-                    Text(session.baseUrl, Modifier.padding(horizontal = 16.dp), style = MaterialTheme.typography.bodyMedium)
-                    if (session.sharedLibrary) Text(stringResource(KMR.strings.suwayomi_shared_library_notice), Modifier.padding(16.dp), style = MaterialTheme.typography.bodySmall)
-                    PendingChanges(session)
-                    state.error?.let { ConnectionError(it, { model.refresh() }) }
-                    eu.kanade.presentation.more.settings.widget.TextPreferenceWidget(
-                        title = stringResource(KMR.strings.suwayomi_sign_in_again),
-                        onPreferenceClick = {
-                            username = state.user?.username.orEmpty()
-                            reauthenticate = true
-                        },
+                Column(Modifier.padding(padding)) {
+                    ServerSetup(
+                        state.loading,
+                        state.error,
+                        model::connect,
+                        navigateUp = if (navigator.canPop) ({ navigator.pop() }) else null,
                     )
-                    eu.kanade.presentation.more.settings.widget.TextPreferenceWidget(
-                        title = stringResource(KMR.strings.suwayomi_preference_sync),
-                        onPreferenceClick = { preferenceSync = true },
-                    )
-                    eu.kanade.presentation.more.settings.widget.TextPreferenceWidget(
-                        title = stringResource(KMR.strings.suwayomi_replace),
-                        onPreferenceClick = { replacement = true },
-                    )
-                    RefreshProgress(state.loading)
                 }
+            } else {
+                ConnectionSettingsContent(
+                    state = state,
+                    busy = busy,
+                    modifier = Modifier.padding(padding),
+                    onSignIn = {
+                        username = state.user?.username.orEmpty()
+                        password = ""
+                        reauthError = null
+                        reauthenticate = true
+                    },
+                    onPreferences = { preferenceSync = true },
+                    onDisconnect = { replacement = true },
+                    onCheck = ::checkConnection,
+                )
             }
         }
         if (reauthenticate) {
-            AlertDialog(
-                onDismissRequest = {
+            ConnectionSignInDialog(
+                username = username,
+                password = password,
+                onUsername = {
+                    username = it
+                    reauthError = null
+                },
+                onPassword = {
+                    password = it
+                    reauthError = null
+                },
+                busy = busy,
+                error = reauthError,
+                onDismiss = {
                     reauthenticate = false
                     password = ""
+                    if (!busy && reauthError != null) model.refresh()
+                    reauthError = null
                 },
-                title = { Text(stringResource(KMR.strings.suwayomi_sign_in_again)) },
-                text = {
-                    Column {
-                        Text(stringResource(KMR.strings.suwayomi_reauthenticate_notice))
-                        OutlinedTextField(username, { username = it }, label = { Text(stringResource(KMR.strings.suwayomi_username)) }, singleLine = true)
-                        OutlinedTextField(password, { password = it }, label = { Text(stringResource(KMR.strings.suwayomi_password)) }, singleLine = true, visualTransformation = PasswordVisualTransformation(), keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Password, autoCorrectEnabled = false))
+                onSubmit = {
+                    val submittedUsername = username.trim()
+                    val submittedPassword = password
+                    scope.launch {
+                        reauthError = null
+                        model.reauthenticate(submittedUsername, submittedPassword).join()
+                        if (model.state.value.error == null) {
+                            reauthenticate = false
+                            password = ""
+                            snackbar.showSnackbar(context.stringResource(KMR.strings.suwayomi_connection_signed_in))
+                        } else {
+                            reauthError = model.state.value.error
+                        }
                     }
-                },
-                confirmButton = {
-                    TextButton(onClick = {
-                        model.reauthenticate(username, password)
-                        reauthenticate = false
-                        password = ""
-                    }) { Text(stringResource(KMR.strings.suwayomi_sign_in)) }
-                },
-                dismissButton = {
-                    TextButton(onClick = {
-                        reauthenticate = false
-                        password = ""
-                    }) { Text(stringResource(KMR.strings.suwayomi_cancel)) }
                 },
             )
         }
         if (replacement) {
             AlertDialog(
                 onDismissRequest = { replacement = false },
-                title = { Text(stringResource(KMR.strings.suwayomi_replace)) },
+                title = { Text(stringResource(KMR.strings.suwayomi_connection_disconnect_title)) },
                 text = { Text(stringResource(KMR.strings.suwayomi_disconnect_notice)) },
                 confirmButton = {
                     TextButton(onClick = {
@@ -185,57 +212,19 @@ object SuwayomiHomeScreen : Screen() {
             )
         }
         if (preferenceSync) {
-            AlertDialog(
-                onDismissRequest = { preferenceSync = false },
-                title = { Text(stringResource(KMR.strings.suwayomi_preference_sync)) },
-                text = { Text(stringResource(KMR.strings.suwayomi_preference_sync_notice)) },
-                confirmButton = {
-                    TextButton(onClick = {
-                        preferenceSync = false
-                        model.readingPreferences(true)
-                    }) { Text(stringResource(KMR.strings.suwayomi_upload_preferences)) }
-                },
-                dismissButton = {
-                    TextButton(onClick = {
-                        preferenceSync = false
-                        model.readingPreferences(false)
-                    }) { Text(stringResource(KMR.strings.suwayomi_apply_preferences)) }
+            ConnectionPreferenceDialog(
+                onDismiss = { preferenceSync = false },
+                onCopy = { upload ->
+                    preferenceSync = false
+                    scope.launch {
+                        model.readingPreferences(upload).join()
+                        if (model.state.value.error == null) {
+                            snackbar.showSnackbar(context.stringResource(if (upload) KMR.strings.suwayomi_connection_uploaded else KMR.strings.suwayomi_connection_applied))
+                        }
+                    }
                 },
             )
         }
-    }
-}
-
-@Composable
-internal fun ServerSetup(loading: Boolean, error: SuwayomiFailure?, connect: (String, SuwayomiAuthMode, String, String) -> Any, initialUrl: String = "") {
-    var url by rememberSaveable { mutableStateOf(initialUrl) }
-    var mode by rememberSaveable { mutableStateOf(SuwayomiAuthMode.NONE) }
-    var username by rememberSaveable { mutableStateOf("") }
-    // Credentials must not be serialized into saved-instance-state or screenshots of diagnostics.
-    var password by remember { mutableStateOf("") }
-    var modes by remember { mutableStateOf(false) }
-    Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        Text(stringResource(KMR.strings.suwayomi_connect), style = MaterialTheme.typography.headlineSmall)
-        Text(stringResource(KMR.strings.suwayomi_setup_notice))
-        OutlinedTextField(url, { url = it }, keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Uri, autoCorrectEnabled = false), label = { Text(stringResource(KMR.strings.suwayomi_server_url)) }, singleLine = true, enabled = !loading, modifier = Modifier.fillMaxWidth())
-        Box {
-            TextButton(onClick = { modes = true }, enabled = !loading) { Text(stringResource(KMR.strings.suwayomi_authentication) + ": " + mode.name) }
-            DropdownMenu(modes, { modes = false }) {
-                SuwayomiAuthMode.entries.forEach { item ->
-                    DropdownMenuItem(text = { Text(item.name) }, onClick = {
-                        mode = item
-                        modes = false
-                    })
-                }
-            }
-        }
-        if (mode != SuwayomiAuthMode.NONE) {
-            OutlinedTextField(username, { username = it }, label = { Text(stringResource(KMR.strings.suwayomi_username)) }, singleLine = true, enabled = !loading, modifier = Modifier.fillMaxWidth())
-            OutlinedTextField(password, { password = it }, label = { Text(stringResource(KMR.strings.suwayomi_password)) }, singleLine = true, visualTransformation = PasswordVisualTransformation(), keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Password, autoCorrectEnabled = false), enabled = !loading, modifier = Modifier.fillMaxWidth())
-        }
-        error?.let { Text(failureText(it), color = MaterialTheme.colorScheme.error) }
-        Button(onClick = { connect(url, mode, username, password) }, enabled = !loading && url.isNotBlank()) { Text(stringResource(KMR.strings.suwayomi_connect)) }
-        if (loading) CircularProgressIndicator()
     }
 }
 

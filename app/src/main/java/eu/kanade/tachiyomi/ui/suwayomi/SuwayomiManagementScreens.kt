@@ -45,6 +45,7 @@ import eu.kanade.tachiyomi.data.suwayomi.SuwayomiFailure
 import eu.kanade.tachiyomi.data.suwayomi.categoryMutation
 import eu.kanade.tachiyomi.data.suwayomi.downloadAction
 import eu.kanade.tachiyomi.data.suwayomi.mangaCategories
+import eu.kanade.tachiyomi.data.suwayomi.resumeServerDownloads
 import eu.kanade.tachiyomi.data.suwayomi.serverCategories
 import eu.kanade.tachiyomi.data.suwayomi.serverDownloads
 import eu.kanade.tachiyomi.data.suwayomi.setCategoryMembership
@@ -100,7 +101,9 @@ class SuwayomiDownloadsModel(private val sessionId: String) : StateScreenModel<S
     private val refreshTask = SuwayomiRefreshTask()
     fun load() = refreshTask.launch(screenModelScope) { refresh() }
     private val actionMutex = Mutex()
-    fun action(action: String, chapterId: Int? = null, position: Int? = null) = batch { downloadAction(action, chapterId, position) }
+    fun action(action: String, chapterId: Int? = null, position: Int? = null) = batch {
+        if (action == "start") resumeServerDownloads() else downloadAction(action, chapterId, position)
+    }
     fun batch(action: suspend eu.kanade.tachiyomi.data.suwayomi.SuwayomiSession.() -> Unit) = screenModelScope.launch(Dispatchers.IO) {
         actionMutex.withLock {
             mutableState.update { it.copy(loading = true, error = null) }
@@ -145,7 +148,7 @@ class SuwayomiDownloadsModel(private val sessionId: String) : StateScreenModel<S
 class SuwayomiDownloadsScreen(private val sessionId: String) : Screen() {
     @Composable
     override fun Content() {
-        SuwayomiDownloadQueuePresenter(sessionId)
+        SuwayomiDownloadQueuePresenter(this, sessionId)
     }
 }
 // KMK <--

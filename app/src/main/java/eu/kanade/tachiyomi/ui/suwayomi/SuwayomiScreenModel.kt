@@ -39,7 +39,8 @@ class SuwayomiScreenModel(private val backend: SuwayomiBackend = Injekt.get(), p
         screenModelScope.launch(Dispatchers.IO) {
             backend.session.collectLatest { session ->
                 refreshTask.cancel()
-                mutableState.value = State(session = session, presentation = session?.libraryPresentation() ?: LibraryPresentation())
+                val local = session?.offline?.state?.value?.titles?.values.orEmpty()
+                mutableState.value = State(session = session, presentation = session?.libraryPresentation() ?: LibraryPresentation(), mangas = local.map { it.manga }, categories = local.flatMap { it.manga.categories.nodes }.distinctBy { it.id }, hasLoaded = local.isNotEmpty(), total = local.size)
                 if (session != null) refresh().join()
             }
         }
@@ -84,7 +85,8 @@ class SuwayomiScreenModel(private val backend: SuwayomiBackend = Injekt.get(), p
 
     private suspend fun reload() = libraryMutex.withLock {
         val session = state.value.session ?: return@withLock
-        mutableState.update { it.copy(loading = !it.hasLoaded, error = null) }
+        val local = session.offline.state.value.titles
+        mutableState.update { value -> value.copy(loading = !value.hasLoaded, error = null, mangas = value.mangas.map { local[it.id]?.manga ?: it }) }
         try {
             session.flush()
             mutableState.update { it.copy(presentation = session.libraryPresentation()) }
@@ -203,19 +205,29 @@ class SuwayomiMangaScreenModel(
     private val backend: SuwayomiBackend = Injekt.get(),
 ) : StateScreenModel<SuwayomiMangaScreenModel.State>(State()) {
     private val refreshTask = SuwayomiRefreshTask()
+    init {
+        screenModelScope.launch(Dispatchers.IO) {
+            val session = backend.requireSession(sessionId)
+            session.offline.state.value.titles[mangaId]?.let { cached ->
+                mutableState.update { if (it.manga != null) it else it.copy(manga = cached.manga, chapters = session.overlay(cached.chapters), loading = false) }
+            }
+        }
+    }
     fun refresh(fetch: Boolean = false, force: Boolean = false) = refreshTask.launch(screenModelScope, fetch to force) {
         actionMutex.withLock {
             mutableState.update { it.copy(loading = it.manga == null || fetch, refreshing = fetch, error = null) }
             try {
                 val session = backend.requireSession(sessionId)
-                session.flush()
+                session.flushSoon()
+                session.offline.state.value.titles[mangaId]?.let { cached -> mutableState.update { it.copy(manga = cached.manga, chapters = session.overlay(cached.chapters), loading = false) } }
                 if (fetch) session.refreshManga(mangaId)
                 var manga = session.manga(mangaId)
                 if (!fetch && !manga.initialized) {
                     session.refreshManga(mangaId)
                     manga = session.manga(mangaId)
                 }
-                val chapters = session.chapters(mangaId)
+                val chapters = session.overlay(session.chapters(mangaId))
+                session.offline.remember(manga, chapters)
                 val user = session.user()
                 val categories = session.serverCategories()
                 backend.requireSession(sessionId)

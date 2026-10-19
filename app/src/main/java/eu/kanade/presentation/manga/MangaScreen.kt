@@ -798,6 +798,9 @@ private fun MangaScreenSmallImpl(
                         manga = state.manga,
                         mergedData = state.mergedData,
                         chapters = listItem,
+                        // KMK -->
+                        serverBacked = state.serverBacked,
+                        // KMK <--
                         isAnyChapterSelected = chapters.fastAny { it.selected },
                         chapterSwipeStartAction = chapterSwipeStartAction,
                         chapterSwipeEndAction = chapterSwipeEndAction,
@@ -1244,6 +1247,9 @@ private fun MangaScreenLargeImpl(
                                 manga = state.manga,
                                 mergedData = state.mergedData,
                                 chapters = listItem,
+                                // KMK -->
+                                serverBacked = state.serverBacked,
+                                // KMK <--
                                 isAnyChapterSelected = chapters.fastAny { it.selected },
                                 chapterSwipeStartAction = chapterSwipeStartAction,
                                 chapterSwipeEndAction = chapterSwipeEndAction,
@@ -1319,6 +1325,9 @@ private fun LazyListScope.sharedChapterItems(
     onDownloadChapter: ((List<ChapterList.Item>, ChapterDownloadAction) -> Unit)?,
     onChapterSelected: (ChapterList.Item, Boolean, Boolean) -> Unit,
     onChapterSwipe: (ChapterList.Item, LibraryPreferences.ChapterSwipeAction) -> Unit,
+    // KMK -->
+    serverBacked: Boolean = false,
+    // KMK <--
 ) {
     items(
         items = chapters,
@@ -1380,9 +1389,12 @@ private fun LazyListScope.sharedChapterItems(
                     bookmark = item.chapter.bookmark,
                     selected = item.selected,
                     downloadIndicatorEnabled =
-                    !isAnyChapterSelected && !(mergedData?.manga?.get(item.chapter.mangaId) ?: manga).isLocal(),
+                    !isAnyChapterSelected && (/* KMK --> */ serverBacked || /* KMK <-- */ !(mergedData?.manga?.get(item.chapter.mangaId) ?: manga).isLocal()),
                     downloadStateProvider = { item.downloadState },
                     downloadProgressProvider = { item.downloadProgress },
+                    // KMK -->
+                    serverDownloaded = item.serverDownloaded,
+                    // KMK <--
                     chapterSwipeStartAction = chapterSwipeStartAction,
                     chapterSwipeEndAction = chapterSwipeEndAction,
                     onLongClick = {

@@ -68,6 +68,9 @@ fun MangaChapterListItem(
     onDownloadClick: ((ChapterDownloadAction) -> Unit)?,
     onChapterSwipe: (LibraryPreferences.ChapterSwipeAction) -> Unit,
     modifier: Modifier = Modifier,
+    // KMK -->
+    serverDownloaded: Boolean? = null,
+    // KMK <--
 ) {
     // KMK -->
     val swipeBackground = MaterialTheme.colorScheme.primaryContainer
@@ -204,6 +207,9 @@ fun MangaChapterListItem(
                 modifier = Modifier.padding(start = 4.dp),
                 downloadStateProvider = downloadStateProvider,
                 downloadProgressProvider = downloadProgressProvider,
+                // KMK -->
+                serverDownloaded = serverDownloaded,
+                // KMK <--
                 onClick = { onDownloadClick?.invoke(it) },
             )
         }

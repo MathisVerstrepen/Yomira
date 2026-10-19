@@ -22,6 +22,7 @@ import cafe.adriel.voyager.core.model.screenModelScope
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.Navigator
 import cafe.adriel.voyager.navigator.currentOrThrow
+import eu.kanade.presentation.util.Screen
 import eu.kanade.tachiyomi.R
 import eu.kanade.tachiyomi.data.download.model.DownloadDisplay
 import eu.kanade.tachiyomi.data.suwayomi.ServerDownload
@@ -73,7 +74,7 @@ internal class ServerDownloadDisplay(private val sessionId: String, @Volatile va
     override val serverError: Boolean get() = snapshot.state.equals("ERROR", true)
 }
 
-private class SuwayomiDownloadQueueController(
+internal class SuwayomiDownloadQueueController(
     private val sessionId: String,
     private val service: SuwayomiDownloadsModel,
     private val context: Context,
@@ -89,7 +90,7 @@ private class SuwayomiDownloadQueueController(
     override val canControlQueue = service.state.map { it.canDownload }.stateIn(screenModelScope, SharingStarted.Eagerly, false)
     override val isDownloaderRunning = service.state.map { it.downloads?.state.equals("STARTED", true) }.stateIn(screenModelScope, SharingStarted.Eagerly, false)
     override val notice = KMR.strings.suwayomi_shared_queue_notice
-    override lateinit var controllerBinding: DownloadListBinding
+    override var controllerBinding: DownloadListBinding? = null
     override var adapter: DownloadAdapter? = null
     val confirmClear = MutableStateFlow(false)
     private val events = MutableSharedFlow<DownloadDisplay>(extraBufferCapacity = 128)
@@ -189,7 +190,7 @@ private class SuwayomiDownloadQueueController(
         onUpdateDownloadedPages(download)
     }
     override fun onUpdateDownloadedPages(download: DownloadDisplay) {
-        if (::controllerBinding.isInitialized) (controllerBinding.root.findViewHolderForItemId(download.chapter.id) as? DownloadHolder)?.bind(download)
+        (controllerBinding?.root?.findViewHolderForItemId(download.chapter.id) as? DownloadHolder)?.bind(download)
     }
     override fun startDownloads() {
         queueError.value = null
@@ -213,14 +214,14 @@ private class SuwayomiDownloadQueueController(
     }
     override fun onDispose() {
         adapter = null
+        controllerBinding = null
         items.clear()
     }
 }
 
 @Composable
-internal fun SuwayomiDownloadQueuePresenter(expectedSession: String? = null) {
+internal fun SuwayomiDownloadQueuePresenter(owner: Screen, expectedSession: String? = null) {
     val navigator = LocalNavigator.currentOrThrow
-    val owner = navigator.lastItem
     val backend = remember { Injekt.get<SuwayomiBackend>() }
     val current by backend.session.collectAsState()
     val expected by rememberSaveable { mutableStateOf(expectedSession ?: current?.id) }

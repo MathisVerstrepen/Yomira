@@ -13,6 +13,7 @@ import eu.kanade.tachiyomi.data.suwayomi.ServerUser
 import eu.kanade.tachiyomi.data.suwayomi.SuwayomiBackend
 import eu.kanade.tachiyomi.data.suwayomi.SuwayomiException
 import eu.kanade.tachiyomi.data.suwayomi.SuwayomiFailure
+import eu.kanade.tachiyomi.data.suwayomi.SuwayomiOfflineStore
 import eu.kanade.tachiyomi.data.suwayomi.SuwayomiSession
 import io.mockk.coEvery
 import io.mockk.every
@@ -42,6 +43,7 @@ import java.util.concurrent.atomic.AtomicReference
 
 @OptIn(cafe.adriel.voyager.core.annotation.InternalVoyagerApi::class)
 class SuwayomiRefreshTest {
+    @org.junit.jupiter.api.io.TempDir lateinit var directory: java.io.File
     private val owners = mutableListOf<String>()
 
     @BeforeEach
@@ -67,6 +69,7 @@ class SuwayomiRefreshTest {
         val model: SuwayomiScreenModel
         init {
             every { session.id } returns "connection"
+            every { session.offline } returns SuwayomiOfflineStore(java.io.File(directory, java.util.UUID.randomUUID().toString()))
             every { session.libraryPresentation() } returns LibraryPresentation()
             coEvery { session.flush() } returns Unit
             coEvery { session.user() } returns ServerUser(1, "Account", emptyList(), emptyList())

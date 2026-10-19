@@ -14,7 +14,7 @@ import kotlinx.serialization.json.decodeFromJsonElement
 import kotlinx.serialization.json.put
 
 @Serializable
-data class ServerExtension(val pkgName: String, val name: String, val lang: String, val versionName: String, val isInstalled: Boolean, val hasUpdate: Boolean, val isObsolete: Boolean)
+data class ServerExtension(val pkgName: String, val name: String, val lang: String, val versionName: String, val isInstalled: Boolean, val hasUpdate: Boolean, val isObsolete: Boolean, val iconUrl: String = "")
 
 @Serializable
 data class ServerExtensionStore(val name: String, val indexUrl: String)
@@ -36,6 +36,14 @@ data class ServerPreference(
     val entries: List<String> = emptyList(),
     val entryValues: List<String> = emptyList(),
 ) {
+    /** Android list preferences use the selected entry's label in their summary template. */
+    fun displaySummary(): String? {
+        if (type != "ListPreference") return summary
+        val value = valueString ?: defaultString.orEmpty()
+        val label = entries.getOrNull(entryValues.indexOf(value)) ?: value
+        return summary?.replace("%1\$s", label)?.replace("%s", label)
+    }
+
     fun sameSchema(other: ServerPreference): Boolean = type == other.type && key == other.key && entryValues == other.entryValues
 }
 
@@ -77,8 +85,20 @@ private suspend inline fun <reified T> SuwayomiSession.adminPages(field: String,
     return all
 }
 
-suspend fun SuwayomiSession.extensions(): List<ServerExtension> = adminPages("extensions", "pkgName name lang versionName isInstalled hasUpdate isObsolete")
+suspend fun SuwayomiSession.extensions(): List<ServerExtension> = adminPages("extensions", "pkgName name lang versionName isInstalled hasUpdate isObsolete iconUrl")
 suspend fun SuwayomiSession.extensionStores(): List<ServerExtensionStore> = adminPages("extensionStores", "name indexUrl")
+
+/** Fetch all languages here: configuration must remain accessible for hidden browsing sources. */
+suspend fun SuwayomiSession.extensionSources(pkgName: String): List<ServerSource> {
+    @Serializable data class Sources(val nodes: List<ServerSource>)
+
+    @Serializable data class ExtensionSources(val source: Sources)
+    return adminResult<ExtensionSources>(
+        "query(\$pkgName:String!) {extension(pkgName:\$pkgName) {source {nodes {id name lang iconUrl supportsLatest}}}}",
+        "extension",
+        variables("pkgName" to JsonPrimitive(pkgName)),
+    ).source.nodes
+}
 
 suspend fun SuwayomiSession.refreshExtensions() {
     execute("mutation {fetchExtensions(input:{}) {clientMutationId}}")

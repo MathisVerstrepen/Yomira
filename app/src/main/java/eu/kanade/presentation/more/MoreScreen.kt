@@ -80,6 +80,7 @@ fun MoreScreen(
     // KMK -->
     onClickLibraryUpdateErrors: () -> Unit,
     serverBacked: Boolean = false,
+    onClickPhoneDownloads: (() -> Unit)? = null,
     // KMK <--
 ) {
     val uriHandler = LocalUriHandler.current
@@ -98,8 +99,8 @@ fun MoreScreen(
             }
             item {
                 SwitchPreferenceWidget(
-                    title = stringResource(/* KMK --> */ if (serverBacked) KMR.strings.suwayomi_server_downloads else /* KMK <-- */ MR.strings.label_downloaded_only),
-                    subtitle = stringResource(/* KMK --> */ if (serverBacked) KMR.strings.suwayomi_server_downloads_summary else /* KMK <-- */ MR.strings.downloaded_only_summary),
+                    title = stringResource(/* KMK --> */ if (serverBacked) KMR.strings.suwayomi_offline_show_only else /* KMK <-- */ MR.strings.label_downloaded_only),
+                    subtitle = stringResource(/* KMK --> */ if (serverBacked) KMR.strings.suwayomi_offline_show_only_summary else /* KMK <-- */ MR.strings.downloaded_only_summary),
                     icon = Icons.Outlined.CloudOff,
                     checked = downloadedOnly,
                     onCheckedChanged = onDownloadedOnlyChange,
@@ -146,7 +147,7 @@ fun MoreScreen(
             item {
                 val downloadQueueState = downloadQueueStateProvider()
                 TextPreferenceWidget(
-                    title = stringResource(MR.strings.label_download_queue),
+                    title = stringResource(/* KMK --> */ if (serverBacked) KMR.strings.suwayomi_server_downloads else /* KMK <-- */ MR.strings.label_download_queue),
                     subtitle = when (downloadQueueState) {
                         DownloadQueueState.Stopped -> null
                         is DownloadQueueState.Paused -> {
@@ -172,6 +173,13 @@ fun MoreScreen(
                     onPreferenceClick = onClickDownloadQueue,
                 )
             }
+            // KMK -->
+            if (onClickPhoneDownloads != null) {
+                item {
+                    TextPreferenceWidget(title = stringResource(KMR.strings.suwayomi_phone_downloads), icon = Icons.Outlined.GetApp, onPreferenceClick = onClickPhoneDownloads)
+                }
+            }
+            // KMK <--
             item {
                 TextPreferenceWidget(
                     title = stringResource(MR.strings.categories),

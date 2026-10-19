@@ -1,6 +1,7 @@
 // KMK -->
 package eu.kanade.tachiyomi.ui.download
 
+import androidx.recyclerview.widget.RecyclerView
 import cafe.adriel.voyager.core.model.ScreenModel
 import dev.icerock.moko.resources.StringResource
 import eu.kanade.tachiyomi.data.download.model.DownloadDisplay
@@ -18,8 +19,20 @@ interface DownloadQueueController : ScreenModel {
     val canControlQueue: StateFlow<Boolean> get() = defaultsAllowed
     val error: StateFlow<String?> get() = defaultsNoError
     val notice: StringResource? get() = null
-    var controllerBinding: DownloadListBinding
+    var controllerBinding: DownloadListBinding?
     var adapter: DownloadAdapter?
+    /** A controller may outlive its Android view during navigation and empty-queue transitions. */
+    fun attachView(binding: DownloadListBinding, adapter: DownloadAdapter) {
+        controllerBinding = binding
+        this.adapter = adapter
+    }
+    fun detachView(root: RecyclerView) {
+        // Release of an older view must not detach a newly created view for this controller.
+        if (controllerBinding?.root === root) {
+            controllerBinding = null
+            adapter = null
+        }
+    }
     val listener: DownloadAdapter.DownloadItemListener
     fun getDownloadStatusFlow(): Flow<DownloadDisplay>
     fun getDownloadProgressFlow(): Flow<DownloadDisplay>

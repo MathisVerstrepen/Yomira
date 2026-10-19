@@ -1,14 +1,20 @@
 package eu.kanade.presentation.manga.components
 
+// KMK -->
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.outlined.ArrowDownward
 import androidx.compose.material.icons.outlined.ErrorOutline
+import androidx.compose.material.icons.outlined.PhoneAndroid
+import androidx.compose.material.icons.outlined.Storage
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
@@ -35,9 +41,11 @@ import eu.kanade.presentation.components.DropdownMenu
 import eu.kanade.tachiyomi.R
 import eu.kanade.tachiyomi.data.download.model.Download
 import tachiyomi.i18n.MR
+import tachiyomi.i18n.kmk.KMR
 import tachiyomi.presentation.core.components.material.IconButtonTokens
 import tachiyomi.presentation.core.i18n.stringResource
 import tachiyomi.presentation.core.util.secondaryItemAlpha
+// KMK <--
 
 enum class ChapterDownloadAction {
     START,
@@ -53,8 +61,28 @@ fun ChapterDownloadIndicator(
     downloadProgressProvider: () -> Int,
     onClick: (ChapterDownloadAction) -> Unit,
     modifier: Modifier = Modifier,
+    // KMK -->
+    serverDownloaded: Boolean? = null,
+    // KMK <--
 ) {
-    when (val downloadState = downloadStateProvider()) {
+    // KMK -->
+    val downloadState = downloadStateProvider()
+    if (serverDownloaded != null && (serverDownloaded || downloadState == Download.State.DOWNLOADED)) {
+        Row(modifier = modifier, verticalAlignment = Alignment.CenterVertically) {
+            if (serverDownloaded) {
+                DownloadLocationIndicator(enabled, phone = false) { onClick(ChapterDownloadAction.START) }
+            }
+            if (downloadState == Download.State.DOWNLOADED) {
+                DownloadLocationIndicator(enabled, phone = true) { onClick(ChapterDownloadAction.START) }
+            } else if (downloadState != Download.State.NOT_DOWNLOADED) {
+                // Keep phone progress/retry controls visible alongside the server's saved copy.
+                ChapterDownloadIndicator(enabled, downloadStateProvider, downloadProgressProvider, onClick)
+            }
+        }
+        return
+    }
+    when (downloadState) {
+        // KMK <--
         Download.State.NOT_DOWNLOADED -> NotDownloadedIndicator(
             enabled = enabled,
             modifier = modifier,
@@ -279,3 +307,33 @@ private val IndicatorModifier = Modifier
     .padding(IndicatorPadding)
 private val ArrowModifier = Modifier
     .size(IndicatorSize - 7.dp)
+
+// KMK -->
+@Composable
+private fun DownloadLocationIndicator(enabled: Boolean, phone: Boolean, onClick: () -> Unit) {
+    Box(
+        modifier = Modifier.size(IconButtonTokens.StateLayerSize).commonClickable(
+            enabled = enabled,
+            hapticFeedback = LocalHapticFeedback.current,
+            onLongClick = onClick,
+            onClick = onClick,
+        ),
+        contentAlignment = Alignment.Center,
+    ) {
+        Box(Modifier.size(IndicatorSize)) {
+            Icon(
+                imageVector = if (phone) Icons.Outlined.PhoneAndroid else Icons.Outlined.Storage,
+                contentDescription = stringResource(if (phone) KMR.strings.suwayomi_downloaded_on_phone else KMR.strings.suwayomi_downloaded_on_server),
+                modifier = Modifier.size(IndicatorSize),
+                tint = MaterialTheme.colorScheme.primary,
+            )
+            Icon(
+                imageVector = Icons.Filled.CheckCircle,
+                contentDescription = null,
+                modifier = Modifier.align(Alignment.BottomEnd).size(12.dp).background(MaterialTheme.colorScheme.surface, CircleShape),
+                tint = MaterialTheme.colorScheme.primary,
+            )
+        }
+    }
+}
+// KMK <--

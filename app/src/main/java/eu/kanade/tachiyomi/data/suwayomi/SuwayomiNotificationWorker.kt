@@ -116,7 +116,10 @@ class SuwayomiNotificationWorker(context: Context, parameters: WorkerParameters)
                 prefs.edit().putBoolean("localWorkRetired", true).commit()
             }
             AppUpdateJob.setupTask(context)
-            Injekt.get<SuwayomiBackend>().session.value?.let { schedule(context, it.id) }
+            Injekt.get<SuwayomiBackend>().session.value?.let {
+                schedule(context, it.id)
+                it.resumeOfflineWork()
+            }
         }
     }
 }

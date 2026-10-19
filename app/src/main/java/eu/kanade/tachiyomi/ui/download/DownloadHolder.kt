@@ -65,6 +65,7 @@ class DownloadHolder(private val view: View, val adapter: DownloadAdapter) :
         }
         // KMK -->
         binding.downloadProgress.setColors(adapter.colorScheme)
+        binding.downloadProgress.visibility = if (download.serverError) View.INVISIBLE else View.VISIBLE
         // KMK <--
     }
 

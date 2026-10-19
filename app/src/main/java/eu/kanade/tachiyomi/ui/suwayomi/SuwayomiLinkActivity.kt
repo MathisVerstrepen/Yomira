@@ -72,7 +72,7 @@ private class SuwayomiLinkScreen(private val value: String) : Screen() {
                     link == null -> Text(stringResource(KMR.strings.suwayomi_invalid_link))
                     state.session == null -> {
                         Text(stringResource(KMR.strings.suwayomi_link_connect, link.server))
-                        ServerSetup(state.loading, state.error, model::connect, link.server)
+                        ServerSetup(state.loading, state.error, model::connect, link.server, modifier = Modifier.weight(1f))
                     }
                     state.session?.baseUrl != link.server -> Text(stringResource(KMR.strings.suwayomi_link_other_server, link.server))
                     error != null -> {

@@ -65,6 +65,7 @@ internal fun SuwayomiMoreTab() {
         onClickHistory = { scope.launch { HomeScreen.openTab(HomeScreen.Tab.History) } },
         onClickLibraryUpdateErrors = { navigator.push(SuwayomiCompatibilityScreen()) },
         serverBacked = true,
+        onClickPhoneDownloads = { navigator.push(SuwayomiOfflineScreen(session.id)) },
     )
 }
 // KMK <--

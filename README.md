@@ -4,13 +4,13 @@
 
 An Android client for **Suwayomi-Server**, adapted from [Komikku](https://github.com/komikku-app/komikku). It retains Komikku's native navigation, library, manga details, and configurable reader while using Suwayomi for the library, sources, reading progress, trackers, and downloads.
 
-This fork requires a reachable server and uses one active server/account connection. Android 8.0 (API 26) or later is required. Download this adaptation from [GitHub Releases](https://github.com/MathisVerstrepen/komikku-suwayomi/releases/latest); choose the universal APK if you are unsure which architecture to use.
+This fork uses one active server/account connection. A reachable server is required for browsing, synchronization, and fetching new chapters; chapters downloaded to the phone can be read offline. Android 8.0 (API 26) or later is required. Download this adaptation from [GitHub Releases](https://github.com/MathisVerstrepen/komikku-suwayomi/releases/latest); choose the universal APK if you are unsure which architecture to use.
 
 ## How it works
 
 The app keeps Komikku's **Library, Updates, History, Browse, and More** tabs. Existing content and scroll position remain visible while background refreshes fetch updated server data.
 
-Suwayomi owns the library and executes source extensions. The phone displays temporary server projections and streams chapter pages through the authenticated connection. Existing phone-local Komikku libraries are not imported into the server.
+Suwayomi owns the library and executes source extensions. The phone displays server projections and streams chapter pages through the authenticated connection, or reads completed device downloads from private storage. Existing phone-local Komikku libraries are not imported into the server.
 
 On servers with a shared library, changes to manga, categories, reading state, settings, trackers, and the download queue can affect other clients. Per-user isolation depends on the server's API and permissions.
 
@@ -20,9 +20,10 @@ On servers with a shared library, changes to manga, categories, reading state, s
 - **Reading:** Komikku's reader modes, themes, gestures, chapter controls, server progress/resume, read/unread state, and bookmarks.
 - **Updates and history:** server-backed chapter updates and recent reading with pagination.
 - **Browse:** authenticated provider logos, individual source browsing and search, popular/latest lists, source filters, and global manga search across providers. Browse and global search respect the server WebUI's saved language and enabled-source restrictions.
-- **Downloads:** view and control the server queue, including start/pause, reorder, cancel, and clear. Files remain on the server.
+- **Downloads:** save chapters to the phone for offline reading, with a persistent queue, pause/resume, resumable page transfers, Wi-Fi-only downloads, and a storage limit. Separately view and control the server queue, including start/pause, reorder, cancel, and clear.
 - **Trackers:** use server-managed accounts, manga bindings, search, and record updates.
-- **Administration:** manage server extensions, repositories, source preferences, and supported update/download settings. Some administration opens the server WebUI, which authenticates separately.
+- **Browse:** switch between Sources and Extensions. Search, install, update, or remove server extensions, configure their source preferences, and manage repositories from the Extensions menu. Changes apply to the shared server.
+- **Server settings:** manage supported update/download settings. Additional administration opens the server WebUI, which authenticates separately.
 - **Synchronization:** background revalidation preserves loaded content. Reading changes use a persistent, connection-specific queue; failures or conflicting results remain visible for retry or discard.
 
 ## Connect to a server
@@ -45,9 +46,19 @@ The implementation has been validated against these API contracts:
 
 Connection setup checks actual schema capabilities and protected reads. These are tested contracts, not a guarantee that every server release supports every operation. Available features depend on the server version and account permissions. Authentication mode must be selected during setup.
 
+## Read offline
+
+1. Open a title and use a chapter’s download action, or select chapters/titles in bulk. Choose **Download to phone**. **Download on server** manages the server’s separate copies.
+2. Open **More → Phone downloads** to check progress, pause/resume, retry, read saved chapters, or remove device copies.
+3. Phone downloads default to **Wi-Fi only** and a **2 GiB storage limit**. The limit is editable in MiB (1024 MiB = 1 GiB). Transfers pause when Wi-Fi is lost or storage reaches the limit; freeing space or changing the settings allows them to continue. Completed pages are retained when a transfer is interrupted.
+4. A chapter is **Available offline** only after every page is saved. Completed downloads include title/chapter metadata and a cover when available, so they remain accessible after restarting without a server connection. **Downloaded on phone only** in More filters the library to device copies.
+5. Read normally in Komikku’s reader. Reading progress and bookmarks are saved locally and queued for synchronization after reconnecting, including after process restart. Uncertain mutations or account/identity conflicts remain visible for deliberate retry or discard.
+
+Downloaded chapters use private app storage, outside Android’s disposable image cache, and are excluded from Android backup. Storage accounting includes saved pages, partial transfers, covers, and metadata. Lowering the limit preserves existing downloads; new transfers wait until there is room. Deleting a phone copy preserves server files and reading progress. Replacing/disconnecting the server account clears its phone downloads and pending changes; reauthenticating the same account preserves them.
+
 ## Current limits
 
-- **No phone offline-reading mode.** Server downloads are not device downloads; a reachable server is required. Image caching and queued reading changes do not provide an offline library.
+- Offline availability applies to completed phone downloads. Server downloads alone do not make a chapter available on the phone. Browsing providers, fetching additional chapters, and server administration still require a connection.
 - Android source APKs are not executed by this client. Install extensions on the server.
 - Upstream workflows such as feeds, merged manga, recommendations, source migration, widgets, and phone-local backup/cloud-sync are not fully integrated into the server-backed app.
 - Independent history deletion and reading-duration statistics require further server API integration.

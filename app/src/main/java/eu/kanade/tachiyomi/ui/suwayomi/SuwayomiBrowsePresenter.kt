@@ -106,6 +106,14 @@ internal fun SuwayomiBrowseTab() {
     val session = current ?: return
     val model = eu.kanade.tachiyomi.ui.browse.BrowseTab.rememberScreenModel(tag = "server-sources-${session.id}") { SuwayomiBrowseScreenModel(session.id) }
     val state by model.state.collectAsState()
+    val extensionsModel = eu.kanade.tachiyomi.ui.browse.BrowseTab.rememberScreenModel(tag = "server-extensions-${session.id}") { SuwayomiExtensionsModel(session.id) }
+    val extensionsState by extensionsModel.state.collectAsState()
+    var extensionQuery by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf<String?>(null) }
+    val pager = androidx.compose.foundation.pager.rememberPagerState { 2 }
+    BackHandler(enabled = pager.currentPage == 1 && extensionQuery != null) { extensionQuery = null }
+    LaunchedEffect(extensionsState.extensions) {
+        if (extensionsState.hasLoaded) model.sources()
+    }
     var query by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf<String?>(null) }
     val navigator = LocalNavigator.currentOrThrow
     val context = LocalContext.current
@@ -117,7 +125,10 @@ internal fun SuwayomiBrowseTab() {
             }
         }
     }
-    androidx.lifecycle.compose.LifecycleEventEffect(androidx.lifecycle.Lifecycle.Event.ON_RESUME) { model.sources() }
+    androidx.lifecycle.compose.LifecycleEventEffect(androidx.lifecycle.Lifecycle.Event.ON_RESUME) {
+        model.sources()
+        extensionsModel.refresh()
+    }
     val sources = state.sources.filter { query.isNullOrBlank() || it.name.contains(query.orEmpty(), true) }
     val nativeState = SourcesScreenModel.State(
         isLoading = state.loading && !state.hasLoadedSources,
@@ -130,13 +141,15 @@ internal fun SuwayomiBrowseTab() {
     )
     TabbedScreen(
         titleRes = MR.strings.browse,
+        state = pager,
+        searchQuery = extensionQuery,
+        onChangeSearchQuery = { extensionQuery = it },
         tabs = persistentListOf(
             TabContent(
                 titleRes = MR.strings.label_sources,
                 actions = persistentListOf(
                     AppBar.Action(stringResource(MR.strings.action_global_search), Icons.Outlined.TravelExplore, onClick = { navigator.push(eu.kanade.tachiyomi.ui.browse.source.globalsearch.GlobalSearchScreen()) }),
                     AppBar.Action(stringResource(KMR.strings.suwayomi_reload), Icons.Outlined.Refresh, onClick = { model.sources() }),
-                    AppBar.Action(stringResource(KMR.strings.suwayomi_administration), Icons.Outlined.Settings, onClick = { navigator.push(SuwayomiAdministrationScreen(session.id)) }),
                 ),
             ) { padding, _ ->
                 androidx.compose.foundation.layout.Box {
@@ -147,13 +160,14 @@ internal fun SuwayomiBrowseTab() {
                             contentPadding = padding,
                             onClickItem = { item, listing -> state.sources.firstOrNull { it.id == item.id }?.let { navigator.push(SuwayomiSourceScreen(session.id, it, listing == Listing.Latest)) } },
                             onClickPin = {},
-                            onLongClickItem = { navigator.push(SuwayomiAdministrationScreen(session.id, it.id)) },
+                            onLongClickItem = { navigator.push(SuwayomiSourcePreferencesScreen(session.id, it.id, it.name, it.lang)) },
                             onChangeSearchQuery = { query = it },
                         )
                     }
                     SnackbarHost(snackbar, Modifier.align(androidx.compose.ui.Alignment.BottomCenter))
                 }
             },
+            suwayomiExtensionsTab(session.id, extensionsModel, extensionQuery),
         ),
     )
 }
@@ -324,7 +338,7 @@ internal class SuwayomiSourceScreen(private val sessionId: String, private val s
                         }, displayMode = display, onDisplayModeChange = { sourcePrefs.sourceDisplayMode().set(it) },
                         navigateUp = { navigator.pop() }, onWebViewClick = { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(Injekt.get<SuwayomiBackend>().requireSession(sessionId).baseUrl))) },
                         onHelpClick = { navigator.push(SuwayomiCompatibilityScreen()) }, onToggleIncognito = { base.incognitoMode().set(!incognito) },
-                        onSettingsClick = { navigator.push(SuwayomiAdministrationScreen(sessionId, source.id)) }, scrollBehavior = behavior,
+                        onSettingsClick = { navigator.push(SuwayomiSourcePreferencesScreen(sessionId, source.id, source.name, source.lang)) }, scrollBehavior = behavior,
                         toggleSelectionMode = {
                             selectionMode = true
                             selected = emptyList()
