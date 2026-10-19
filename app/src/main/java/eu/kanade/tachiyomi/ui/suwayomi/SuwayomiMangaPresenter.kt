@@ -153,8 +153,12 @@ internal fun SuwayomiMangaPresenter(presentationId: Long, expectedSession: Strin
         serverBacked = true, seedColor = seedColor,
     )
     fun saveFlags(value: Long) {
-        flags = value
-        session.updateLibraryPresentation { it.copy(chapterFlags = it.chapterFlags + (mangaId to value)) }
+        try {
+            backend.requireSession(session.id).updateLibraryPresentation { it.copy(chapterFlags = it.chapterFlags + (mangaId to value)) }
+            flags = value
+        } catch (e: Exception) {
+            scope.launch { snack.showSnackbar(context.stringResource(failureResource(failure(e)))) }
+        }
     }
     fun setFlag(value: Long, mask: Long) {
         saveFlags(flags and mask.inv() or (value and mask))
@@ -309,8 +313,12 @@ internal fun SuwayomiMangaPresenter(presentationId: Long, expectedSession: Strin
     }
     if (scanlators) {
         ScanlatorFilterDialog(native.availableScanlators, excluded.toImmutableSet(), { scanlators = false }) { value ->
-            excluded = value
-            session.updateLibraryPresentation { it.copy(excludedScanlators = it.excludedScanlators + (mangaId to value)) }
+            try {
+                backend.requireSession(session.id).updateLibraryPresentation { it.copy(excludedScanlators = it.excludedScanlators + (mangaId to value)) }
+                excluded = value
+            } catch (e: Exception) {
+                scope.launch { snack.showSnackbar(context.stringResource(failureResource(failure(e)))) }
+            }
         }
     }
     if (cover) {

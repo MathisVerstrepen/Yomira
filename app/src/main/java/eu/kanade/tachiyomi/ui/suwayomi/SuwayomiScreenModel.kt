@@ -215,7 +215,11 @@ class SuwayomiMangaScreenModel(
                 val session = backend.requireSession(sessionId)
                 session.flush()
                 if (fetch) session.refreshManga(mangaId)
-                val manga = session.manga(mangaId)
+                var manga = session.manga(mangaId)
+                if (!fetch && !manga.initialized) {
+                    session.refreshManga(mangaId)
+                    manga = session.manga(mangaId)
+                }
                 val chapters = session.chapters(mangaId)
                 val user = session.user()
                 val categories = session.serverCategories()

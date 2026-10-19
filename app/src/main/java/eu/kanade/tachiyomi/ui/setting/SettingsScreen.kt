@@ -31,6 +31,12 @@ class SettingsScreen(
 
     @Composable
     override fun Content() {
+        // KMK -->
+        if (eu.kanade.tachiyomi.data.suwayomi.SuwayomiMode.enabled && (destination == Destination.DataAndStorage.id || destination == Destination.Tracking.id)) {
+            eu.kanade.tachiyomi.ui.suwayomi.SuwayomiSettingsDestination(destination == Destination.Tracking.id)
+            return
+        }
+        // KMK <--
         val parentNavigator = LocalNavigator.currentOrThrow
         if (!isTabletUi()) {
             Navigator(

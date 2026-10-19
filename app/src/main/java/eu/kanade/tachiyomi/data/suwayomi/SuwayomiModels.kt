@@ -146,6 +146,7 @@ data class ServerManga(
     val categories: ServerMangaCategories = ServerMangaCategories(),
     val source: ServerMangaSource? = null,
     val chapters: ServerChapterCount = ServerChapterCount(),
+    val initialized: Boolean = true,
 )
 
 @Serializable

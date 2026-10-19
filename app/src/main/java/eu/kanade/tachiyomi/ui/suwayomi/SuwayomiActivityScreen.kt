@@ -66,7 +66,7 @@ class SuwayomiActivityModel(private val sessionId: String, private val history: 
             mutableState.update { it.copy(loading = true, error = null) }
             try {
                 val session = backend.requireSession(sessionId)
-                if (fetch) session.updateLibraryOnServer()
+                if (fetch && !session.updateRunning()) session.updateLibraryOnServer()
                 val page = session.activityPage(history, if (next) state.value.cursor else null)
                 if (page.pageInfo.hasNextPage && (page.pageInfo.endCursor == null || (next && page.pageInfo.endCursor == state.value.cursor) || page.nodes.isEmpty())) throw eu.kanade.tachiyomi.data.suwayomi.SuwayomiException(SuwayomiFailure.CONTRACT)
                 backend.requireSession(sessionId)

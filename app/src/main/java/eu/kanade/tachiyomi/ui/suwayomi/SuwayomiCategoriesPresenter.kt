@@ -1,11 +1,12 @@
 // KMK -->
 package eu.kanade.tachiyomi.ui.suwayomi
 
-import androidx.compose.material3.SnackbarHostState
+import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -54,18 +55,34 @@ internal fun SuwayomiCategoriesPresenter(expectedSession: String?) {
         LoadingScreen()
         return
     }
+    if (state.error != null && state.categories.isEmpty()) {
+        tachiyomi.presentation.core.components.material.Scaffold(
+            topBar = { eu.kanade.presentation.components.AppBar(title = tachiyomi.presentation.core.i18n.stringResource(tachiyomi.i18n.MR.strings.action_edit_categories), navigateUp = { navigator.pop() }) },
+        ) { padding ->
+            androidx.compose.foundation.layout.Column(androidx.compose.ui.Modifier.padding(padding)) { ConnectionError(state.error!!, { model.load() }) }
+        }
+        return
+    }
     val categories = state.categories.filter { it.id != 0 }.sortedBy { it.order }.map {
         Category(it.id.toLong(), it.name, it.order.toLong(), 0, presentation.category(it.id).hidden)
     }.toImmutableList()
-    CategoryScreen(
-        state = CategoryScreenState.Success(categories),
-        navigateUp = { navigator.pop() },
-        onClickCreate = { create = true },
-        onClickRename = { rename = it },
-        onClickDelete = { delete = it },
-        onChangeOrder = { category, index -> model.edit("reorder", id = category.id.toInt(), position = index) },
-        onClickHide = { category -> presentation = session.updateLibraryPresentation { value -> value.withCategory(category.id.toInt(), value.category(category.id.toInt()).copy(hidden = !category.hidden)) } },
-    )
+    key(state.error) {
+        CategoryScreen(
+            state = CategoryScreenState.Success(categories),
+            navigateUp = { navigator.pop() },
+            onClickCreate = { create = true },
+            onClickRename = { rename = it },
+            onClickDelete = { delete = it },
+            onChangeOrder = { category, index -> model.edit("reorder", id = category.id.toInt(), position = index) },
+            onClickHide = { category ->
+                try {
+                    presentation = backend.requireSession(session.id).updateLibraryPresentation { value -> value.withCategory(category.id.toInt(), value.category(category.id.toInt()).copy(hidden = !category.hidden)) }
+                } catch (e: Exception) {
+                    context.toastMessage(context.stringResource(failureResource(failure(e))))
+                }
+            },
+        )
+    }
     if (create) CategoryCreateDialog({ create = false }, { model.edit("create", name = it) }, categories.map { it.name }.toImmutableList())
     rename?.let { category -> CategoryRenameDialog({ rename = null }, { model.edit("rename", id = category.id.toInt(), name = it) }, categories.map { it.name }.toImmutableList(), category.name) }
     delete?.let { category -> CategoryDeleteDialog({ delete = null }, { model.edit("delete", id = category.id.toInt()) }, category.name) }

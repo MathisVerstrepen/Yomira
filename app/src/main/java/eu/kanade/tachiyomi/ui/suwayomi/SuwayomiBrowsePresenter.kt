@@ -46,6 +46,7 @@ import cafe.adriel.voyager.core.model.screenModelScope
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
 import eu.kanade.domain.base.BasePreferences
+import eu.kanade.domain.source.service.SourcePreferences
 import eu.kanade.presentation.browse.BrowseSourceContent
 import eu.kanade.presentation.browse.SourceUiModel
 import eu.kanade.presentation.browse.SourcesScreen
@@ -100,7 +101,7 @@ internal fun SuwayomiBrowseTab() {
     val backend = remember { Injekt.get<SuwayomiBackend>() }
     val current by backend.session.collectAsState()
     val session = current ?: return
-    val model = eu.kanade.tachiyomi.ui.browse.BrowseTab.rememberScreenModel { SuwayomiBrowseScreenModel(session.id) }
+    val model = eu.kanade.tachiyomi.ui.browse.BrowseTab.rememberScreenModel(tag = "server-sources-${session.id}") { SuwayomiBrowseScreenModel(session.id) }
     val state by model.state.collectAsState()
     var query by remember { mutableStateOf<String?>(null) }
     val navigator = LocalNavigator.currentOrThrow
@@ -181,11 +182,12 @@ private class SuwayomiSourceModel(private val sessionId: String, val source: Ser
                     }
                     val result = session.browseSource(source.id, page, args.query, args.type, args.changes)
                     backend.requireSession(sessionId)
+                    if (result.hasNextPage && result.mangas.isEmpty()) throw SuwayomiException(SuwayomiFailure.CONTRACT)
                     val data = result.mangas.map { remote ->
                         val projection = remote.toKomikkuManga(sessionId)
                         synchronized(items) { items.getOrPut(remote.id) { MutableStateFlow(projection to null) }.also { it.value = projection to null } }
                     }
-                    LoadResult.Page(data, null, if (result.hasNextPage && result.mangas.isNotEmpty()) page + 1 else null)
+                    LoadResult.Page(data, null, if (result.hasNextPage) page + 1 else null)
                 } catch (e: Exception) {
                     if (e is CancellationException) throw e
                     LoadResult.Error(e)
@@ -250,7 +252,8 @@ internal class SuwayomiSourceScreen(private val sessionId: String, private val s
         val schema by model.schema.collectAsState()
         val nativeSource = remember(source) { StubSource(source.id, source.lang, source.name) }
         val prefs = remember { Injekt.get<LibraryPreferences>() }
-        val display by prefs.displayMode().collectAsState()
+        val sourcePrefs = remember { Injekt.get<SourcePreferences>() }
+        val display by sourcePrefs.sourceDisplayMode().collectAsState()
         val portrait by prefs.portraitColumns().collectAsState()
         val landscape by prefs.landscapeColumns().collectAsState()
         val columns = if (LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE) landscape else portrait
@@ -301,7 +304,7 @@ internal class SuwayomiSourceScreen(private val sessionId: String, private val s
                         onSearch = {
                             type = "SEARCH"
                             model.search(it, type)
-                        }, displayMode = display, onDisplayModeChange = { prefs.displayMode().set(it) },
+                        }, displayMode = display, onDisplayModeChange = { sourcePrefs.sourceDisplayMode().set(it) },
                         navigateUp = { navigator.pop() }, onWebViewClick = { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(Injekt.get<SuwayomiBackend>().requireSession(sessionId).baseUrl))) },
                         onHelpClick = { navigator.push(SuwayomiCompatibilityScreen()) }, onToggleIncognito = { base.incognitoMode().set(!incognito) },
                         onSettingsClick = { navigator.push(SuwayomiAdministrationScreen(sessionId, source.id)) }, scrollBehavior = behavior,

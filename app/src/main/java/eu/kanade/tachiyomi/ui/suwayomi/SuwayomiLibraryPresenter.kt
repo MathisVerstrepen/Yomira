@@ -46,6 +46,7 @@ import eu.kanade.tachiyomi.data.suwayomi.downloadAction
 import eu.kanade.tachiyomi.data.suwayomi.setCategoryMembership
 import eu.kanade.tachiyomi.data.suwayomi.toLibraryItem
 import eu.kanade.tachiyomi.data.suwayomi.updateLibraryOnServer
+import eu.kanade.tachiyomi.data.suwayomi.updateRunning
 import eu.kanade.tachiyomi.data.track.Tracker
 import eu.kanade.tachiyomi.ui.home.HomeScreen
 import eu.kanade.tachiyomi.ui.library.LibrarySettingsController
@@ -75,9 +76,11 @@ import uy.kohesive.injekt.api.get
 /** The server presenter feeds Komikku's library UI; no Android library or source operation runs here. */
 @Composable
 internal fun SuwayomiLibraryTab() {
+    val backend = remember { Injekt.get<SuwayomiBackend>() }
+    val activeConnection by backend.session.collectAsState()
     val model = LibraryTab.rememberScreenModel { SuwayomiScreenModel() }
     val state by model.state.collectAsState()
-    val session = state.session ?: return
+    val session = state.session?.takeIf { it.id == activeConnection?.id } ?: return
     val navigator = LocalNavigator.currentOrThrow
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -92,6 +95,8 @@ internal fun SuwayomiLibraryTab() {
     var download by remember { mutableStateOf<DownloadAction?>(null) }
     val group by remember { prefs.groupLibraryBy().asState(scope) }
     var page by rememberSaveable(session.id, group) { mutableIntStateOf(0) }
+    var selectionAnchor by remember(session.id) { mutableStateOf<Int?>(null) }
+    var updateJob by remember { mutableStateOf<kotlinx.coroutines.Job?>(null) }
     val display = remember { prefs.displayMode().asState(scope) }
     val portrait = remember { prefs.portraitColumns().asState(scope) }
     val landscape = remember { prefs.landscapeColumns().asState(scope) }
@@ -140,7 +145,7 @@ internal fun SuwayomiLibraryTab() {
             started.matches(manga.chapters.totalCount > manga.user.unreadCount) && completed.matches(manga.status == "COMPLETED") &&
             (!filterCategories || ((include.isEmpty() || ids.any { it in include }) && ids.none { it in exclude }))
     }
-    fun members(category: Category): List<ServerManga> = filtered.filter { manga ->
+    fun members(category: Category, pool: List<ServerManga> = filtered): List<ServerManga> = pool.filter { manga ->
         when (group) {
             LibraryGroup.BY_DEFAULT -> if (category.id == 0L) manga.categories.nodes.all { it.id == 0 } else manga.categories.nodes.any { it.id.toLong() == category.id }
             LibraryGroup.BY_SOURCE -> manga.sourceId == category.id
@@ -152,10 +157,42 @@ internal fun SuwayomiLibraryTab() {
     fun open(id: Long) {
         navigator.push(serverMangaScreen(session.id, SuwayomiMode.remoteId(id)))
     }
-    fun updateLibrary() {
-        scope.launch { runCatching { session.updateLibraryOnServer() }.onFailure { snack.showSnackbar(context.stringResource(failureResource(failure(it as? Exception ?: Exception())))) } }
+    fun updateLibrary(global: Boolean) {
+        if (updateJob?.isActive == true) return
+        updateJob = scope.launch {
+            try {
+                if (!global && group != LibraryGroup.BY_DEFAULT) {
+                    members(active, state.mangas).forEach { session.refreshManga(it.id) }
+                    model.refresh().join()
+                } else {
+                    if (session.updateRunning()) {
+                        snack.showSnackbar(context.stringResource(MR.strings.update_already_running))
+                    } else {
+                        session.updateLibraryOnServer(if (!global && active.id >= 0) listOf(active.id.toInt()) else null)
+                    }
+                    repeat(60) {
+                        model.refresh().join()
+                        if (!session.updateRunning()) return@launch
+                        kotlinx.coroutines.delay(5000)
+                    }
+                }
+            } catch (e: Exception) {
+                if (e is kotlinx.coroutines.CancellationException) throw e
+                snack.showSnackbar(context.stringResource(failureResource(failure(e))))
+            }
+        }
     }
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { model.refresh() }
+    LaunchedEffect(session.id) {
+        val store = Injekt.get<tachiyomi.core.common.preference.PreferenceStore>()
+        val key = store.getString(tachiyomi.core.common.preference.Preference.appStateKey("suwayomi-presentation-session"), "")
+        if (key.get() != session.id) {
+            prefs.filterCategoriesInclude().set(emptySet())
+            prefs.filterCategoriesExclude().set(emptySet())
+            prefs.filterCategories().set(false)
+            key.set(session.id)
+        }
+    }
     LaunchedEffect(Unit) {
         launch { LibraryTab.serverSearches.collect { search = it } }
         launch { LibraryTab.serverSettingsRequests.collect { sheet = true } }
@@ -170,8 +207,8 @@ internal fun SuwayomiLibraryTab() {
                 onClickUnselectAll = model::clearSelection,
                 onClickSelectAll = { model.selectVisible(visible.map { it.id }.toSet()) },
                 onClickInvertSelection = { visible.forEach { model.select(it.id) } },
-                onClickFilter = { sheet = true }, onClickRefresh = { updateLibrary() },
-                onClickGlobalUpdate = ::updateLibrary,
+                onClickFilter = { sheet = true }, onClickRefresh = { updateLibrary(false) },
+                onClickGlobalUpdate = { updateLibrary(true) },
                 onClickOpenRandomManga = { visible.randomOrNull()?.let { open(SuwayomiMode.readerId(it.id)) } },
                 onClickSyncNow = { model.refresh() }, onClickSyncExh = null, isSyncEnabled = false,
                 searchQuery = search, onSearchQueryChange = { search = it }, scrollBehavior = behavior.takeIf { !showTabs },
@@ -185,7 +222,7 @@ internal fun SuwayomiLibraryTab() {
             LibraryBottomActionMenu(
                 visible = state.selected.isNotEmpty(),
                 onChangeCategoryClicked = { changeCategory = true },
-                onMarkAsReadClicked = { if (!incognito) model.bulk("read") }, onMarkAsUnreadClicked = { if (!incognito) model.bulk("unread") },
+                onMarkAsReadClicked = { if (!incognito) model.bulk("read") else scope.launch { snack.showSnackbar(context.stringResource(KMR.strings.suwayomi_incognito_notice)) } }, onMarkAsUnreadClicked = { if (!incognito) model.bulk("unread") else scope.launch { snack.showSnackbar(context.stringResource(KMR.strings.suwayomi_incognito_notice)) } },
                 onDownloadClicked = { download = it }, onDeleteClicked = { remove = true }, onMigrateClicked = null, onMergeClicked = null,
                 onSelectionUpdateClicked = { model.selectionOperation { connection, manga -> connection.refreshManga(manga.id) } },
                 onClickCleanTitles = null, onClickCollectRecommendations = null, onClickAddToMangaDex = null, onClickResetInfo = null,
@@ -217,9 +254,17 @@ internal fun SuwayomiLibraryTab() {
                         null
                     },
                     onToggleSelection = { _, manga -> model.select(SuwayomiMode.remoteId(manga.id)) },
-                    onToggleRangeSelection = { _, manga -> model.select(SuwayomiMode.remoteId(manga.id)) },
+                    onToggleRangeSelection = { _, manga ->
+                        val id = SuwayomiMode.remoteId(manga.id)
+                        val ids = visible.map { it.id }
+                        val start = ids.indexOf(selectionAnchor)
+                        val end = ids.indexOf(id)
+                        val range = if (state.selected.isNotEmpty() && start >= 0 && end >= 0) ids.subList(minOf(start, end), maxOf(start, end) + 1) else listOf(id)
+                        if (id in state.selected) range.filter { it in state.selected }.forEach(model::select) else model.selectVisible(range.toSet())
+                        selectionAnchor = id
+                    },
                     onRefresh = {
-                        updateLibrary()
+                        updateLibrary(false)
                         true
                     }, onGlobalSearchClicked = { scope.launch { HomeScreen.openTab(HomeScreen.Tab.Browse()) } },
                     getItemCountForCategory = { members(it).size.takeIf { showCount } }, getDisplayMode = { display },

@@ -1,5 +1,6 @@
 package eu.kanade.tachiyomi.ui.download
 
+// KMK -->
 import android.view.View
 import androidx.recyclerview.widget.ItemTouchHelper
 import eu.davidea.viewholders.FlexibleViewHolder
@@ -8,6 +9,8 @@ import eu.kanade.tachiyomi.R
 import eu.kanade.tachiyomi.data.download.model.Download
 import eu.kanade.tachiyomi.databinding.DownloadItemBinding
 import eu.kanade.tachiyomi.util.view.popupMenu
+import tachiyomi.core.common.i18n.stringResource
+// KMK <--
 
 /**
  * Class used to hold the data of a download.
@@ -26,14 +29,18 @@ class DownloadHolder(private val view: View, val adapter: DownloadAdapter) :
         binding.menu.setOnClickListener { it.post { showPopupMenu(it) } }
     }
 
-    private lateinit var download: Download
+    // KMK -->
+    private lateinit var download: eu.kanade.tachiyomi.data.download.model.DownloadDisplay
+    // KMK <--
 
     /**
      * Binds this holder with the given download.
      *
      * @param download The download to bind.
      */
-    fun bind(download: Download) {
+    // KMK -->
+    fun bind(download: eu.kanade.tachiyomi.data.download.model.DownloadDisplay) {
+        // KMK <--
         this.download = download
         // Update the chapter name.
         binding.chapterTitle.text = download.chapter.name
@@ -42,13 +49,17 @@ class DownloadHolder(private val view: View, val adapter: DownloadAdapter) :
         binding.mangaFullTitle.text = download.manga.title
 
         // Update the progress bar and the number of downloaded pages
-        val pages = download.pages
+        // KMK -->
+        val pages = download.totalPages
+        // KMK <--
         if (pages == null) {
             binding.downloadProgress.progress = 0
             binding.downloadProgress.max = 1
-            binding.downloadProgressText.text = ""
+            // KMK -->
+            binding.downloadProgressText.text = if (download.serverError) view.context.stringResource(tachiyomi.i18n.kmk.KMR.strings.suwayomi_download_failed) else ""
+            // KMK <--
         } else {
-            binding.downloadProgress.max = pages.size * 100
+            binding.downloadProgress.max = /* KMK --> */ pages /* KMK <-- */ * 100
             notifyProgress()
             notifyDownloadedPages()
         }
@@ -61,9 +72,11 @@ class DownloadHolder(private val view: View, val adapter: DownloadAdapter) :
      * Updates the progress bar of the download.
      */
     fun notifyProgress() {
-        val pages = download.pages ?: return
+        // KMK -->
+        val pages = download.totalPages ?: return
+        // KMK <--
         if (binding.downloadProgress.max == 1) {
-            binding.downloadProgress.max = pages.size * 100
+            binding.downloadProgress.max = /* KMK --> */ pages /* KMK <-- */ * 100
         }
         binding.downloadProgress.setProgressCompat(download.totalProgress, true)
     }
@@ -72,8 +85,16 @@ class DownloadHolder(private val view: View, val adapter: DownloadAdapter) :
      * Updates the text field of the number of downloaded pages.
      */
     fun notifyDownloadedPages() {
-        val pages = download.pages ?: return
-        binding.downloadProgressText.text = "${download.downloadedImages}/${pages.size}"
+        // KMK -->
+        val pages = download.totalPages ?: return
+        // KMK <--
+        // KMK -->
+        binding.downloadProgressText.text = if (download.serverError) {
+            view.context.stringResource(tachiyomi.i18n.kmk.KMR.strings.suwayomi_download_failed)
+        } else {
+            "${download.downloadedImages}/$pages"
+        }
+        // KMK <--
     }
 
     override fun onItemReleased(position: Int) {
@@ -90,15 +111,28 @@ class DownloadHolder(private val view: View, val adapter: DownloadAdapter) :
     }
 
     private fun showPopupMenu(view: View) {
+        // KMK -->
+        val expectedChapterId = download.chapter.id
+        // KMK <--
         view.popupMenu(
             menuRes = R.menu.download_single,
             initMenu = {
                 findItem(R.id.move_to_top).isVisible = bindingAdapterPosition > 1
                 findItem(R.id.move_to_bottom).isVisible =
                     bindingAdapterPosition != adapter.itemCount - 1
+                // KMK -->
+                if (!adapter.canControlQueue) {
+                    for (index in 0 until size()) {
+                        val item = getItem(index)
+                        if (item.itemId != R.id.show_manga) item.isVisible = false
+                    }
+                }
+                // KMK <--
             },
             onMenuItemClick = {
-                adapter.downloadItemListener.onMenuItemClick(bindingAdapterPosition, this)
+                // KMK -->
+                adapter.downloadItemListener.onMenuItemClick(bindingAdapterPosition, this, expectedChapterId)
+                // KMK <--
             },
         )
     }

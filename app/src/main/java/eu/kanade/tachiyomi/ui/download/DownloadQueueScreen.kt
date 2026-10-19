@@ -1,5 +1,6 @@
 package eu.kanade.tachiyomi.ui.download
 
+// KMK -->
 import android.view.LayoutInflater
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
@@ -10,6 +11,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Sort
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.outlined.Pause
+import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -60,6 +62,7 @@ import tachiyomi.presentation.core.components.material.Scaffold
 import tachiyomi.presentation.core.i18n.stringResource
 import tachiyomi.presentation.core.screens.EmptyScreen
 import kotlin.math.roundToInt
+// KMK <--
 
 object DownloadQueueScreen : Screen() {
     @Suppress("unused")
@@ -67,46 +70,71 @@ object DownloadQueueScreen : Screen() {
 
     @Composable
     override fun Content() {
+        // KMK -->
+        if (eu.kanade.tachiyomi.data.suwayomi.SuwayomiMode.enabled) {
+            eu.kanade.tachiyomi.ui.suwayomi.SuwayomiDownloadQueuePresenter()
+            return
+        }
+        // KMK <--
         val navigator = LocalNavigator.currentOrThrow
-        val scope = rememberCoroutineScope()
-        val screenModel = rememberScreenModel {
-            DownloadQueueScreenModel(
-                // KMK -->
-                navigator = navigator,
-                // KMK <--
-            )
-        }
-        val downloadList by screenModel.state.collectAsState()
-        val downloadCount by remember {
-            derivedStateOf { downloadList.sumOf { it.subItems.size } }
-        }
+        val screenModel = rememberScreenModel { DownloadQueueScreenModel(navigator = navigator) }
+        // KMK -->
+        DownloadQueueContent(screenModel)
+        // KMK <--
+    }
+}
 
-        val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior(rememberTopAppBarState())
-        var fabExpanded by remember { mutableStateOf(true) }
-        val nestedScrollConnection = remember {
-            // All this lines just for fab state :/
-            object : NestedScrollConnection {
-                override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
-                    fabExpanded = available.y >= 0
-                    return scrollBehavior.nestedScrollConnection.onPreScroll(available, source)
-                }
+// KMK -->
+@Composable
+internal fun DownloadQueueContent(screenModel: DownloadQueueController) {
+    val navigator = LocalNavigator.currentOrThrow
+    val scope = rememberCoroutineScope()
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val loading by screenModel.isLoading.collectAsState()
+    val error by screenModel.error.collectAsState()
+    val controls by screenModel.canControlQueue.collectAsState()
+    val snack = remember { androidx.compose.material3.SnackbarHostState() }
+    androidx.compose.runtime.LaunchedEffect(error) {
+        error?.let { snack.showSnackbar(it) }
+    }
+    val downloadList by screenModel.state.collectAsState()
+    val downloadCount by remember {
+        derivedStateOf { downloadList.sumOf { it.subItems.size } }
+    }
 
-                override fun onPostScroll(consumed: Offset, available: Offset, source: NestedScrollSource): Offset {
-                    return scrollBehavior.nestedScrollConnection.onPostScroll(consumed, available, source)
-                }
+    val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior(rememberTopAppBarState())
+    var fabExpanded by remember { mutableStateOf(true) }
+    val nestedScrollConnection = remember {
+        // All this lines just for fab state :/
+        object : NestedScrollConnection {
+            override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
+                fabExpanded = available.y >= 0
+                return scrollBehavior.nestedScrollConnection.onPreScroll(available, source)
+            }
 
-                override suspend fun onPreFling(available: Velocity): Velocity {
-                    return scrollBehavior.nestedScrollConnection.onPreFling(available)
-                }
+            override fun onPostScroll(consumed: Offset, available: Offset, source: NestedScrollSource): Offset {
+                return scrollBehavior.nestedScrollConnection.onPostScroll(consumed, available, source)
+            }
 
-                override suspend fun onPostFling(consumed: Velocity, available: Velocity): Velocity {
-                    return scrollBehavior.nestedScrollConnection.onPostFling(consumed, available)
-                }
+            override suspend fun onPreFling(available: Velocity): Velocity {
+                return scrollBehavior.nestedScrollConnection.onPreFling(available)
+            }
+
+            override suspend fun onPostFling(consumed: Velocity, available: Velocity): Velocity {
+                return scrollBehavior.nestedScrollConnection.onPostFling(consumed, available)
             }
         }
+    }
 
-        Scaffold(
-            topBar = {
+    Scaffold(
+        // KMK -->
+        snackbarHost = { androidx.compose.material3.SnackbarHost(snack) },
+        // KMK <--
+        topBar = {
+            // KMK -->
+            androidx.compose.foundation.layout.Column {
+                // KMK <--
+
                 AppBar(
                     titleContent = {
                         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -130,7 +158,7 @@ object DownloadQueueScreen : Screen() {
                     },
                     navigateUp = navigator::pop,
                     actions = {
-                        if (downloadList.isNotEmpty()) {
+                        if (/* KMK --> */ controls && /* KMK <-- */ downloadList.isNotEmpty()) {
                             var sortExpanded by remember { mutableStateOf(false) }
                             val onDismissRequest = { sortExpanded = false }
                             DropdownMenu(
@@ -206,8 +234,17 @@ object DownloadQueueScreen : Screen() {
                     },
                     scrollBehavior = scrollBehavior,
                 )
-            },
-            floatingActionButton = {
+
+                // KMK -->
+                screenModel.notice?.let { Text(stringResource(it), Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) }
+            }
+            // KMK <--
+        },
+        floatingActionButton = {
+            // KMK -->
+            if (controls) {
+                // KMK <--
+
                 val isRunning by screenModel.isDownloaderRunning.collectAsState()
                 SmallExtendedFloatingActionButton(
                     text = {
@@ -239,68 +276,95 @@ object DownloadQueueScreen : Screen() {
                         alignment = Alignment.BottomEnd,
                     ),
                 )
-            },
-        ) { contentPadding ->
-            if (downloadList.isEmpty()) {
-                EmptyScreen(
-                    stringRes = MR.strings.information_no_downloads,
-                    modifier = Modifier.padding(contentPadding),
-                )
-                return@Scaffold
+
+                // KMK -->
             }
-
-            val density = LocalDensity.current
-            val layoutDirection = LocalLayoutDirection.current
-            val left = with(density) { contentPadding.calculateLeftPadding(layoutDirection).toPx().roundToInt() }
-            val top = with(density) { contentPadding.calculateTopPadding().toPx().roundToInt() }
-            val right = with(density) { contentPadding.calculateRightPadding(layoutDirection).toPx().roundToInt() }
-            val bottom = with(density) { contentPadding.calculateBottomPadding().toPx().roundToInt() }
-
-            // KMK -->
-            val colorScheme = AndroidViewColorScheme(MaterialTheme.colorScheme)
             // KMK <--
+        },
+    ) { contentPadding ->
+        // KMK -->
+        if (downloadList.isEmpty() && loading) {
+            tachiyomi.presentation.core.screens.LoadingScreen(Modifier.padding(contentPadding))
+            return@Scaffold
+        }
+        if (downloadList.isEmpty() && error != null) {
+            EmptyScreen(
+                message = error.orEmpty(),
+                modifier = Modifier.padding(contentPadding),
+                actions = persistentListOf(
+                    tachiyomi.presentation.core.screens.EmptyScreenAction(MR.strings.action_retry, Icons.Outlined.Refresh, onClick = screenModel::retry),
+                ),
+            )
+            return@Scaffold
+        }
+        // KMK <--
+        if (downloadList.isEmpty()) {
+            EmptyScreen(
+                stringRes = MR.strings.information_no_downloads,
+                modifier = Modifier.padding(contentPadding),
+            )
+            return@Scaffold
+        }
 
-            Box(modifier = Modifier.nestedScroll(nestedScrollConnection)) {
-                AndroidView(
-                    modifier = Modifier.fillMaxWidth(),
-                    factory = { context ->
-                        screenModel.controllerBinding = DownloadListBinding.inflate(LayoutInflater.from(context))
-                        screenModel.adapter = DownloadAdapter(
-                            screenModel.listener,
-                            // KMK -->
-                            colorScheme,
-                            // KMK <--
+        val density = LocalDensity.current
+        val layoutDirection = LocalLayoutDirection.current
+        val left = with(density) { contentPadding.calculateLeftPadding(layoutDirection).toPx().roundToInt() }
+        val top = with(density) { contentPadding.calculateTopPadding().toPx().roundToInt() }
+        val right = with(density) { contentPadding.calculateRightPadding(layoutDirection).toPx().roundToInt() }
+        val bottom = with(density) { contentPadding.calculateBottomPadding().toPx().roundToInt() }
+
+        // KMK -->
+        val colorScheme = AndroidViewColorScheme(MaterialTheme.colorScheme)
+        // KMK <--
+
+        Box(modifier = Modifier.nestedScroll(nestedScrollConnection)) {
+            AndroidView(
+                modifier = Modifier.fillMaxWidth(),
+                factory = { context ->
+                    screenModel.controllerBinding = DownloadListBinding.inflate(LayoutInflater.from(context))
+                    screenModel.adapter = DownloadAdapter(
+                        screenModel.listener,
+                        // KMK -->
+                        colorScheme,
+                        // KMK <--
+                    )
+                    screenModel.controllerBinding.root.adapter = screenModel.adapter
+                    // KMK -->
+                    screenModel.adapter?.isHandleDragEnabled = controls
+                    screenModel.adapter?.canControlQueue = controls
+                    // KMK <--
+                    screenModel.controllerBinding.root.layoutManager = LinearLayoutManager(context)
+
+                    ViewCompat.setNestedScrollingEnabled(screenModel.controllerBinding.root, true)
+
+                    scope.launchUI {
+                        screenModel.getDownloadStatusFlow()
+                            .collect(screenModel::onStatusChange)
+                    }
+                    scope.launchUI {
+                        screenModel.getDownloadProgressFlow()
+                            .collect(screenModel::onUpdateDownloadedPages)
+                    }
+
+                    screenModel.controllerBinding.root
+                },
+                update = {
+                    screenModel.controllerBinding.root
+                        .updatePadding(
+                            left = left,
+                            top = top,
+                            right = right,
+                            bottom = bottom,
                         )
-                        screenModel.controllerBinding.root.adapter = screenModel.adapter
-                        screenModel.adapter?.isHandleDragEnabled = true
-                        screenModel.controllerBinding.root.layoutManager = LinearLayoutManager(context)
 
-                        ViewCompat.setNestedScrollingEnabled(screenModel.controllerBinding.root, true)
-
-                        scope.launchUI {
-                            screenModel.getDownloadStatusFlow()
-                                .collect(screenModel::onStatusChange)
-                        }
-                        scope.launchUI {
-                            screenModel.getDownloadProgressFlow()
-                                .collect(screenModel::onUpdateDownloadedPages)
-                        }
-
-                        screenModel.controllerBinding.root
-                    },
-                    update = {
-                        screenModel.controllerBinding.root
-                            .updatePadding(
-                                left = left,
-                                top = top,
-                                right = right,
-                                bottom = bottom,
-                            )
-
-                        screenModel.adapter?.updateDataSet(downloadList)
-                    },
-                )
-            }
+                    // KMK -->
+                    screenModel.adapter?.isHandleDragEnabled = controls
+                    screenModel.adapter?.canControlQueue = controls
+                    // KMK <--
+                    screenModel.adapter?.updateDataSet(downloadList)
+                },
+            )
         }
     }
 }
+// KMK <--

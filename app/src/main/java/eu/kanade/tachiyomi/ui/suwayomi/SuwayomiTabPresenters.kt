@@ -54,7 +54,7 @@ internal fun SuwayomiMoreTab() {
         onDownloadedOnlyChange = { prefs.filterDownloaded().set(if (it) TriState.ENABLED_IS else TriState.DISABLED) },
         incognitoMode = incognito, onIncognitoModeChange = { base.incognitoMode().set(it) },
         showNavUpdates = showUpdates, showNavHistory = showHistory,
-        onClickDownloadQueue = { navigator.push(SuwayomiDownloadsScreen(session.id)) },
+        onClickDownloadQueue = { navigator.push(eu.kanade.tachiyomi.ui.download.DownloadQueueScreen) },
         onClickCategories = { navigator.push(eu.kanade.tachiyomi.ui.category.CategoryScreen(serverSessionId = session.id)) },
         onClickSettings = { navigator.push(SettingsScreen()) },
         onClickAbout = { navigator.push(SettingsScreen(SettingsScreen.Destination.About)) },
@@ -66,5 +66,23 @@ internal fun SuwayomiMoreTab() {
         onClickLibraryUpdateErrors = { navigator.push(SuwayomiCompatibilityScreen()) },
         serverBacked = true,
     )
+}
+// KMK <--
+
+// KMK -->
+@Composable
+internal fun SuwayomiSettingsDestination(tracking: Boolean) {
+    val backend = remember { Injekt.get<SuwayomiBackend>() }
+    val current by backend.session.collectAsState()
+    val navigator = LocalNavigator.currentOrThrow
+    val expected by androidx.compose.runtime.saveable.rememberSaveable { androidx.compose.runtime.mutableStateOf(current?.id) }
+    val session = current?.takeIf { it.id == expected }
+    if (session == null) {
+        ConnectionError(eu.kanade.tachiyomi.data.suwayomi.SuwayomiFailure.SESSION_CHANGED, { navigator.pop() })
+    } else if (tracking) {
+        SuwayomiTrackingScreen(session.id).Content()
+    } else {
+        SuwayomiAdministrationScreen(session.id).Content()
+    }
 }
 // KMK <--

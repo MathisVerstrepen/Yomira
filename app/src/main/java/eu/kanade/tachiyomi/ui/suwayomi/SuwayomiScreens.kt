@@ -92,6 +92,10 @@ object SuwayomiHomeScreen : Screen() {
         val model = rememberScreenModel { SuwayomiScreenModel(loadLibrary = false) }
         val state by model.state.collectAsState()
         val navigator = LocalNavigator.currentOrThrow
+        if (state.session != null && navigator.items.size == 1 && navigator.lastItem == SuwayomiHomeScreen) {
+            androidx.compose.runtime.LaunchedEffect(Unit) { navigator.replaceAll(eu.kanade.tachiyomi.ui.home.HomeScreen) }
+            return
+        }
         var reauthenticate by remember { mutableStateOf(false) }
         var replacement by remember { mutableStateOf(false) }
         var preferenceSync by remember { mutableStateOf(false) }

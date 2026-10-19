@@ -3,6 +3,7 @@ package eu.kanade.tachiyomi.data.suwayomi
 
 import eu.kanade.presentation.manga.DownloadAction
 import eu.kanade.tachiyomi.source.model.Filter
+import eu.kanade.tachiyomi.ui.suwayomi.ServerDownloadDisplay
 import eu.kanade.tachiyomi.ui.suwayomi.downloadChapters
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotEquals
@@ -41,6 +42,10 @@ class SuwayomiPresentationTest {
         (group.state[0] as Filter.CheckBox).state = false
         (group.state[1] as Filter.Text).state = ""
         assertEquals(listOf("{\"position\":1,\"groupChange\":{\"position\":0,\"checkBoxState\":false}}", "{\"position\":1,\"groupChange\":{\"position\":1,\"textState\":\"\"}}"), filters.toServerChanges().map { it.toString() })
+        val rebound = filters.snapshot(descriptors).toKomikkuFilters()
+        assertEquals(filters.toServerChanges(), rebound.toServerChanges())
+        assertEquals(true, descriptors[1].filters[0].checked)
+        assertEquals("old", descriptors[1].filters[1].text)
         assertThrows(SuwayomiException::class.java) { listOf(ServerFilter("UnknownFilter")).toKomikkuFilters() }
     }
 
@@ -50,6 +55,24 @@ class SuwayomiPresentationTest {
         val list = listOf(chapter(1, 0), chapter(2, 1, read = true), chapter(3, 2, downloaded = true), chapter(4, 3))
         assertEquals(listOf(4), downloadChapters(list, DownloadAction.NEXT_1_CHAPTER).map { it.id })
         assertEquals(listOf(4, 1), downloadChapters(list, DownloadAction.UNREAD_CHAPTERS).map { it.id })
+    }
+
+    @Test
+    fun `server queue progress rebinds without local download pages or sources`() {
+        val chapter = ServerChapter(1, 17, "Chapter", 1.0, 0, pageCount = 10, user = ServerChapterUser(false, false, 0, 0, false), url = "chapter/1", manga = ServerChapterMangaIdentity(8, "manga"))
+        val remote = ServerDownload(chapter, ServerManga(17, 8, "Title", user = ServerMangaUser(true)), "DOWNLOADING", .35f)
+        val display = ServerDownloadDisplay("session", remote)
+        assertEquals(350, display.totalProgress)
+        assertEquals(3, display.downloadedImages)
+        assertEquals(10, display.totalPages)
+        assertEquals(SuwayomiMode.readerId(1), display.chapter.id)
+        display.snapshot = remote.copy(progress = 2f)
+        assertEquals(1000, display.totalProgress)
+        assertEquals(10, display.downloadedImages)
+        display.snapshot = remote.copy(chapter = chapter.copy(pageCount = 0), state = "ERROR")
+        assertEquals(null, display.totalPages)
+        assertEquals(0, display.totalProgress)
+        assertTrue(display.serverError)
     }
 }
 // KMK <--

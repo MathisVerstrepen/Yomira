@@ -206,8 +206,11 @@ suspend fun SuwayomiSession.downloadAction(action: String, chapterId: Int? = nul
     )
 }
 
-suspend fun SuwayomiSession.updateLibraryOnServer() {
-    execute("mutation { updateLibrary(input: {}) { clientMutationId } }")
+suspend fun SuwayomiSession.updateLibraryOnServer(categories: List<Int>? = null) {
+    execute(
+        "mutation(\$input:UpdateLibraryInput!) { updateLibrary(input:\$input) { clientMutationId } }",
+        variables("input" to buildJsonObject { if (categories != null) put("categories", JsonArray(categories.map(::JsonPrimitive))) }),
+    )
 }
 
 /** Source schemas are positional. Build exact nested group changes; do not flatten indices. */

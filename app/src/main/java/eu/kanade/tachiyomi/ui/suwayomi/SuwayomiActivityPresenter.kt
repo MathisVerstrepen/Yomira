@@ -106,7 +106,10 @@ internal fun SuwayomiActivityPresenter(history: Boolean) {
         if (backend.session.value?.id == session.id) context.startActivity(ReaderActivity.newIntent(context, mangaId, chapterId))
     }
     fun chapters(ids: List<Int>, kind: ChapterIntentKind, patch: ChapterPatch) {
-        if (incognito) return
+        if (incognito) {
+            scope.launch { snack.showSnackbar(context.stringResource(KMR.strings.suwayomi_incognito_notice)) }
+            return
+        }
         model.act { active ->
             ids.forEach { id ->
                 val chapter = active.chapter(id)
@@ -197,8 +200,8 @@ internal fun SuwayomiActivityPresenter(history: Boolean) {
             }.toPersistentList(),
         )
         val libraryPrefs = remember { Injekt.get<LibraryPreferences>() }
-        val start by libraryPrefs.swipeToStartAction().collectAsState()
-        val end by libraryPrefs.swipeToEndAction().collectAsState()
+        val start by libraryPrefs.swipeToEndAction().collectAsState()
+        val end by libraryPrefs.swipeToStartAction().collectAsState()
         fun ids(items: List<UpdatesItem>) = items.map { SuwayomiMode.remoteId(it.update.chapterId) }
         UpdateScreen(
             state = nativeState, snackbarHostState = snack, lastUpdated = 0, preserveReadingPosition = true,

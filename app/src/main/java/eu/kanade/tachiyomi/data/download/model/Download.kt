@@ -20,15 +20,20 @@ import uy.kohesive.injekt.api.get
 
 data class Download(
     val source: HttpSource,
-    val manga: Manga,
-    val chapter: Chapter,
-) {
+    /* KMK --> */
+    override /* KMK <-- */ val manga: Manga,
+    /* KMK --> */
+    override /* KMK <-- */ val chapter: Chapter,
+) /* KMK --> */ : DownloadDisplay /* KMK <-- */ {
+    // KMK -->
+    override val totalPages: Int? get() = pages?.size
+    // KMK <--
     var pages: List<Page>? = null
 
-    val totalProgress: Int
+    /* KMK --> */ override /* KMK <-- */ val totalProgress: Int
         get() = pages?.sumOf(Page::progress) ?: 0
 
-    val downloadedImages: Int
+    /* KMK --> */ override /* KMK <-- */ val downloadedImages: Int
         get() = pages?.count { it.status == Page.State.Ready } ?: 0
 
     @Transient
