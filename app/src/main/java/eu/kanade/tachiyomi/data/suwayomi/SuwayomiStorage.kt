@@ -27,6 +27,7 @@ internal data class StoredSession(
     val refreshToken: String = "",
     val cookies: List<String> = emptyList(),
     val userId: Int? = null,
+    val apiContract: SuwayomiApiContract = SuwayomiApiContract.PER_USER,
 ) {
     override fun toString(): String = "StoredSession(id=$id, mode=$mode, credentials=redacted)"
 }

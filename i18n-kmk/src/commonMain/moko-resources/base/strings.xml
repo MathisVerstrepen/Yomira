@@ -420,4 +420,8 @@
     <string name="suwayomi_availability_history">Recent reading uses server chapter progress. Clearing history independently of read state and complete reading-duration statistics need additional server support, so these controls are unavailable.</string>
     <string name="suwayomi_availability_offline">Saving chapters to this device and airplane-mode reading are planned for a later phase. Server downloads still require a server connection.</string>
     <string name="suwayomi_filter_schema_changed">The server source filters changed. Your old filter choices were cleared. Choose filters again before searching.</string>
+    <string name="suwayomi_shared_library_notice">This server uses one shared library. Reading state, categories, and server settings are shared by its clients.</string>
+    <string name="suwayomi_shared_settings_notice">These update and download options apply to the shared server library.</string>
+    <string name="suwayomi_shared_tracking_notice">Tracker accounts, bindings, and progress belong to the shared server library.</string>
+    <string name="suwayomi_unsupported_server">This server does not expose a supported library API. Check the server version and API compatibility.</string>
 </resources>

@@ -49,6 +49,8 @@ internal class SuwayomiClient(
 
     @Volatile private var credentials = initial
     private val refreshMutex = Mutex()
+    private val contractMutex = Mutex()
+    private var contractChecked = false
     private val cookies = mutableListOf<Cookie>().apply {
         initial.cookies.mapNotNullTo(this) { Cookie.parse(url.base, it) }
     }
@@ -78,6 +80,35 @@ internal class SuwayomiClient(
             }
         })
         .build()
+
+    internal val apiContract: SuwayomiApiContract get() = credentials.apiContract
+
+    /** Inspect capabilities, not version ordering: stable and preview expose different library models. */
+    suspend fun negotiateContract() = contractMutex.withLock {
+        if (contractChecked) return@withLock
+        val schema = try {
+            graphql("query { __type(name: \"MangaType\") { fields { name } } }")
+        } catch (e: SuwayomiException) {
+            // Some newer installations disable introspection. Their normal connection probes still run.
+            if (e.failure == SuwayomiFailure.CONTRACT) {
+                contractChecked = true
+                return@withLock
+            } else {
+                throw e
+            }
+        }
+        val fields = (schema["__type"] as? JsonObject)?.get("fields") as? JsonArray
+            ?: throw SuwayomiException(SuwayomiFailure.UNSUPPORTED_SERVER)
+        val names = fields.mapNotNull { (it as? JsonObject)?.get("name")?.jsonPrimitive?.content }.toSet()
+        val contract = when {
+            "user" in names -> SuwayomiApiContract.PER_USER
+            names.containsAll(setOf("inLibrary", "inLibraryAt", "unreadCount", "downloadCount", "lastReadChapter")) -> SuwayomiApiContract.SHARED_LIBRARY
+            else -> throw SuwayomiException(SuwayomiFailure.UNSUPPORTED_SERVER)
+        }
+        if (credentials.userId != null && apiContract != contract) throw SuwayomiException(SuwayomiFailure.SESSION_CHANGED)
+        updateCredentials(credentials.copy(apiContract = contract))
+        contractChecked = true
+    }
 
     internal fun attachUser(userId: Int) = updateCredentials(credentials.copy(userId = userId))
 
@@ -181,9 +212,16 @@ internal class SuwayomiClient(
         variables: JsonObject = JsonObject(emptyMap()),
         authenticate: Boolean = true,
     ): JsonObject = withContext(Dispatchers.IO) {
+        val shared = apiContract == SuwayomiApiContract.SHARED_LIBRARY
+        val userProbe = shared && SharedSuwayomiApi.isUserQuery(query)
+        // The shared API has no user endpoint. Authenticate a protected read before projecting its
+        // single library identity; a public aboutServer response would also succeed after expiry.
+        val logicalQuery = if (userProbe) "query { mangas(first: 1) { nodes { id } } }" else query
+        val wireQuery = if (shared) SharedSuwayomiApi.query(logicalQuery) else logicalQuery
+        val wireVariables = if (shared) SharedSuwayomiApi.variables(logicalQuery, variables) else variables
         val body = buildJsonObject {
-            put("query", query)
-            put("variables", variables)
+            put("query", wireQuery)
+            put("variables", wireVariables)
         }
         val request = requestBuilder(url.graphql, authenticate)
             .post(body.toString().toRequestBody("application/json".toMediaType())).build()
@@ -213,7 +251,22 @@ internal class SuwayomiClient(
                 }
                 throw SuwayomiException(failure)
             }
-            envelope["data"] as? JsonObject ?: throw SuwayomiException(SuwayomiFailure.CONTRACT)
+            val data = envelope["data"] as? JsonObject ?: throw SuwayomiException(SuwayomiFailure.CONTRACT)
+            when {
+                userProbe -> buildJsonObject {
+                    put(
+                        "user",
+                        buildJsonObject {
+                            put("id", 1)
+                            put("username", credentials.username)
+                            put("permissions", JsonArray(emptyList()))
+                            put("roles", JsonArray(listOf(JsonPrimitive("ADMIN"))))
+                        },
+                    )
+                }
+                shared -> SharedSuwayomiApi.data(data)
+                else -> data
+            }
         }
     }
 
@@ -243,6 +296,8 @@ internal class SuwayomiClient(
 
     /** Both handshake credentials and UI_LOGIN's connection_init token are required. */
     fun subscribe(query: String) = callbackFlow<JsonObject> {
+        val shared = apiContract == SuwayomiApiContract.SHARED_LIBRARY
+        val wireQuery = if (shared) SharedSuwayomiApi.query(query) else query
         val socket = http.newWebSocket(
             requestBuilder(url.graphql).header("Sec-WebSocket-Protocol", "graphql-transport-ws").build(),
             object : WebSocketListener() {
@@ -267,7 +322,7 @@ internal class SuwayomiClient(
                                 buildJsonObject {
                                     put("id", "1")
                                     put("type", "subscribe")
-                                    put("payload", buildJsonObject { put("query", query) })
+                                    put("payload", buildJsonObject { put("query", wireQuery) })
                                 }.toString(),
                             )
                             "ping" -> webSocket.send(
@@ -281,7 +336,8 @@ internal class SuwayomiClient(
                                 if (payload["errors"]?.jsonArray?.isNotEmpty() == true) {
                                     close(SuwayomiException(SuwayomiFailure.SERVER))
                                 } else {
-                                    trySend(payload.getValue("data").jsonObject)
+                                    val data = payload.getValue("data").jsonObject
+                                    trySend(if (shared) SharedSuwayomiApi.data(data) else data)
                                 }
                             }
                             "error" -> close(SuwayomiException(SuwayomiFailure.SERVER))

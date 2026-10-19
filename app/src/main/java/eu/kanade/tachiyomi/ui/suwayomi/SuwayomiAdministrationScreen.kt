@@ -90,9 +90,9 @@ class SuwayomiAdministrationModel(private val sessionId: String, private val sou
                 session.action()
                 val user = session.user()
                 mutableState.value = if (sourceId != null) {
-                    State(user = user, preferences = if (user.allowed("MANAGE_SOURCE_PREFERENCES")) session.sourcePreferences(sourceId) else emptyList(), loading = false)
+                    State(user = user, preferences = if (user.allowed("MANAGE_SOURCE_PREFERENCES")) session.sourcePreferences(sourceId) else emptyList(), loading = false, sharedLibrary = session.sharedLibrary)
                 } else {
-                    State(user, session.extensions(), session.extensionStores(), options = session.userOptions(), interval = if (user.allowed("MANAGE_SETTINGS")) session.updateInterval() else null, loading = false)
+                    State(user, session.extensions(), session.extensionStores(), options = session.userOptions(), interval = if (user.allowed("MANAGE_SETTINGS")) session.updateInterval() else null, loading = false, sharedLibrary = session.sharedLibrary)
                 }
             } catch (e: Exception) {
                 if (e is CancellationException) throw e
@@ -100,7 +100,7 @@ class SuwayomiAdministrationModel(private val sessionId: String, private val sou
             }
         }
     }
-    data class State(val user: ServerUser? = null, val extensions: List<ServerExtension> = emptyList(), val stores: List<ServerExtensionStore> = emptyList(), val preferences: List<ServerPreference> = emptyList(), val options: ServerUserOptions? = null, val interval: Double? = null, val loading: Boolean = true, val error: SuwayomiFailure? = null)
+    data class State(val user: ServerUser? = null, val extensions: List<ServerExtension> = emptyList(), val stores: List<ServerExtensionStore> = emptyList(), val preferences: List<ServerPreference> = emptyList(), val options: ServerUserOptions? = null, val interval: Double? = null, val loading: Boolean = true, val error: SuwayomiFailure? = null, val sharedLibrary: Boolean = false)
 }
 
 class SuwayomiAdministrationScreen(private val sessionId: String, private val sourceId: Long? = null) : Screen() {
@@ -189,7 +189,7 @@ class SuwayomiAdministrationScreen(private val sessionId: String, private val so
                                 })
                                 Text(stringResource(KMR.strings.suwayomi_background_checks), Modifier.padding(top = 12.dp))
                             }
-                            Text(stringResource(KMR.strings.suwayomi_user_options_notice))
+                            Text(stringResource(if (state.sharedLibrary) KMR.strings.suwayomi_shared_settings_notice else KMR.strings.suwayomi_user_options_notice))
                             state.options?.let { options ->
                                 val fields = listOf(
                                     Triple("excludeUnreadChapters", options.excludeUnreadChapters, KMR.strings.suwayomi_exclude_unread),

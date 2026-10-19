@@ -79,7 +79,7 @@ class SuwayomiNotificationWorker(context: Context, parameters: WorkerParameters)
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
-            return if ((e as? SuwayomiException)?.failure in listOf(SuwayomiFailure.AUTHENTICATION_REQUIRED, SuwayomiFailure.PERMISSION_DENIED, SuwayomiFailure.SESSION_CHANGED, SuwayomiFailure.CONTRACT)) Result.failure() else Result.retry()
+            return if ((e as? SuwayomiException)?.failure in listOf(SuwayomiFailure.AUTHENTICATION_REQUIRED, SuwayomiFailure.PERMISSION_DENIED, SuwayomiFailure.SESSION_CHANGED, SuwayomiFailure.CONTRACT, SuwayomiFailure.UNSUPPORTED_SERVER)) Result.failure() else Result.retry()
         }
     }
 

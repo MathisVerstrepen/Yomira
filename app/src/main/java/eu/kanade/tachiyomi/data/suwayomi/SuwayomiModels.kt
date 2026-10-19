@@ -71,6 +71,9 @@ object ServerLongSerializer : KSerializer<Long> {
 @Serializable
 enum class SuwayomiAuthMode { NONE, BASIC_AUTH, SIMPLE_LOGIN, UI_LOGIN }
 
+@Serializable
+internal enum class SuwayomiApiContract { PER_USER, SHARED_LIBRARY }
+
 enum class SuwayomiFailure {
     CONNECTION_REQUIRED,
     AUTHENTICATION_REQUIRED,
@@ -78,6 +81,7 @@ enum class SuwayomiFailure {
     NETWORK,
     SERVER,
     CONTRACT,
+    UNSUPPORTED_SERVER,
     SESSION_CHANGED,
 }
 

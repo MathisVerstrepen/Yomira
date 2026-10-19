@@ -58,6 +58,7 @@ class SuwayomiBackend(private val context: Context) {
         }
         try {
             candidate.login()
+            candidate.negotiateContract()
             val user = candidate.field<ServerUser>("query { user { id username permissions roles } }", "user")
             candidate.attachUser(user.id)
             candidate.field<ServerInfo>("query { aboutServer { name version } }", "aboutServer")
@@ -89,6 +90,7 @@ class SuwayomiBackend(private val context: Context) {
         }
         try {
             client.login()
+            client.negotiateContract()
             val user = client.field<ServerUser>("query { user {id username permissions roles} }", "user")
             if (user.id != saved.userId) throw SuwayomiException(SuwayomiFailure.PERMISSION_DENIED)
             client.attachUser(user.id)
@@ -135,6 +137,7 @@ class SuwayomiSession internal constructor(
     private val assertActive: () -> Unit,
 ) {
     val baseUrl: String get() = client.url.base.toString()
+    val sharedLibrary: Boolean get() = client.apiContract == SuwayomiApiContract.SHARED_LIBRARY
 
     @Volatile private var closed = false
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -407,6 +410,7 @@ class SuwayomiSession internal constructor(
 
     private suspend fun <T> checked(block: suspend () -> T): T {
         assertActive()
+        client.negotiateContract()
         val value = block()
         assertActive()
         return value

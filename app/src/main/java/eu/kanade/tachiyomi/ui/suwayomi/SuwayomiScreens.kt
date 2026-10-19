@@ -195,6 +195,7 @@ object SuwayomiHomeScreen : Screen() {
                             Modifier.padding(horizontal = 16.dp),
                             style = MaterialTheme.typography.labelMedium,
                         )
+                        if (session.sharedLibrary) Text(stringResource(KMR.strings.suwayomi_shared_library_notice), Modifier.padding(horizontal = 16.dp, vertical = 8.dp), style = MaterialTheme.typography.bodySmall)
                         if (incognito) Text(stringResource(KMR.strings.suwayomi_incognito_notice), Modifier.padding(16.dp), style = MaterialTheme.typography.bodySmall)
                         if (state.loading) LinearProgressIndicator(Modifier.fillMaxWidth())
                         SuwayomiLibraryContent(state, model, navigator, incognito, Modifier.weight(1f))
@@ -474,6 +475,7 @@ internal fun failureText(failure: SuwayomiFailure): String = stringResource(
         SuwayomiFailure.NETWORK -> KMR.strings.suwayomi_network_error
         SuwayomiFailure.SERVER -> KMR.strings.suwayomi_server_error
         SuwayomiFailure.CONTRACT -> KMR.strings.suwayomi_contract_error
+        SuwayomiFailure.UNSUPPORTED_SERVER -> KMR.strings.suwayomi_unsupported_server
         SuwayomiFailure.SESSION_CHANGED -> KMR.strings.suwayomi_session_changed
     },
 )

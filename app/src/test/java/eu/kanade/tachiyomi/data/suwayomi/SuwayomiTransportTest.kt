@@ -9,6 +9,7 @@ import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import java.io.BufferedInputStream
 import java.io.ByteArrayInputStream
@@ -107,6 +108,62 @@ class SuwayomiTransportTest {
                 val error = runCatching { client.graphql("mutation { updateManga { id } }") }.exceptionOrNull() as SuwayomiException
                 assertEquals(SuwayomiFailure.SERVER, error.failure)
                 assertEquals(1, calls.get())
+            } finally {
+                client.close()
+            }
+        }
+    }
+
+    @Test
+    fun `stable shared API negotiates once and authenticates before synthesizing its library identity`() = runBlocking<Unit> {
+        val probes = AtomicInteger()
+        val schemaCalls = AtomicInteger()
+        withServer({ exchange ->
+            val query = Json.parseToJsonElement(exchange.requestBody.readAllBytes().decodeToString()).jsonObject.getValue("query").jsonPrimitive.content
+            assertFalse(Regex("\\buser\\s*\\{").containsMatchIn(query))
+            when {
+                "__type" in query -> {
+                    schemaCalls.incrementAndGet()
+                    exchange.json("""{"data":{"__type":{"fields":[{"name":"inLibrary"},{"name":"inLibraryAt"},{"name":"unreadCount"},{"name":"downloadCount"},{"name":"lastReadChapter"}]}}}""")
+                }
+                "mangas(first: 1)" in query -> {
+                    probes.incrementAndGet()
+                    exchange.json("""{"data":{"mangas":{"nodes":[{"id":1}]}}}""")
+                }
+                else -> exchange.json("""{"data":{"manga":{"id":1,"sourceId":"9","title":"Example","inLibrary":true,"unreadCount":7,"lastReadChapter":{"lastReadAt":"1792353910"}}}}""")
+            }
+        }) { base ->
+            var stored = StoredSession(baseUrl = base, mode = SuwayomiAuthMode.NONE, username = "reader")
+            val client = SuwayomiClient(stored) { stored = it }
+            try {
+                client.negotiateContract()
+                client.negotiateContract()
+                assertEquals(1, schemaCalls.get())
+                assertEquals(SuwayomiApiContract.SHARED_LIBRARY, stored.apiContract)
+                val user = client.field<ServerUser>("query {user {id username permissions roles}}", "user")
+                assertEquals("reader", user.username)
+                assertEquals(1, probes.get())
+                val manga = client.field<ServerManga>("query {manga(id:1) {${SuwayomiSession.MANGA_FIELDS}}}", "manga")
+                assertTrue(manga.user.inLibrary)
+                assertEquals(7, manga.user.unreadCount)
+                assertEquals(1792353910L, manga.user.lastReadChapter!!.user.lastReadAt)
+            } finally {
+                client.close()
+            }
+        }
+    }
+
+    @Test
+    fun `expired shared library session cannot appear authenticated through public server information`() = runBlocking<Unit> {
+        withServer({ exchange ->
+            val query = Json.parseToJsonElement(exchange.requestBody.readAllBytes().decodeToString()).jsonObject.getValue("query").jsonPrimitive.content
+            assertTrue(query.contains("mangas"))
+            exchange.json("""{"data":{"mangas":null},"errors":[{"message":"Exception while fetching data (/mangas) : Unauthorized","path":["mangas"]}]}""")
+        }) { base ->
+            val client = SuwayomiClient(StoredSession(baseUrl = base, mode = SuwayomiAuthMode.NONE, apiContract = SuwayomiApiContract.SHARED_LIBRARY)) {}
+            try {
+                val failure = runCatching { client.field<ServerUser>("query {user {id}}", "user") }.exceptionOrNull() as SuwayomiException
+                assertEquals(SuwayomiFailure.AUTHENTICATION_REQUIRED, failure.failure)
             } finally {
                 client.close()
             }

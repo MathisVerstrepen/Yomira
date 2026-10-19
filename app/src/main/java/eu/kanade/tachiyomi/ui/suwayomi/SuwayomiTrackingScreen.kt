@@ -88,14 +88,14 @@ class SuwayomiTrackingModel(private val sessionId: String, private val mangaId: 
                 val session = backend.requireSession(sessionId)
                 val trackers = session.serverTrackers()
                 val records = mangaId?.let { session.mangaTracks(it) }.orEmpty()
-                mutableState.update { it.copy(loading = false, trackers = trackers, records = records) }
+                mutableState.update { it.copy(loading = false, trackers = trackers, records = records, sharedLibrary = session.sharedLibrary) }
             } catch (e: Exception) {
                 if (e is CancellationException) throw e
                 mutableState.update { it.copy(loading = false, error = failure(e)) }
             }
         }
     }
-    data class State(val trackers: List<ServerTracker> = emptyList(), val records: List<ServerTrackRecord> = emptyList(), val searches: List<ServerTrackSearch> = emptyList(), val tracker: ServerTracker? = null, val loading: Boolean = true, val error: SuwayomiFailure? = null)
+    data class State(val trackers: List<ServerTracker> = emptyList(), val records: List<ServerTrackRecord> = emptyList(), val searches: List<ServerTrackSearch> = emptyList(), val tracker: ServerTracker? = null, val loading: Boolean = true, val error: SuwayomiFailure? = null, val sharedLibrary: Boolean = false)
 }
 
 class SuwayomiTrackingScreen(private val sessionId: String, private val mangaId: Int? = null) : Screen() {
@@ -126,7 +126,7 @@ class SuwayomiTrackingScreen(private val sessionId: String, private val mangaId:
                 if (state.loading) LinearProgressIndicator(Modifier.fillMaxWidth())
                 state.error?.let { Text(failureText(it), Modifier.padding(16.dp), color = MaterialTheme.colorScheme.error) }
                 if (incognito) Text(stringResource(KMR.strings.suwayomi_incognito_notice), Modifier.padding(16.dp))
-                Text(stringResource(KMR.strings.suwayomi_tracking_notice), Modifier.padding(16.dp))
+                Text(stringResource(if (state.sharedLibrary) KMR.strings.suwayomi_shared_tracking_notice else KMR.strings.suwayomi_tracking_notice), Modifier.padding(16.dp))
                 TextButton(onClick = { model.load() }, enabled = !state.loading) { Text(stringResource(KMR.strings.suwayomi_reload)) }
                 LazyColumn {
                     items(state.records, key = { "record-${it.id}" }) { record ->
