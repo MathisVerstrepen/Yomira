@@ -4,7 +4,9 @@
 
 An Android client for **Suwayomi-Server**, adapted from [Komikku](https://github.com/komikku-app/komikku). It retains Komikku's native navigation, library, manga details, and configurable reader while using Suwayomi for the library, sources, reading progress, trackers, and downloads.
 
-This fork uses one active server/account connection. A reachable server is required for browsing, synchronization, and fetching new chapters; chapters downloaded to the phone can be read offline. Android 8.0 (API 26) or later is required. Download this adaptation from [GitHub Releases](https://github.com/MathisVerstrepen/komikku-suwayomi/releases/latest); choose the universal APK if you are unsure which architecture to use.
+This fork uses one active server/account connection. A reachable server is required for browsing, synchronization, and fetching new chapters; chapters downloaded to the phone can be read offline. Android 8.0 (API 26) or later is required.
+
+Download this adaptation from [GitHub Releases](https://github.com/MathisVerstrepen/komikku-suwayomi/releases/latest); choose the universal APK if you are unsure which architecture to use. Install a newer signed release over the existing release to keep your app data. APK checksums are included in each release as `SHA256SUMS.txt`.
 
 ## How it works
 
@@ -19,21 +21,22 @@ On servers with a shared library, changes to manga, categories, reading state, s
 - **Library:** native cover grids and lists, badges, search, filters, sorting, grouping, category management, and bulk actions.
 - **Reading:** Komikku's reader modes, themes, gestures, chapter controls, server progress/resume, read/unread state, and bookmarks.
 - **Updates and history:** server-backed chapter updates and recent reading with pagination.
-- **Browse:** authenticated provider logos, individual source browsing and search, popular/latest lists, source filters, and global manga search across providers. Browse and global search respect the server WebUI's saved language and enabled-source restrictions.
+- **Browse:** Sources and Extensions tabs with provider logos, source browsing and filters, popular/latest lists, and global manga search. Browse and search respect the server WebUI’s saved language and enabled-source restrictions. Install, update, or remove server extensions, configure source preferences, and manage repositories from the Extensions menu. Extensions and source preferences are shared server settings.
 - **Downloads:** save chapters to the phone for offline reading, with a persistent queue, pause/resume, resumable page transfers, Wi-Fi-only downloads, and a storage limit. Separately view and control the server queue, including start/pause, reorder, cancel, and clear.
-- **Trackers:** use server-managed accounts, manga bindings, search, and record updates.
-- **Browse:** switch between Sources and Extensions. Search, install, update, or remove server extensions, configure their source preferences, and manage repositories from the Extensions menu. Changes apply to the shared server.
-- **Server settings:** manage supported update/download settings. Additional administration opens the server WebUI, which authenticates separately.
+- **Trackers:** server-managed accounts with service logos and connection status, manga bindings, search, and record updates.
+- **Server settings:** grouped library update rules, shared update schedules, automatic server downloads, and phone notification/cache controls. Additional administration opens the server WebUI, which authenticates separately.
 - **Synchronization:** background revalidation preserves loaded content. Reading changes use a persistent, connection-specific queue; failures or conflicting results remain visible for retry or discard.
 
 ## Connect to a server
 
 1. Set up Suwayomi-Server and install/configure its source extensions. Configure the languages and providers you want to browse in the server WebUI.
 2. Open the app and enter the full server URL, including any reverse-proxy path prefix.
-3. Select the authentication mode configured on the server: `NONE`, `BASIC_AUTH`, `SIMPLE_LOGIN`, or `UI_LOGIN`. Enter credentials when required.
+3. Choose the **Sign-in method** that matches the server configuration: **Server account** (`UI_LOGIN`), **No sign-in** (`NONE`), **HTTP Basic authentication** (`BASIC_AUTH`), or **Simple login (legacy)** (`SIMPLE_LOGIN`). Enter credentials when required.
 4. Connect to load the server library. Use Browse to find manga through the server's providers.
 
 Use HTTPS outside a trusted network. Connection credentials are encrypted with Android Keystore and stored in the app's no-backup directory. Authentication also applies to images and subscriptions.
+
+Use **Settings → Server connection** to check the connection, sign in again, or copy reader defaults between the phone and server. **Server settings** controls updates and downloads; **Server tracking** connects tracking accounts. The automatic update schedule applies to the whole server: use 0 to disable it or an interval of at least 6 hours.
 
 ### Server compatibility
 
@@ -44,11 +47,11 @@ The implementation has been validated against these API contracts:
 | Suwayomi-Server **v2.4.2366** | One shared library |
 | Suwayomi-Server **v2.4.2424**, commit `e2ce828abb81f0f5ce1a3fb86194a2746b519c85` | Per-user API inspected on 2026-10-18 |
 
-Connection setup checks actual schema capabilities and protected reads. These are tested contracts, not a guarantee that every server release supports every operation. Available features depend on the server version and account permissions. Authentication mode must be selected during setup.
+Connection setup checks actual schema capabilities and protected reads. These are tested contracts, not a guarantee that every server release supports every operation. Available features depend on the server version and account permissions. The sign-in method must match the server configuration.
 
 ## Read offline
 
-1. Open a title and use a chapter’s download action, or select chapters/titles in bulk. Choose **Download to phone**. **Download on server** manages the server’s separate copies.
+1. Open a title and use a chapter’s download action, or select chapters/titles in bulk. Choose **Download to phone**. **Download on server** manages the server’s separate copies. Chapter icons distinguish server downloads from phone downloads; tap the icon to choose another destination even when a copy already exists.
 2. Open **More → Phone downloads** to check progress, pause/resume, retry, read saved chapters, or remove device copies.
 3. Phone downloads default to **Wi-Fi only** and a **2 GiB storage limit**. The limit is editable in MiB (1024 MiB = 1 GiB). Transfers pause when Wi-Fi is lost or storage reaches the limit; freeing space or changing the settings allows them to continue. Completed pages are retained when a transfer is interrupted.
 4. A chapter is **Available offline** only after every page is saved. Completed downloads include title/chapter metadata and a cover when available, so they remain accessible after restarting without a server connection. **Downloaded on phone only** in More filters the library to device copies.
@@ -90,10 +93,10 @@ The release package is `app.komikku.suwayomi`; debug builds use `app.komikku.suw
 Run the Suwayomi unit tests with:
 
 ```sh
-./gradlew :app:testDebugUnitTest --tests '*Suwayomi*Test'
+./gradlew :app:testReleaseUnitTest --tests '*Suwayomi*Test'
 ```
 
-Live-server tests are opt-in and skip without their environment configuration. `SuwayomiReadOnlyServerTest` exercises authenticated reads. **`SuwayomiLiveServerTest` changes server data and must use a disposable test server.** The [acceptance fixture script](./scripts/suwayomi_acceptance_fixture.py) supports isolated acceptance testing.
+The release workflow runs the full unit-test suite with `./gradlew testReleaseUnitTest`. Live-server tests are opt-in and skip without their environment configuration. `SuwayomiReadOnlyServerTest` exercises authenticated reads. **`SuwayomiLiveServerTest` changes server data and must use a disposable test server.** The [acceptance fixture script](./scripts/suwayomi_acceptance_fixture.py) supports isolated acceptance testing.
 
 ## Issues and contributions
 
