@@ -117,6 +117,7 @@ internal fun GlobalSearchContent(
     fromSourceId: Long? = null,
     // KMK -->
     selection: List<Manga>,
+    serverBacked: Boolean = false,
     // KMK <--
 ) {
     LazyColumn(
@@ -142,7 +143,7 @@ internal fun GlobalSearchContent(
                         ) +
                         // KMK -->
                         (
-                            domainSource.installedExtension?.let { extension ->
+                            domainSource.takeUnless { serverBacked }?.installedExtension?.let { extension ->
                                 " (${extension.name})".takeIf { extension.name != source.name }
                             } ?: ""
                             ),

@@ -1,5 +1,6 @@
 package eu.kanade.tachiyomi.ui.reader
 
+// KMK -->
 import android.app.Application
 import android.net.Uri
 import androidx.annotation.ColorInt
@@ -26,6 +27,12 @@ import eu.kanade.tachiyomi.data.download.model.Download
 import eu.kanade.tachiyomi.data.saver.Image
 import eu.kanade.tachiyomi.data.saver.ImageSaver
 import eu.kanade.tachiyomi.data.saver.Location
+import eu.kanade.tachiyomi.data.suwayomi.SuwayomiBackend
+import eu.kanade.tachiyomi.data.suwayomi.SuwayomiException
+import eu.kanade.tachiyomi.data.suwayomi.SuwayomiFailure
+import eu.kanade.tachiyomi.data.suwayomi.SuwayomiMode
+import eu.kanade.tachiyomi.data.suwayomi.SuwayomiReader
+import eu.kanade.tachiyomi.data.suwayomi.canonicalServerPage
 import eu.kanade.tachiyomi.data.sync.SyncDataJob
 import eu.kanade.tachiyomi.source.model.Page
 import eu.kanade.tachiyomi.source.online.HttpSource
@@ -75,6 +82,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import logcat.LogPriority
+import tachiyomi.core.common.i18n.stringResource
 import tachiyomi.core.common.preference.toggle
 import tachiyomi.core.common.storage.UniFileTempFileManager
 import tachiyomi.core.common.util.lang.launchIO
@@ -101,11 +109,13 @@ import tachiyomi.domain.manga.interactor.GetMergedMangaById
 import tachiyomi.domain.manga.interactor.GetMergedReferencesById
 import tachiyomi.domain.manga.model.Manga
 import tachiyomi.domain.source.service.SourceManager
+import tachiyomi.i18n.kmk.KMR
 import tachiyomi.source.local.isLocal
 import uy.kohesive.injekt.Injekt
 import uy.kohesive.injekt.api.get
 import java.time.Instant
 import java.util.Date
+// KMK <--
 
 /**
  * Presenter used by the activity to perform background operations.
@@ -140,6 +150,10 @@ class ReaderViewModel @JvmOverloads constructor(
     // SY <--
 ) : ViewModel() {
 
+    // KMK -->
+    private var cloudReader: SuwayomiReader? = null
+    private val cloudBackend: SuwayomiBackend by lazy { Injekt.get() }
+    // KMK <--
     private val mutableState = MutableStateFlow(State())
     val state = mutableState.asStateFlow()
 
@@ -175,6 +189,9 @@ class ReaderViewModel @JvmOverloads constructor(
 
     // KMK -->
     fun handleDownloadAction(chapter: Chapter, action: ChapterDownloadAction) {
+        // KMK -->
+        if (SuwayomiMode.enabled) return
+        // KMK <--
         when (action) {
             ChapterDownloadAction.START -> downloadChapter(chapter)
             ChapterDownloadAction.START_NOW -> downloadManager.startDownloadNow(chapter.id)
@@ -252,7 +269,9 @@ class ReaderViewModel @JvmOverloads constructor(
         val manga = manga!!
         runBlocking {
             // KMK -->
-            if (manga.source == MERGED_SOURCE_ID) {
+            if (manga.source == SuwayomiMode.SOURCE_ID) {
+                cloudReader!!.chapters
+            } else if (manga.source == MERGED_SOURCE_ID) {
                 getMergedChaptersByMangaId.await(manga.id, dedupe = false, applyFilter = false)
             } else {
                 getChaptersByMangaId.await(manga.id, applyFilter = false)
@@ -269,11 +288,17 @@ class ReaderViewModel @JvmOverloads constructor(
         val manga = manga!!
         // SY -->
         val (chapters, mangaMap) = runBlocking {
-            if (manga.source == MERGED_SOURCE_ID) {
-                getMergedChaptersByMangaId.await(manga.id, applyFilter = true) to
-                    state.value.mergedManga
+            // KMK -->
+            if (manga.source == SuwayomiMode.SOURCE_ID) {
+                cloudReader!!.chapters to null
             } else {
-                getChaptersByMangaId.await(manga.id, applyFilter = true) to null
+                // KMK <--
+                if (manga.source == MERGED_SOURCE_ID) {
+                    getMergedChaptersByMangaId.await(manga.id, applyFilter = true) to
+                        state.value.mergedManga
+                } else {
+                    getChaptersByMangaId.await(manga.id, applyFilter = true) to null
+                }
             }
         }
         fun isChapterDownloaded(chapter: Chapter): Boolean {
@@ -326,7 +351,10 @@ class ReaderViewModel @JvmOverloads constructor(
         }
 
         chaptersForReader
+            // KMK -->
+            // Server chapter projections use Komikku's source-order convention too.
             .sortedWith(getChapterSort(manga, sortDescending = false))
+            // KMK <--
             .run {
                 if (readerPreferences.skipDupe().get()) {
                     removeDuplicates(selectedChapter)
@@ -335,7 +363,9 @@ class ReaderViewModel @JvmOverloads constructor(
                 }
             }
             .run {
-                if (basePreferences.downloadedOnly().get()) {
+                // KMK -->
+                if (manga.source != SuwayomiMode.SOURCE_ID && basePreferences.downloadedOnly().get()) {
+                    // KMK <--
                     filterDownloaded(manga, mangaMap)
                 } else {
                     this
@@ -401,6 +431,12 @@ class ReaderViewModel @JvmOverloads constructor(
      * trigger deletion of the downloaded chapters.
      */
     fun onActivityFinish() {
+        // KMK -->
+        cloudReader?.let {
+            it.session.flushSoon()
+            return
+        }
+        // KMK <--
         deletePendingChapters()
     }
 
@@ -415,11 +451,23 @@ class ReaderViewModel @JvmOverloads constructor(
      * Initializes this presenter with the given [mangaId] and [initialChapterId]. This method will
      * fetch the manga from the database and initialize the initial chapter.
      */
-    suspend fun init(mangaId: Long, initialChapterId: Long /* SY --> */, page: Int?/* SY <-- */): Result<Boolean> {
+    // KMK -->
+    suspend fun init(mangaId: Long, initialChapterId: Long /* SY --> */, page: Int?/* SY <-- */, sessionId: String? = null): Result<Boolean> {
+        // KMK <--
         if (!needsInit()) return Result.success(true)
         return withIOContext {
             try {
-                val manga = getManga.await(mangaId)
+                // KMK -->
+                val manga = if (SuwayomiMode.enabled) {
+                    if (sessionId == null || mangaId >= -1 || initialChapterId >= -1) {
+                        throw SuwayomiException(SuwayomiFailure.CONNECTION_REQUIRED)
+                    }
+                    SuwayomiReader.open(cloudBackend.requireSession(sessionId), SuwayomiMode.remoteId(mangaId))
+                        .also { cloudReader = it }.manga
+                } else {
+                    getManga.await(mangaId)
+                }
+                // KMK <--
                 if (manga != null) {
                     // SY -->
                     sourceManager.isInitialized.first { it }
@@ -479,6 +527,15 @@ class ReaderViewModel @JvmOverloads constructor(
                         mergedReferences = mergedReferences,
                         mergedManga = mergedManga,
                         // SY <--
+                        // KMK -->
+                        suwayomiSession = cloudReader?.session,
+                        onSyncConflict = { device, remotePage ->
+                            viewModelScope.launch {
+                                val message = context.stringResource(KMR.strings.suwayomi_sync_conflict, device, remotePage + 1)
+                                eventChannel.send(Event.CloudNotice(message))
+                            }
+                        },
+                        // KMK <--
                     )
 
                     loadChapter(
@@ -811,6 +868,27 @@ class ReaderViewModel @JvmOverloads constructor(
         hasExtraPage: Boolean,
         // SY <--
     ) {
+        // KMK -->
+        cloudReader?.let { remote ->
+            val count = readerChapter.pages?.count { it !is InsertPage } ?: 0
+            if (count == 0) return
+            val canonicalPage = canonicalServerPage(page.index, count, hasExtraPage)
+            mutableState.update { it.copy(currentPage = canonicalPage + 1) }
+            readerChapter.requestedPage = canonicalPage
+            chapterPageIndex = canonicalPage
+            if (!basePreferences.incognitoMode().get() && page.status !is Page.State.Error) {
+                readerChapter.chapter.last_page_read = canonicalPage
+                if (canonicalPage == count - 1) readerChapter.chapter.read = true
+                try {
+                    remote.progress(readerChapter.chapter.id!!, canonicalPage, canonicalPage == count - 1)
+                } catch (e: Exception) {
+                    if (e is CancellationException) throw e
+                    eventChannel.trySend(Event.CloudNotice(Injekt.get<Application>().stringResource(KMR.strings.suwayomi_session_changed)))
+                }
+            }
+            return
+        }
+        // KMK <--
         val pageIndex = page.index
         val syncTriggerOpt = syncPreferences.getSyncTriggerOptions()
         val isSyncEnabled = syncPreferences.isSyncEnabled()
@@ -904,6 +982,12 @@ class ReaderViewModel @JvmOverloads constructor(
      * Saves the chapter last read history if incognito mode isn't on.
      */
     suspend fun updateHistory() {
+        // KMK -->
+        if (cloudReader != null) {
+            cloudReader?.session?.flushSoon()
+            return
+        }
+        // KMK <--
         getCurrentChapter()?.let { readerChapter ->
             if (incognitoMode) return@let
 
@@ -968,6 +1052,12 @@ class ReaderViewModel @JvmOverloads constructor(
         chapter.bookmark = bookmarked
 
         viewModelScope.launchNonCancellable {
+            // KMK -->
+            if (cloudReader != null) {
+                if (!basePreferences.incognitoMode().get()) cloudReader!!.bookmark(chapter.id!!, bookmarked)
+                return@launchNonCancellable
+            }
+            // KMK <--
             updateChapter.await(
                 ChapterUpdate(
                     id = chapter.id!!,
@@ -988,6 +1078,12 @@ class ReaderViewModel @JvmOverloads constructor(
         val chapter = chapterList.find { it.chapter.id == chapterId }?.chapter ?: return
         chapter.bookmark = bookmarked
         viewModelScope.launchNonCancellable {
+            // KMK -->
+            if (cloudReader != null) {
+                if (!basePreferences.incognitoMode().get()) cloudReader!!.bookmark(chapterId, bookmarked)
+                return@launchNonCancellable
+            }
+            // KMK <--
             updateChapter.await(
                 ChapterUpdate(
                     id = chapterId,
@@ -1022,8 +1118,22 @@ class ReaderViewModel @JvmOverloads constructor(
      */
     fun setMangaReadingMode(readingMode: ReadingMode) {
         val manga = manga ?: return
-        runBlocking(Dispatchers.IO) {
-            setMangaViewerFlags.awaitSetReadingMode(manga.id, readingMode.flagValue.toLong())
+        // KMK -->
+        viewModelScope.launchIO {
+            // KMK <--
+            // KMK -->
+            if (cloudReader != null) {
+                try {
+                    cloudReader!!.setFlags(readingMode.flagValue.toLong(), ReadingMode.MASK.toLong())
+                } catch (e: Exception) {
+                    if (e is CancellationException) throw e
+                    eventChannel.send(Event.CloudNotice(Injekt.get<Application>().stringResource(KMR.strings.suwayomi_preference_sync_failed)))
+                    return@launchIO
+                }
+            } else {
+                setMangaViewerFlags.awaitSetReadingMode(manga.id, readingMode.flagValue.toLong())
+            }
+            // KMK <--
             val currChapters = state.value.viewerChapters
             if (currChapters != null) {
                 // Save current page
@@ -1032,7 +1142,9 @@ class ReaderViewModel @JvmOverloads constructor(
 
                 mutableState.update {
                     it.copy(
-                        manga = getManga.await(manga.id),
+                        // KMK -->
+                        manga = cloudReader?.manga ?: getManga.await(manga.id),
+                        // KMK <--
                         viewerChapters = currChapters,
                     )
                 }
@@ -1059,7 +1171,13 @@ class ReaderViewModel @JvmOverloads constructor(
     fun setMangaOrientationType(orientation: ReaderOrientation) {
         val manga = manga ?: return
         viewModelScope.launchIO {
-            setMangaViewerFlags.awaitSetOrientation(manga.id, orientation.flagValue.toLong())
+            // KMK -->
+            if (cloudReader != null) {
+                cloudReader!!.setFlags(orientation.flagValue.toLong(), ReaderOrientation.MASK.toLong())
+            } else {
+                setMangaViewerFlags.awaitSetOrientation(manga.id, orientation.flagValue.toLong())
+            }
+            // KMK <--
             val currChapters = state.value.viewerChapters
             if (currChapters != null) {
                 // Save current page
@@ -1068,7 +1186,9 @@ class ReaderViewModel @JvmOverloads constructor(
 
                 mutableState.update {
                     it.copy(
-                        manga = getManga.await(manga.id),
+                        // KMK -->
+                        manga = cloudReader?.manga ?: getManga.await(manga.id),
+                        // KMK <--
                         viewerChapters = currChapters,
                     )
                 }
@@ -1530,6 +1650,9 @@ class ReaderViewModel @JvmOverloads constructor(
     }
 
     sealed interface Event {
+        // KMK -->
+        data class CloudNotice(val message: String) : Event
+        // KMK <--
         data object ReloadViewerChapters : Event
         data object PageChanged : Event
         data class SetOrientation(val orientation: Int) : Event

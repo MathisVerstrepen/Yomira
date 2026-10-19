@@ -79,6 +79,7 @@ fun MoreScreen(
     onClickHistory: () -> Unit,
     // KMK -->
     onClickLibraryUpdateErrors: () -> Unit,
+    serverBacked: Boolean = false,
     // KMK <--
 ) {
     val uriHandler = LocalUriHandler.current
@@ -97,8 +98,8 @@ fun MoreScreen(
             }
             item {
                 SwitchPreferenceWidget(
-                    title = stringResource(MR.strings.label_downloaded_only),
-                    subtitle = stringResource(MR.strings.downloaded_only_summary),
+                    title = stringResource(/* KMK --> */ if (serverBacked) KMR.strings.suwayomi_server_downloads else /* KMK <-- */ MR.strings.label_downloaded_only),
+                    subtitle = stringResource(/* KMK --> */ if (serverBacked) KMR.strings.suwayomi_server_downloads_summary else /* KMK <-- */ MR.strings.downloaded_only_summary),
                     icon = Icons.Outlined.CloudOff,
                     checked = downloadedOnly,
                     onCheckedChanged = onDownloadedOnlyChange,
@@ -178,31 +179,49 @@ fun MoreScreen(
                     onPreferenceClick = onClickCategories,
                 )
             }
-            item {
-                TextPreferenceWidget(
-                    title = stringResource(MR.strings.label_stats),
-                    icon = Icons.Outlined.QueryStats,
-                    onPreferenceClick = onClickStats,
-                )
-            }
             // KMK -->
-            item {
-                TextPreferenceWidget(
-                    title = stringResource(KMR.strings.option_label_library_update_errors),
-                    icon = Icons.Outlined.NewReleases,
-                    onPreferenceClick = onClickLibraryUpdateErrors,
-                )
+            if (!serverBacked) {
+                // KMK <--
+                item {
+                    TextPreferenceWidget(
+                        title = stringResource(MR.strings.label_stats),
+                        icon = Icons.Outlined.QueryStats,
+                        onPreferenceClick = onClickStats,
+                    )
+                }
+                // KMK -->
             }
             // KMK <--
-            item {
-                TextPreferenceWidget(
-                    title = stringResource(MR.strings.label_data_storage),
-                    icon = Icons.Outlined.Storage,
-                    onPreferenceClick = onClickDataAndStorage,
-                )
+            // KMK -->
+            // KMK -->
+            if (!serverBacked) {
+                // KMK <--
+                item {
+                    TextPreferenceWidget(
+                        title = stringResource(KMR.strings.option_label_library_update_errors),
+                        icon = Icons.Outlined.NewReleases,
+                        onPreferenceClick = onClickLibraryUpdateErrors,
+                    )
+                }
+                // KMK -->
             }
+            // KMK <--
+            // KMK <--
+            // KMK -->
+            if (!serverBacked) {
+                // KMK <--
+                item {
+                    TextPreferenceWidget(
+                        title = stringResource(MR.strings.label_data_storage),
+                        icon = Icons.Outlined.Storage,
+                        onPreferenceClick = onClickDataAndStorage,
+                    )
+                }
+                // KMK -->
+            }
+            // KMK <--
             // SY -->
-            if (exhPreferences.isHentaiEnabled().get() || delegateSourcePreferences.delegateSources().get()) {
+            if (/* KMK --> */ !serverBacked && (/* KMK <-- */exhPreferences.isHentaiEnabled().get() || delegateSourcePreferences.delegateSources().get()/* KMK --> */)/* KMK <-- */) {
                 item {
                     TextPreferenceWidget(
                         title = stringResource(SYMR.strings.eh_batch_add),

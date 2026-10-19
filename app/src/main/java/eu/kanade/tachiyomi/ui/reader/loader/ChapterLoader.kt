@@ -1,8 +1,13 @@
 package eu.kanade.tachiyomi.ui.reader.loader
 
+// KMK -->
 import android.content.Context
 import eu.kanade.tachiyomi.data.download.DownloadManager
 import eu.kanade.tachiyomi.data.download.DownloadProvider
+import eu.kanade.tachiyomi.data.suwayomi.SuwayomiException
+import eu.kanade.tachiyomi.data.suwayomi.SuwayomiFailure
+import eu.kanade.tachiyomi.data.suwayomi.SuwayomiMode
+import eu.kanade.tachiyomi.data.suwayomi.SuwayomiSession
 import eu.kanade.tachiyomi.source.Source
 import eu.kanade.tachiyomi.source.online.HttpSource
 import eu.kanade.tachiyomi.source.online.all.MergedSource
@@ -20,6 +25,7 @@ import tachiyomi.domain.source.service.SourceManager
 import tachiyomi.i18n.MR
 import tachiyomi.source.local.LocalSource
 import tachiyomi.source.local.io.Format
+// KMK <--
 
 /**
  * Loader used to retrieve the [PageLoader] for a given chapter.
@@ -36,6 +42,10 @@ class ChapterLoader(
     private val mergedReferences: List<MergedMangaReference>,
     private val mergedManga: Map<Long, Manga>?,
     // SY <--
+    // KMK -->
+    private val suwayomiSession: SuwayomiSession? = null,
+    private val onSyncConflict: (String, Int) -> Unit = { _, _ -> },
+    // KMK <--
 ) {
 
     /**
@@ -91,6 +101,14 @@ class ChapterLoader(
      * Returns the page loader to use for this [chapter].
      */
     private fun getPageLoader(chapter: ReaderChapter): PageLoader {
+        // KMK -->
+        if (SuwayomiMode.enabled) {
+            if (manga.source != SuwayomiMode.SOURCE_ID || suwayomiSession == null) {
+                throw SuwayomiException(SuwayomiFailure.CONNECTION_REQUIRED)
+            }
+            return SuwayomiPageLoader(chapter, suwayomiSession, onSyncConflict)
+        }
+        // KMK <--
         val dbChapter = chapter.chapter
         val isDownloaded = downloadManager.isChapterDownloaded(
             chapterName = dbChapter.name,

@@ -24,7 +24,7 @@ data class HistoryWithRelations(
     val coverData: MangaCover,
 ) {
     // SY -->
-    val title: String = customMangaManager.get(mangaId)?.title ?: ogTitle
+    val title: String = /* KMK --> */ if (mangaId < 0) ogTitle else /* KMK <-- */ customMangaManager.get(mangaId)?.title ?: ogTitle
 
     companion object {
         private val customMangaManager: GetCustomMangaInfo by injectLazy()

@@ -1,5 +1,6 @@
 package eu.kanade.tachiyomi.data.coil
 
+// KMK -->
 import androidx.core.net.toUri
 import coil3.Extras
 import coil3.ImageLoader
@@ -15,6 +16,7 @@ import com.hippo.unifile.UniFile
 import eu.kanade.domain.ui.UiPreferences
 import eu.kanade.tachiyomi.data.cache.CoverCache
 import eu.kanade.tachiyomi.data.coil.MangaCoverFetcher.Companion.USE_CUSTOM_COVER_KEY
+import eu.kanade.tachiyomi.data.suwayomi.SuwayomiImages
 import eu.kanade.tachiyomi.network.await
 import eu.kanade.tachiyomi.source.online.HttpSource
 import kotlinx.coroutines.CoroutineScope
@@ -42,6 +44,7 @@ import uy.kohesive.injekt.api.get
 import uy.kohesive.injekt.injectLazy
 import java.io.File
 import java.io.IOException
+// KMK <--
 
 /**
  * A [Fetcher] that fetches cover image for [Manga] object.
@@ -371,6 +374,9 @@ class MangaCoverFetcher(
         private val sourceManager: SourceManager by injectLazy()
 
         override fun create(data: Manga, options: Options, imageLoader: ImageLoader): Fetcher {
+            // KMK -->
+            if (SuwayomiImages.handles(data.thumbnailUrl)) return SuwayomiImages.fetcher(requireNotNull(data.thumbnailUrl), options)
+            // KMK <--
             return MangaCoverFetcher(
                 // KMK -->
                 // url = data.thumbnailUrl,
@@ -396,6 +402,9 @@ class MangaCoverFetcher(
         private val sourceManager: SourceManager by injectLazy()
 
         override fun create(data: MangaCover, options: Options, imageLoader: ImageLoader): Fetcher {
+            // KMK -->
+            if (SuwayomiImages.handles(data.url)) return SuwayomiImages.fetcher(requireNotNull(data.url), options)
+            // KMK <--
             return MangaCoverFetcher(
                 // KMK -->
                 // url = data.url,

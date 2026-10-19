@@ -31,24 +31,24 @@ class DownloadQueueScreenModel(
     // KMK -->
     private val navigator: Navigator? = null,
     // KMK <--
-) : ScreenModel {
+) /* KMK --> */ : DownloadQueueController /* KMK <-- */ {
 
     private val _state = MutableStateFlow(emptyList<DownloadHeaderItem>())
-    val state = _state.asStateFlow()
+    /* KMK --> */ override /* KMK <-- */ val state = _state.asStateFlow()
 
-    lateinit var controllerBinding: DownloadListBinding
+    /* KMK --> */ override /* KMK <-- */ lateinit var controllerBinding: DownloadListBinding
 
     /**
      * Adapter containing the active downloads.
      */
-    var adapter: DownloadAdapter? = null
+    /* KMK --> */ override /* KMK <-- */ var adapter: DownloadAdapter? = null
 
     /**
      * Map of jobs for active downloads.
      */
     private val progressJobs = mutableMapOf<Download, Job>()
 
-    val listener = object : DownloadAdapter.DownloadItemListener {
+    /* KMK --> */ override /* KMK <-- */ val listener = object : DownloadAdapter.DownloadItemListener {
         /**
          * Called when an item is released from a drag.
          *
@@ -70,13 +70,18 @@ class DownloadQueueScreenModel(
          * @param position The position of the item
          * @param menuItem The menu Item pressed
          */
-        override fun onMenuItemClick(position: Int, menuItem: MenuItem) {
+        // KMK -->
+        override fun onMenuItemClick(position: Int, menuItem: MenuItem, expectedChapterId: Long) {
+            // KMK <--
             val item = adapter?.getItem(position) ?: return
+            // KMK -->
+            if (item is DownloadItem && item.download.chapter.id != expectedChapterId) return
+            // KMK <--
             if (item is DownloadItem) {
                 when (menuItem.itemId) {
                     R.id.move_to_top, R.id.move_to_bottom -> {
                         val headerItems = adapter?.headerItems ?: return
-                        val newDownloads = mutableListOf<Download>()
+                        val newDownloads = /* KMK --> */ mutableListOf<eu.kanade.tachiyomi.data.download.model.DownloadDisplay>() /* KMK <-- */
                         headerItems.forEach { headerItem ->
                             headerItem as DownloadHeaderItem
                             if (headerItem == item.header) {
@@ -150,31 +155,37 @@ class DownloadQueueScreenModel(
         adapter = null
     }
 
-    val isDownloaderRunning = downloadManager.isDownloaderRunning
+    /* KMK --> */ override /* KMK <-- */ val isDownloaderRunning = downloadManager.isDownloaderRunning
         .stateIn(screenModelScope, SharingStarted.WhileSubscribed(5000), false)
 
-    fun getDownloadStatusFlow() = downloadManager.statusFlow()
-    fun getDownloadProgressFlow() = downloadManager.progressFlow()
+    /* KMK --> */ override /* KMK <-- */ fun getDownloadStatusFlow() = downloadManager.statusFlow()
+    /* KMK --> */ override /* KMK <-- */ fun getDownloadProgressFlow() = downloadManager.progressFlow()
 
-    fun startDownloads() {
+    /* KMK --> */ override /* KMK <-- */ fun startDownloads() {
         downloadManager.startDownloads()
     }
 
-    fun pauseDownloads() {
+    /* KMK --> */ override /* KMK <-- */ fun pauseDownloads() {
         downloadManager.pauseDownloads()
     }
 
-    fun clearQueue() {
+    /* KMK --> */ override /* KMK <-- */ fun clearQueue() {
         downloadManager.clearQueue()
     }
 
-    fun reorder(downloads: List<Download>) {
-        downloadManager.reorderQueue(downloads)
+    // KMK -->
+    fun reorder(downloads: List<eu.kanade.tachiyomi.data.download.model.DownloadDisplay>) {
+        require(downloads.all { it is Download })
+        downloadManager.reorderQueue(downloads.map { it as Download })
     }
+    // KMK <--
 
-    fun cancel(downloads: List<Download>) {
-        downloadManager.cancelQueuedDownloads(downloads)
+    // KMK -->
+    fun cancel(downloads: List<eu.kanade.tachiyomi.data.download.model.DownloadDisplay>) {
+        require(downloads.all { it is Download })
+        downloadManager.cancelQueuedDownloads(downloads.map { it as Download })
     }
+    // KMK <--
 
     // KMK -->
     fun showManga(mangaId: Long) {
@@ -182,9 +193,11 @@ class DownloadQueueScreenModel(
     }
     // KMK <--
 
-    fun <R : Comparable<R>> reorderQueue(selector: (DownloadItem) -> R, reverse: Boolean = false) {
+    // KMK -->
+    override fun <R : Comparable<R>> reorderQueue(selector: (DownloadItem) -> R, reverse: Boolean) {
+        // KMK <--
         val adapter = adapter ?: return
-        val newDownloads = mutableListOf<Download>()
+        val newDownloads = /* KMK --> */ mutableListOf<eu.kanade.tachiyomi.data.download.model.DownloadDisplay>() /* KMK <-- */
         adapter.headerItems.forEach { headerItem ->
             headerItem as DownloadHeaderItem
             headerItem.subItems = headerItem.subItems.sortedBy(selector).toMutableList().apply {
@@ -202,7 +215,12 @@ class DownloadQueueScreenModel(
      *
      * @param download the download whose status has changed.
      */
-    fun onStatusChange(download: Download) {
+    // KMK -->
+    override fun onStatusChange(download: eu.kanade.tachiyomi.data.download.model.DownloadDisplay) {
+        // KMK <--
+        // KMK -->
+        require(download is Download)
+        // KMK <--
         when (download.status) {
             Download.State.DOWNLOADING -> {
                 launchProgressJob(download)
@@ -270,7 +288,9 @@ class DownloadQueueScreenModel(
      *
      * @param download the download whose page has been downloaded.
      */
-    fun onUpdateDownloadedPages(download: Download) {
+    // KMK -->
+    override fun onUpdateDownloadedPages(download: eu.kanade.tachiyomi.data.download.model.DownloadDisplay) {
+        // KMK <--
         getHolder(download)?.notifyDownloadedPages()
     }
 
@@ -280,7 +300,9 @@ class DownloadQueueScreenModel(
      * @param download the download to find.
      * @return the holder of the download or null if it's not bound.
      */
-    private fun getHolder(download: Download): DownloadHolder? {
+    // KMK -->
+    private fun getHolder(download: eu.kanade.tachiyomi.data.download.model.DownloadDisplay): DownloadHolder? {
+        // KMK <--
         return controllerBinding.root.findViewHolderForItemId(download.chapter.id) as? DownloadHolder
     }
 }

@@ -83,6 +83,12 @@ data object HistoryTab : Tab {
 
     @Composable
     override fun Content() {
+        // KMK -->
+        if (eu.kanade.tachiyomi.data.suwayomi.SuwayomiMode.enabled) {
+            eu.kanade.tachiyomi.ui.suwayomi.SuwayomiHistoryTab()
+            return
+        }
+        // KMK <--
         val navigator = LocalNavigator.currentOrThrow
         val context = LocalContext.current
         val screenModel = rememberScreenModel { HistoryScreenModel() }

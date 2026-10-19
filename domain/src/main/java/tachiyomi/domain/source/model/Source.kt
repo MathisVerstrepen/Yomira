@@ -8,6 +8,9 @@ data class Source(
     val isStub: Boolean,
     val pin: Pins = Pins.unpinned,
     val isUsedLast: Boolean = false,
+    // KMK -->
+    val iconUrl: String? = null,
+    // KMK <--
     // SY -->
     val category: String? = null,
     val isExcludedFromDataSaver: Boolean = false,

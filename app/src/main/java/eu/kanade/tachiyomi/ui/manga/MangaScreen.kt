@@ -129,6 +129,9 @@ class MangaScreen(
      */
     val fromSource: Boolean = false,
     private val smartSearchConfig: SourcesScreen.SmartSearchConfig? = null,
+    // KMK -->
+    private val serverSessionId: String? = null,
+    // KMK <--
 ) : Screen(), AssistContentScreen {
 
     private var assistUrl: String? = null
@@ -137,6 +140,12 @@ class MangaScreen(
 
     @Composable
     override fun Content() {
+        // KMK -->
+        if (eu.kanade.tachiyomi.data.suwayomi.SuwayomiMode.enabled) {
+            eu.kanade.tachiyomi.ui.suwayomi.SuwayomiMangaPresenter(mangaId, serverSessionId, fromSource)
+            return
+        }
+        // KMK <--
         if (!ifSourcesLoaded()) {
             LoadingScreen()
             return

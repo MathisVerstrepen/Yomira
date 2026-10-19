@@ -1,5 +1,6 @@
 package eu.kanade.presentation.category
 
+// KMK -->
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
@@ -19,6 +20,7 @@ import eu.kanade.presentation.category.components.CategoryListItem
 import eu.kanade.presentation.components.AppBar
 import eu.kanade.tachiyomi.ui.category.CategoryScreenState
 import kotlinx.collections.immutable.ImmutableList
+import kotlinx.coroutines.flow.first
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
 import tachiyomi.domain.category.model.Category
@@ -29,6 +31,7 @@ import tachiyomi.presentation.core.components.material.topSmallPaddingValues
 import tachiyomi.presentation.core.i18n.stringResource
 import tachiyomi.presentation.core.screens.EmptyScreen
 import tachiyomi.presentation.core.util.plus
+// KMK <--
 
 @Composable
 fun CategoryScreen(
@@ -39,6 +42,7 @@ fun CategoryScreen(
     onChangeOrder: (Category, Int) -> Unit,
     // KMK -->
     onClickHide: (Category) -> Unit,
+    resetOrderKey: Any? = null,
     // KMK <--
     navigateUp: () -> Unit,
 ) {
@@ -75,6 +79,7 @@ fun CategoryScreen(
             onChangeOrder = onChangeOrder,
             // KMK -->
             onClickHide = onClickHide,
+            resetOrderKey = resetOrderKey,
             // KMK <--
         )
     }
@@ -90,6 +95,7 @@ private fun CategoryContent(
     onChangeOrder: (Category, Int) -> Unit,
     // KMK -->
     onClickHide: (Category) -> Unit,
+    resetOrderKey: Any? = null,
     // KMK <--
 ) {
     val categoriesState = remember { categories.toMutableStateList() }
@@ -99,12 +105,13 @@ private fun CategoryContent(
         onChangeOrder(item, to.index)
     }
 
-    LaunchedEffect(categories) {
-        if (!reorderableState.isAnyItemDragging) {
-            categoriesState.clear()
-            categoriesState.addAll(categories)
-        }
+    // KMK -->
+    LaunchedEffect(categories, resetOrderKey) {
+        androidx.compose.runtime.snapshotFlow { reorderableState.isAnyItemDragging }.first { !it }
+        categoriesState.clear()
+        categoriesState.addAll(categories)
     }
+    // KMK <--
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),

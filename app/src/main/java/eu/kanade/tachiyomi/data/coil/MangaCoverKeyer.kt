@@ -11,6 +11,9 @@ import tachiyomi.domain.manga.model.Manga as DomainManga
 
 class MangaKeyer : Keyer<DomainManga> {
     override fun key(data: DomainManga, options: Options): String {
+        // KMK -->
+        if (eu.kanade.tachiyomi.data.suwayomi.SuwayomiImages.handles(data.thumbnailUrl)) return "${data.thumbnailUrl};${data.coverLastModified}"
+        // KMK <--
         return if (data.hasCustomCover()) {
             "${data.id};${data.coverLastModified}"
         } else {
@@ -23,6 +26,9 @@ class MangaCoverKeyer(
     private val coverCache: CoverCache = Injekt.get(),
 ) : Keyer<MangaCover> {
     override fun key(data: MangaCover, options: Options): String {
+        // KMK -->
+        if (eu.kanade.tachiyomi.data.suwayomi.SuwayomiImages.handles(data.url)) return "${data.url};${data.lastModified}"
+        // KMK <--
         return if (coverCache.getCustomCoverFile(data.mangaId).exists()) {
             "${data.mangaId};${data.lastModified}"
         } else {

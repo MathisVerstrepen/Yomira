@@ -39,11 +39,17 @@ class MangaCoverScreenModel(
     private val updateManga: UpdateManga = Injekt.get(),
 
     val snackbarHostState: SnackbarHostState = SnackbarHostState(),
+    // KMK -->
+    private val projection: kotlinx.coroutines.flow.Flow<Manga>? = null,
+    private val assertActive: () -> Unit = {},
+    // KMK <--
 ) : StateScreenModel<Manga?>(null) {
 
     init {
         screenModelScope.launchIO {
-            getManga.subscribe(mangaId)
+            // KMK -->
+            (projection ?: getManga.subscribe(mangaId))
+                // KMK <--
                 .collect { newManga -> mutableState.update { newManga } }
         }
     }
@@ -71,6 +77,9 @@ class MangaCoverScreenModel(
             try {
                 val uri = saveCoverInternal(context, temp = true) ?: return@launch
                 withUIContext {
+                    // KMK -->
+                    assertActive()
+                    // KMK <--
                     context.startActivity(uri.toShareIntent(context))
                 }
             } catch (e: Throwable) {
@@ -90,6 +99,9 @@ class MangaCoverScreenModel(
      * @return the uri to saved file
      */
     private suspend fun saveCoverInternal(context: Context, temp: Boolean): Uri? {
+        // KMK -->
+        assertActive()
+        // KMK <--
         val manga = state.value ?: return null
         val req = ImageRequest.Builder(context)
             .data(manga)
@@ -101,6 +113,9 @@ class MangaCoverScreenModel(
 
             // TODO: Handle animated cover
             val bitmap = result?.getBitmapOrNull() ?: return@withIOContext null
+            // KMK -->
+            assertActive()
+            // KMK <--
             imageSaver.save(
                 Image.Cover(
                     bitmap = bitmap,

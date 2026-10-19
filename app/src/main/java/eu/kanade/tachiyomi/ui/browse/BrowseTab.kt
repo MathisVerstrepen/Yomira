@@ -58,6 +58,9 @@ data object BrowseTab : Tab {
         }
 
     override suspend fun onReselect(navigator: Navigator) {
+        // KMK -->
+        if (eu.kanade.tachiyomi.data.suwayomi.SuwayomiMode.enabled) return
+        // KMK <--
         navigator.push(GlobalSearchScreen())
     }
 
@@ -69,6 +72,12 @@ data object BrowseTab : Tab {
 
     @Composable
     override fun Content() {
+        // KMK -->
+        if (eu.kanade.tachiyomi.data.suwayomi.SuwayomiMode.enabled) {
+            eu.kanade.tachiyomi.ui.suwayomi.SuwayomiBrowseTab()
+            return
+        }
+        // KMK <--
         val context = LocalContext.current
         val scope = rememberCoroutineScope()
         // SY -->

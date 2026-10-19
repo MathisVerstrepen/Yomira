@@ -19,10 +19,18 @@ import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.flow.collectLatest
 import tachiyomi.presentation.core.screens.LoadingScreen
 
-class CategoryScreen : Screen() {
+// KMK -->
+class CategoryScreen(private val serverSessionId: String? = null) : Screen() {
+// KMK <--
 
     @Composable
     override fun Content() {
+        // KMK -->
+        if (eu.kanade.tachiyomi.data.suwayomi.SuwayomiMode.enabled) {
+            eu.kanade.tachiyomi.ui.suwayomi.SuwayomiCategoriesPresenter(serverSessionId)
+            return
+        }
+        // KMK <--
         val context = LocalContext.current
         val navigator = LocalNavigator.currentOrThrow
         val screenModel = rememberScreenModel { CategoryScreenModel() }

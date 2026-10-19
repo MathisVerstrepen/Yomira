@@ -1,5 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!-- KMK -->
+    <string name="suwayomi_app_name" translatable="false">Komikku Suwayomi</string>
+    <!-- KMK end -->
     <!-- Actions -->
     <string name="action_search_for_source">Search for sources</string>
     <string name="action_source_search">Search in source</string>
@@ -238,4 +241,193 @@
     <string name="pref_discord_show_download_button_summary">Displays a button to download the app</string>
     <string name="pref_discord_show_discord_button">Show Discord Button</string>
     <string name="pref_discord_show_discord_button_summary">Displays a button to join the Discord server</string>
+    <!-- KMK Suwayomi -->
+    <string name="suwayomi_library">Library · Suwayomi</string>
+    <string name="suwayomi_reload">Reload from server</string>
+    <string name="suwayomi_settings">Settings</string>
+    <string name="suwayomi_appearance">Appearance on this device</string>
+    <string name="suwayomi_reader_settings">Reader on this device</string>
+    <string name="suwayomi_replace">Replace server or sign out</string>
+    <string name="suwayomi_search_library">Search your library</string>
+    <string name="suwayomi_unread">Unread</string>
+    <string name="suwayomi_grid">Cover grid</string>
+    <string name="suwayomi_reverse">Reverse order</string>
+    <string name="suwayomi_empty_library">No matching titles in your server library.</string>
+    <string name="suwayomi_unread_count">%1$d unread</string>
+    <string name="suwayomi_load_more">Load more from server</string>
+    <string name="suwayomi_disconnect_notice">Disconnecting clears this account’s session, temporary state, and any unsent reading changes on this device. The server library stays on the server.</string>
+    <string name="suwayomi_disconnect">Disconnect</string>
+    <string name="suwayomi_cancel">Cancel</string>
+    <string name="suwayomi_connect">Connect to Suwayomi</string>
+    <string name="suwayomi_setup_notice">A server connection is required. Enter your Suwayomi URL, including any proxy prefix, and select its authentication mode. HTTP sends credentials without encryption; use HTTPS outside a trusted network.</string>
+    <string name="suwayomi_server_url">Server URL</string>
+    <string name="suwayomi_authentication">Authentication mode</string>
+    <string name="suwayomi_username">Username</string>
+    <string name="suwayomi_password">Password</string>
+    <string name="suwayomi_manga">Manga</string>
+    <string name="suwayomi_back">Back</string>
+    <string name="suwayomi_remove_library">Remove from library</string>
+    <string name="suwayomi_add_library">Add to library</string>
+    <string name="suwayomi_fetch_source">Refresh details and chapters on server</string>
+    <string name="suwayomi_empty_chapters">No chapters. Try refreshing on the server.</string>
+    <string name="suwayomi_read">Read</string>
+    <string name="suwayomi_page">Page %1$d</string>
+    <string name="suwayomi_bookmarked">Bookmarked</string>
+    <string name="suwayomi_chapter_actions">Chapter actions</string>
+    <string name="suwayomi_mark_read">Mark this chapter read</string>
+    <string name="suwayomi_mark_unread">Mark unread and reset progress</string>
+    <string name="suwayomi_remove_bookmark">Remove bookmark</string>
+    <string name="suwayomi_add_bookmark">Bookmark</string>
+    <string name="suwayomi_pending">%1$d chapter changes awaiting server confirmation</string>
+    <string name="suwayomi_retry_notice">A request may already have reached the server. Review the latest chapter state before reapplying your pending changes.</string>
+    <string name="suwayomi_retry_changes">Reapply pending changes</string>
+    <string name="suwayomi_retry">Retry</string>
+    <string name="suwayomi_connection_required">Connect to a Suwayomi server to continue.</string>
+    <string name="suwayomi_auth_required">Authentication required. Check the authentication mode and sign in again.</string>
+    <string name="suwayomi_permission_denied">This server account does not have permission for this action.</string>
+    <string name="suwayomi_network_error">Cannot reach the server. Check your connection and retry.</string>
+    <string name="suwayomi_server_error">The server could not complete this request. Reload and retry.</string>
+    <string name="suwayomi_contract_error">Invalid URL or unsupported server response. Check the server address, authentication mode, and supported API contract.</string>
+    <string name="suwayomi_session_changed">The server session has changed. Return to the library.</string>
+    <string name="suwayomi_incognito">Incognito reading</string>
+    <string name="suwayomi_incognito_notice">Personal progress, bookmarks, and tracking are paused. The server can still observe image and page requests.</string>
+    <!-- KMK Suwayomi end -->
+    <string name="suwayomi_sync_conflict">The server reports a reading conflict with %1$s at page %2$d. Your current position has been kept; review progress in the server WebUI.</string>
+    <!-- KMK Suwayomi daily workflows -->
+    <string name="suwayomi_sources">Server sources</string>
+    <string name="suwayomi_source_search">Search this server source</string>
+    <string name="suwayomi_search">Search</string>
+    <string name="suwayomi_popular">Popular</string>
+    <string name="suwayomi_latest">Latest</string>
+    <string name="suwayomi_filters">Source filters</string>
+    <string name="suwayomi_reset_filters">Reset filters</string>
+    <string name="suwayomi_sort_ascending">Ascending</string>
+    <string name="suwayomi_filter_unavailable">This filter schema is not supported. Refresh source filters or use the server WebUI.</string>
+    <string name="suwayomi_categories">Server categories</string>
+    <string name="suwayomi_create">Create</string>
+    <string name="suwayomi_rename">Rename</string>
+    <string name="suwayomi_move_up">Move up</string>
+    <string name="suwayomi_delete">Delete</string>
+    <string name="suwayomi_name">Name</string>
+    <string name="suwayomi_save">Save</string>
+    <string name="suwayomi_delete_category">Delete this server category?</string>
+    <string name="suwayomi_server_downloads">Server downloads</string>
+    <string name="suwayomi_download_notice">These files and this queue are on Suwayomi. Saving chapters to this device and offline reading are not available yet.</string>
+    <string name="suwayomi_start_queue">Start queue</string>
+    <string name="suwayomi_stop_queue">Pause queue</string>
+    <string name="suwayomi_cancel_server_download">Cancel server download</string>
+    <string name="suwayomi_download_on_server">Download on server</string>
+    <string name="suwayomi_delete_server_download">Delete download from server</string>
+    <!-- KMK Suwayomi daily workflows end -->
+    <!-- KMK Suwayomi reading preferences -->
+    <string name="suwayomi_recent_reading">Recent reading</string>
+    <string name="suwayomi_updates">Server library updates</string>
+    <string name="suwayomi_update_library">Update library on server</string>
+    <string name="suwayomi_updating">Suwayomi is updating the library.</string>
+    <string name="suwayomi_history_notice">Recent reading comes from server chapter state. Clearing history separately from read state and cloud reading-duration statistics are not supported by this server contract.</string>
+    <string name="suwayomi_preference_sync">Synchronize reading preferences</string>
+    <string name="suwayomi_preference_sync_notice">Synchronize default reading mode and crop settings with this server account. Brightness, orientation, rotation, and other device controls stay on this device. Per-manga reading mode synchronizes when you change it in the reader.</string>
+    <string name="suwayomi_upload_preferences">Upload these preferences</string>
+    <string name="suwayomi_apply_preferences">Use server preferences</string>
+    <string name="suwayomi_preference_sync_failed">Could not save the reading mode on the server. Check the connection and retry.</string>
+    <!-- KMK Suwayomi reading preferences end -->
+    <!-- KMK Suwayomi tracking and sessions -->
+    <string name="suwayomi_tracking">Server tracking</string>
+    <string name="suwayomi_tracking_notice">Tracker accounts and progress belong to this Suwayomi account. Reading completion updates tracking through the server. Removing a binding leaves the entry at the tracking service.</string>
+    <string name="suwayomi_sign_in">Sign in</string>
+    <string name="suwayomi_signed_in">Signed in on server</string>
+    <string name="suwayomi_bind">Bind</string>
+    <string name="suwayomi_unbind">Remove binding</string>
+    <string name="suwayomi_edit_track">Edit tracking</string>
+    <string name="suwayomi_authorize">Authorize in browser</string>
+    <string name="suwayomi_callback_notice">After authorization, paste the complete callback URL here. Alternatively, finish tracker login in the server WebUI.</string>
+    <string name="suwayomi_callback">OAuth callback URL</string>
+    <string name="suwayomi_last_chapter">Last chapter read</string>
+    <string name="suwayomi_score">Score</string>
+    <string name="suwayomi_webui">Open server WebUI (sign-in may be required)</string>
+    <string name="suwayomi_sign_in_again">Sign in again</string>
+    <string name="suwayomi_reauthenticate_notice">Sign in to the same server account to keep pending chapter changes. To use a different account, choose Replace server or sign out.</string>
+    <!-- KMK Suwayomi tracking and sessions end -->
+    <!-- KMK filter choices -->
+    <string name="suwayomi_filter_any">Any</string>
+    <string name="suwayomi_filter_include">Include</string>
+    <string name="suwayomi_filter_exclude">Exclude</string>
+    <!-- KMK filter choices end -->
+    <!-- KMK pending intent recovery -->
+    <string name="suwayomi_discard_changes">Discard pending changes</string>
+    <string name="suwayomi_discard_notice">Remove unsent chapter changes on this device and use the current server state. This does not undo requests that already reached the server.</string>
+    <!-- KMK pending intent recovery end -->
+    <string name="suwayomi_all">All</string>
+    <string name="suwayomi_uncategorized">Uncategorized</string>
+    <string name="suwayomi_missing_source">Unavailable source</string>
+    <string name="suwayomi_show_hidden">Show hidden categories</string>
+    <string name="suwayomi_hide_category">Hide category</string>
+    <string name="suwayomi_selected_count">%1$d selected</string>
+    <string name="suwayomi_select_visible">Select results</string>
+    <string name="suwayomi_actions">Actions</string>
+    <string name="suwayomi_add_category_named">Add to %1$s</string>
+    <string name="suwayomi_remove_category_named">Remove from %1$s</string>
+    <string name="suwayomi_library_count">%1$d results · %2$d in library</string>
+    <string name="suwayomi_server_download_count">%1$d on server</string>
+    <string name="suwayomi_bulk_notice">Apply this operation to the %1$d selected manga. Changes confirmed before a failure remain applied.</string>
+    <string name="suwayomi_bulk_read">Mark all selected chapters read</string>
+    <string name="suwayomi_bulk_unread">Mark all selected chapters unread and reset progress</string>
+    <string name="suwayomi_sort_title">Title</string>
+    <string name="suwayomi_sort_added">Date added</string>
+    <string name="suwayomi_ungrouped">No grouping</string>
+    <string name="suwayomi_group_status">Group by status</string>
+    <string name="suwayomi_administration">Server administration</string>
+    <string name="suwayomi_source_preferences">Server source preferences</string>
+    <string name="suwayomi_shared_source_notice">Extensions and source preferences are shared server settings. Changes may affect other users.</string>
+    <string name="suwayomi_extensions">Extensions</string>
+    <string name="suwayomi_server_options">Settings</string>
+    <string name="suwayomi_refresh_extensions">Refresh extension catalogue</string>
+    <string name="suwayomi_obsolete_extension">This extension is obsolete in its repository.</string>
+    <string name="suwayomi_update_extension">Update on server</string>
+    <string name="suwayomi_install_extension">Install on server</string>
+    <string name="suwayomi_uninstall_extension">Uninstall from server</string>
+    <string name="suwayomi_extension_stores">Server extension repositories</string>
+    <string name="suwayomi_store_url">Repository index URL</string>
+    <string name="suwayomi_add_store">Add repository</string>
+    <string name="suwayomi_user_options_notice">These update and server-download settings belong to your server account.</string>
+    <string name="suwayomi_exclude_unread">Skip manga with unread chapters during updates</string>
+    <string name="suwayomi_exclude_not_started">Skip manga you have not started</string>
+    <string name="suwayomi_exclude_completed">Skip completed manga</string>
+    <string name="suwayomi_update_details">Refresh manga details during updates</string>
+    <string name="suwayomi_auto_download">Automatically download new chapters on server</string>
+    <string name="suwayomi_download_exclude_unread">Skip automatic downloads for manga with unread chapters</string>
+    <string name="suwayomi_ignore_reuploads">Ignore reuploads during automatic downloads</string>
+    <string name="suwayomi_global_schedule_notice">The library update schedule is shared by the whole server. Use 0 to disable it, or at least 6 hours.</string>
+    <string name="suwayomi_update_hours">Update interval in hours</string>
+    <string name="suwayomi_clear_android_cache">Clear temporary Android image cache</string>
+    <string name="suwayomi_webui_admin_notice">Use the server WebUI for backup/restore, manual extension file uploads, server cache management, and uncommon administration. Browser authentication is separate.</string>
+    <string name="suwayomi_extension_confirm">%1$s: %2$s. This changes the extension installed on the shared server.</string>
+    <string name="suwayomi_edit_preference">Edit server value</string>
+    <string name="suwayomi_unsupported_preference">This preference schema is not supported. Use the server WebUI.</string>
+    <string name="suwayomi_notifications">Server chapter updates</string>
+    <string name="suwayomi_new_server_chapters">%1$d new server chapters</string>
+    <string name="suwayomi_background_notice">Optional Android checks look for new server chapters about once an hour. Android may delay checks while idle. The first check creates a baseline without notifying. This does not run a server library update or provide instant push delivery.</string>
+    <string name="suwayomi_background_checks">Notify about new server chapters</string>
+    <string name="suwayomi_shared_queue_notice">Queue start, stop, clear, and ordering control the shared server queue and can affect other users.</string>
+    <string name="suwayomi_clear_queue">Clear shared queue</string>
+    <string name="suwayomi_clear_queue_notice">Stop the server downloader and cancel all queued chapters for every user? Existing downloaded files are kept.</string>
+    <string name="suwayomi_queue_first">Move to front of server queue</string>
+    <string name="suwayomi_invalid_link">This server manga link is invalid.</string>
+    <string name="suwayomi_link_connect">Connect to %1$s to open this manga.</string>
+    <string name="suwayomi_link_other_server">This manga belongs to %1$s. Replace your connection deliberately in library settings, then reopen the link.</string>
+    <string name="suwayomi_back_library">Back to library</string>
+    <string name="suwayomi_share_link">Share server manga link</string>
+    <string name="suwayomi_feature_availability">Feature availability</string>
+    <string name="suwayomi_availability_core">Reading, library categories, source browsing, tracking, updates, and server downloads use your connected server. Reader layout, gestures, themes, brightness, and orientation run on this device.</string>
+    <string name="suwayomi_availability_deferred">Saved feeds and searches, merged manga, metadata overrides and custom covers, recommendations, source migration, release predictions, source-specific enhancements, and home-screen widgets are not available in server mode yet. Android never falls back to running a source directly.</string>
+    <string name="suwayomi_availability_history">Recent reading uses server chapter progress. Clearing history independently of read state and complete reading-duration statistics need additional server support, so these controls are unavailable.</string>
+    <string name="suwayomi_availability_offline">Saving chapters to this device and airplane-mode reading are planned for a later phase. Server downloads still require a server connection.</string>
+    <string name="suwayomi_filter_schema_changed">The server source filters changed. Your old filter choices were cleared. Choose filters again before searching.</string>
+    <string name="suwayomi_shared_library_notice">This server uses one shared library. Reading state, categories, and server settings are shared by its clients.</string>
+    <string name="suwayomi_shared_settings_notice">These update and download options apply to the shared server library.</string>
+    <string name="suwayomi_shared_tracking_notice">Tracker accounts, bindings, and progress belong to the shared server library.</string>
+    <string name="suwayomi_unsupported_server">This server does not expose a supported library API. Check the server version and API compatibility.</string>
+    <string name="suwayomi_server_downloads_summary">Show titles with chapters downloaded on the server. A server connection is still required.</string>
+    <string name="suwayomi_download_failed">Server download failed</string>
+    <string name="suwayomi_queue_changed">The server queue changed. Review its current order and try again.</string>
 </resources>

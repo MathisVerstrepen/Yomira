@@ -1,5 +1,6 @@
 package eu.kanade.tachiyomi
 
+// KMK -->
 import android.annotation.SuppressLint
 import android.app.Application
 import android.app.PendingIntent
@@ -55,6 +56,7 @@ import eu.kanade.tachiyomi.data.coil.PagePreviewKeyer
 import eu.kanade.tachiyomi.data.coil.TachiyomiImageDecoder
 import eu.kanade.tachiyomi.data.connections.discord.DiscordRPCService
 import eu.kanade.tachiyomi.data.notification.Notifications
+import eu.kanade.tachiyomi.data.suwayomi.SuwayomiMode
 import eu.kanade.tachiyomi.data.sync.SyncDataJob
 import eu.kanade.tachiyomi.di.AppModule
 import eu.kanade.tachiyomi.di.PreferenceModule
@@ -101,6 +103,7 @@ import uy.kohesive.injekt.injectLazy
 import java.security.Security
 import java.text.SimpleDateFormat
 import java.util.Locale
+// KMK <--
 
 class App : Application(), DefaultLifecycleObserver, SingletonImageLoader.Factory {
 
@@ -223,11 +226,20 @@ class App : Application(), DefaultLifecycleObserver, SingletonImageLoader.Factor
         // KMK <--
 
         // Updates widget update
-        WidgetManager(Injekt.get(), Injekt.get()).apply { init(scope) }
+        // KMK -->
+        if (!SuwayomiMode.enabled) WidgetManager(Injekt.get(), Injekt.get()).apply { init(scope) }
+        // KMK <--
 
         if (!WorkManager.isInitialized()) {
             WorkManager.initialize(this, Configuration.Builder().build())
         }
+        // KMK -->
+        if (SuwayomiMode.enabled) {
+            // Retire work scheduled by a previous local installation before it can write another library.
+            eu.kanade.tachiyomi.data.suwayomi.SuwayomiNotificationWorker.initialize(this, scope)
+            return
+        }
+        // KMK <--
         val syncPreferences: SyncPreferences = Injekt.get()
         val syncTriggerOpt = syncPreferences.getSyncTriggerOptions()
         if (syncPreferences.isSyncEnabled() && syncTriggerOpt.syncOnAppStart) {
@@ -258,6 +270,9 @@ class App : Application(), DefaultLifecycleObserver, SingletonImageLoader.Factor
         return ImageLoader.Builder(this).apply {
             val callFactoryLazy = lazy { Injekt.get<NetworkHelper>().client }
             components {
+                // KMK -->
+                add(eu.kanade.tachiyomi.data.suwayomi.SuwayomiImages.UriFactory())
+                // KMK <--
                 // NetworkFetcher.Factory
                 add(OkHttpNetworkFetcherFactory(callFactoryLazy::value))
                 // Decoder.Factory
@@ -303,6 +318,9 @@ class App : Application(), DefaultLifecycleObserver, SingletonImageLoader.Factor
 
     override fun onStart(owner: LifecycleOwner) {
         SecureActivityDelegate.onApplicationStart()
+        // KMK -->
+        if (SuwayomiMode.enabled) return
+        // KMK <--
 
         val syncPreferences: SyncPreferences = Injekt.get()
         val syncTriggerOpt = syncPreferences.getSyncTriggerOptions()

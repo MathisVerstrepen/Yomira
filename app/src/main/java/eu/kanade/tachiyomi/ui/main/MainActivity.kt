@@ -1,5 +1,6 @@
 package eu.kanade.tachiyomi.ui.main
 
+// KMK -->
 import android.animation.ValueAnimator
 import android.app.SearchManager
 import android.app.assist.AssistContent
@@ -81,6 +82,7 @@ import eu.kanade.tachiyomi.data.connections.discord.DiscordRPCService
 import eu.kanade.tachiyomi.data.download.DownloadCache
 import eu.kanade.tachiyomi.data.library.LibraryUpdateJob
 import eu.kanade.tachiyomi.data.notification.NotificationReceiver
+import eu.kanade.tachiyomi.data.suwayomi.SuwayomiMode
 import eu.kanade.tachiyomi.data.updater.AppUpdateChecker
 import eu.kanade.tachiyomi.data.updater.AppUpdateJob
 import eu.kanade.tachiyomi.extension.api.ExtensionApi
@@ -94,6 +96,7 @@ import eu.kanade.tachiyomi.ui.manga.MangaScreen
 import eu.kanade.tachiyomi.ui.more.NewUpdateScreen
 import eu.kanade.tachiyomi.ui.more.OnboardingScreen
 import eu.kanade.tachiyomi.ui.more.WhatsNewScreen
+import eu.kanade.tachiyomi.ui.suwayomi.SuwayomiHomeScreen
 import eu.kanade.tachiyomi.util.system.dpToPx
 import eu.kanade.tachiyomi.util.system.isDebugBuildType
 import eu.kanade.tachiyomi.util.system.isNavigationBarNeedsScrim
@@ -135,6 +138,7 @@ import uy.kohesive.injekt.Injekt
 import uy.kohesive.injekt.api.get
 import uy.kohesive.injekt.injectLazy
 import java.util.LinkedList
+// KMK <--
 
 class MainActivity : BaseActivity() {
 
@@ -199,6 +203,23 @@ class MainActivity : BaseActivity() {
         val splashScreen = if (isLaunch) installSplashScreen() else null
 
         super.onCreate(savedInstanceState)
+        // KMK -->
+        if (SuwayomiMode.enabled) {
+            enableEdgeToEdge()
+            ready = true
+            setComposeContent {
+                Navigator(
+                    HomeScreen,
+                    disposeBehavior = NavigatorDisposeBehavior(disposeNestedNavigators = false, disposeSteps = true),
+                ) { cloudNavigator ->
+                    DefaultNavigatorScreenTransition(navigator = cloudNavigator)
+                    CheckForUpdates()
+                }
+            }
+            setSplashScreenExitAnimation(splashScreen)
+            return
+        }
+        // KMK <--
 
         val didMigration = if (isLaunch) {
             Migrator.awaitAndRelease()

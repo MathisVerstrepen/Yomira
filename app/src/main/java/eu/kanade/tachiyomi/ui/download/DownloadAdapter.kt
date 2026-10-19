@@ -14,6 +14,7 @@ class DownloadAdapter(
     val downloadItemListener: DownloadItemListener,
     // KMK -->
     val colorScheme: AndroidViewColorScheme,
+    var canControlQueue: Boolean = true,
     // KMK <--
 ) : FlexibleAdapter<AbstractFlexibleItem<*>>(
     null,
@@ -28,6 +29,8 @@ class DownloadAdapter(
 
     interface DownloadItemListener {
         fun onItemReleased(position: Int)
-        fun onMenuItemClick(position: Int, menuItem: MenuItem)
+        // KMK -->
+        fun onMenuItemClick(position: Int, menuItem: MenuItem, expectedChapterId: Long)
+        // KMK <--
     }
 }

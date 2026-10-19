@@ -107,6 +107,12 @@ data object LibraryTab : Tab {
 
     @Composable
     override fun Content() {
+        // KMK -->
+        if (eu.kanade.tachiyomi.data.suwayomi.SuwayomiMode.enabled) {
+            eu.kanade.tachiyomi.ui.suwayomi.SuwayomiLibraryTab()
+            return
+        }
+        // KMK <--
         val navigator = LocalNavigator.currentOrThrow
         val context = LocalContext.current
         val scope = rememberCoroutineScope()
@@ -488,6 +494,10 @@ data object LibraryTab : Tab {
 
     // For invoking search from other screen
     private val queryEvent = Channel<String>()
+    // KMK -->
+    internal val serverSearches get() = queryEvent.receiveAsFlow()
+    internal val serverSettingsRequests get() = requestSettingsSheetEvent.receiveAsFlow()
+    // KMK <--
     suspend fun search(query: String) = queryEvent.send(query)
 
     // For opening settings sheet in LibraryController

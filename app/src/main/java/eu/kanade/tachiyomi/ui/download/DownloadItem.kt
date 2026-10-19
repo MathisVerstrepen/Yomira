@@ -9,7 +9,9 @@ import eu.kanade.tachiyomi.R
 import eu.kanade.tachiyomi.data.download.model.Download
 
 class DownloadItem(
-    val download: Download,
+    // KMK -->
+    val download: eu.kanade.tachiyomi.data.download.model.DownloadDisplay,
+    // KMK <--
     header: DownloadHeaderItem,
 ) : AbstractSectionableItem<DownloadHolder, DownloadHeaderItem>(header) {
 

@@ -46,6 +46,9 @@ fun LibraryPager(
     HorizontalPager(
         modifier = Modifier.fillMaxSize(),
         state = state,
+        // KMK -->
+        key = { getCategoryForPage(it).id },
+        // KMK <--
         verticalAlignment = Alignment.Top,
     ) { page ->
         if (page !in ((state.currentPage - 1)..(state.currentPage + 1))) {

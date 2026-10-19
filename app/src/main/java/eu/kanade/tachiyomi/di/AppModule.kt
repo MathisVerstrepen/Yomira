@@ -1,5 +1,6 @@
 package eu.kanade.tachiyomi.di
 
+// KMK -->
 import android.app.Application
 import androidx.core.content.ContextCompat
 import androidx.sqlite.SQLiteConnection
@@ -26,6 +27,9 @@ import eu.kanade.tachiyomi.data.download.DownloadCache
 import eu.kanade.tachiyomi.data.download.DownloadManager
 import eu.kanade.tachiyomi.data.download.DownloadProvider
 import eu.kanade.tachiyomi.data.saver.ImageSaver
+import eu.kanade.tachiyomi.data.suwayomi.SuwayomiBackend
+import eu.kanade.tachiyomi.data.suwayomi.SuwayomiMode
+import eu.kanade.tachiyomi.data.suwayomi.SuwayomiSourceManager
 import eu.kanade.tachiyomi.data.sync.service.GoogleDriveService
 import eu.kanade.tachiyomi.data.track.TrackerManager
 import eu.kanade.tachiyomi.extension.ExtensionManager
@@ -65,6 +69,7 @@ import uy.kohesive.injekt.api.addSingletonFactory
 import uy.kohesive.injekt.api.get
 import uy.kohesive.injekt.injectLazy
 import java.lang.ref.WeakReference
+// KMK <--
 
 private val lock = Any()
 
@@ -171,7 +176,12 @@ class AppModule(val app: Application) : InjektModule {
         addSingletonFactory { NetworkHelper(app, get()) }
         addSingletonFactory { JavaScriptEngine(app) }
 
-        addSingletonFactory<SourceManager> { AndroidSourceManager(app, get(), get()) }
+        // KMK -->
+        addSingletonFactory { SuwayomiBackend(app) }
+        addSingletonFactory<SourceManager> {
+            if (SuwayomiMode.enabled) SuwayomiSourceManager() else AndroidSourceManager(app, get(), get())
+        }
+        // KMK <--
         addSingletonFactory { ExtensionManager(app) }
 
         addSingletonFactory { DownloadProvider(app) }
@@ -206,6 +216,12 @@ class AppModule(val app: Application) : InjektModule {
 
         // Asynchronously init expensive components for a faster cold start
         ContextCompat.getMainExecutor(app).execute {
+            // KMK -->
+            if (SuwayomiMode.enabled) {
+                get<SuwayomiBackend>()
+                return@execute
+            }
+            // KMK <--
             get<NetworkHelper>()
 
             get<SourceManager>()

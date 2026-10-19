@@ -28,6 +28,12 @@ class GlobalSearchScreen(
 
     @Composable
     override fun Content() {
+        // KMK -->
+        if (eu.kanade.tachiyomi.data.suwayomi.SuwayomiMode.enabled) {
+            eu.kanade.tachiyomi.ui.suwayomi.SuwayomiGlobalSearchPresenter(searchQuery)
+            return
+        }
+        // KMK <--
         if (!ifSourcesLoaded()) {
             LoadingScreen()
             return

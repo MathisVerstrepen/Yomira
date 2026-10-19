@@ -8,36 +8,23 @@
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
 
     <!-- Storage -->
-    <uses-permission
-        android:name="android.permission.MANAGE_EXTERNAL_STORAGE"
-        tools:ignore="ScopedStorage" />
+    <!-- KMK cloud: phone-wide storage access is not required for streaming. -->
       <!-- Permission to save cover into Pictures. It isn't required from API 29 -->
     <uses-permission
         android:name="android.permission.WRITE_EXTERNAL_STORAGE"
         android:maxSdkVersion="28" />
-      <!-- For access custom cover on Android 12 & below (API 32) -->
-    <uses-permission
-        android:name="android.permission.READ_EXTERNAL_STORAGE"
-        android:maxSdkVersion="32" />
-      <!-- For access custom cover from Android 13+ (API 33) -->
-    <uses-permission
-        android:name="android.permission.READ_MEDIA_IMAGES"
-        tools:ignore="SelectedPhotoAccess" />
+    <!-- KMK cloud: local custom-cover imports are not exposed. -->
 
     <!-- For background jobs -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
-    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
+    <!-- KMK cloud: periodic server checks use normal WorkManager battery policy. -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
     <!-- For managing extensions -->
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
-    <uses-permission android:name="android.permission.REQUEST_DELETE_PACKAGES" />
-    <uses-permission android:name="android.permission.UPDATE_PACKAGES_WITHOUT_USER_ACTION" />
-    <!-- To view extension packages in API 30+ -->
-    <uses-permission
-        android:name="android.permission.QUERY_ALL_PACKAGES"
-        tools:ignore="QueryAllPackagesPermission" />
+    <!-- KMK cloud: Android extension installation/removal/discovery permissions are retired. -->
+    <!-- REQUEST_INSTALL_PACKAGES remains for Android application updates. -->
 
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission
@@ -46,21 +33,22 @@
 
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
 
+    <!-- KMK -->
+    <!-- This fork has its own application identity and launcher label. -->
     <application
         android:name=".App"
         android:allowBackup="false"
         android:enableOnBackInvokedCallback="true"
         android:hardwareAccelerated="true"
         android:icon="@mipmap/ic_launcher"
-        android:label="@string/app_name"
+        android:label="@string/suwayomi_app_name"
         android:largeHeap="true"
         android:localeConfig="@xml/locales_config"
         android:networkSecurityConfig="@xml/network_security_config"
-        android:preserveLegacyExternalStorage="true"
-        android:requestLegacyExternalStorage="true"
         android:roundIcon="@mipmap/ic_launcher"
         android:supportsRtl="true"
         android:theme="@style/Theme.Tachiyomi">
+        <!-- KMK end -->
 
         <activity
             android:name=".ui.main.MainActivity"
@@ -73,59 +61,17 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
-            <!-- Legacy deeplink to add extension store -->
-            <intent-filter android:label="@string/action_addExtensionStore">
-                <action android:name="android.intent.action.VIEW" />
-
-                <category android:name="android.intent.category.DEFAULT" />
-                <category android:name="android.intent.category.BROWSABLE" />
-
-                <data android:scheme="tachiyomi" />
-                <data android:host="add-repo" />
-            </intent-filter>
-
-            <!-- Deeplink to add extension store -->
-            <intent-filter android:label="@string/action_addExtensionStore">
-                <action android:name="android.intent.action.VIEW" />
-
-                <category android:name="android.intent.category.DEFAULT" />
-                <category android:name="android.intent.category.BROWSABLE" />
-
-                <data android:scheme="mihon" />
-                <data android:host="extension-store" />
-            </intent-filter>
-
-            <!-- Open backup files -->
-            <intent-filter android:label="@string/pref_restore_backup">
-                <action android:name="android.intent.action.VIEW" />
-
-                <category android:name="android.intent.category.DEFAULT" />
-                <category android:name="android.intent.category.BROWSABLE" />
-
-                <data android:scheme="file" />
-                <data android:scheme="content" />
-                <data android:host="*" />
-                <data android:mimeType="*/*" />
-                <!--
-                Work around Android's ugly primitive PatternMatcher
-                implementation that can't cope with finding a . early in
-                the path unless it's explicitly matched.
-
-                See https://stackoverflow.com/a/31028507
-                -->
-                <data android:pathPattern=".*\\.tachibk" />
-                <data android:pathPattern=".*\\..*\\.tachibk" />
-                <data android:pathPattern=".*\\..*\\..*\\.tachibk" />
-                <data android:pathPattern=".*\\..*\\..*\\..*\\.tachibk" />
-                <data android:pathPattern=".*\\..*\\..*\\..*\\..*\\.tachibk" />
-                <data android:pathPattern=".*\\..*\\..*\\..*\\..*\\..*\\.tachibk" />
-                <data android:pathPattern=".*\\..*\\..*\\..*\\..*\\..*\\..*\\.tachibk" />
-            </intent-filter>
+            <!-- KMK -->
+            <!-- Local extension-store and phone-library backup intent filters are retired. -->
+            <!-- Server operations are available through the cloud screens and server WebUI. -->
+            <!-- KMK cloud intent boundary end -->
 
             <!--suppress AndroidDomInspection -->
+            <!-- KMK old local-backend shortcuts
             <meta-data
                 android:name="android.app.shortcuts"
                 android:resource="@xml/shortcuts" />
+            KMK cloud shortcut boundary end -->
         </activity>
 
         <activity
@@ -133,8 +79,23 @@
             android:exported="false"
             android:process=":error_handler" />
 
+        <!-- KMK -->
+        <activity
+            android:name=".ui.suwayomi.SuwayomiLinkActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="komikku-suwayomi" android:host="manga" />
+            </intent-filter>
+        </activity>
+        <!-- KMK cloud link boundary end -->
+
+        <!-- KMK cloud backend boundary -->
         <activity
             android:name=".ui.deeplink.DeepLinkActivity"
+            android:enabled="false"
             android:exported="true"
             android:label="@string/action_search"
             android:launchMode="singleTask"
@@ -159,6 +120,7 @@
                 android:name="android.app.searchable"
                 android:resource="@xml/searchable" />
         </activity>
+        <!-- KMK cloud backend boundary end -->
 
         <activity
             android:name=".ui.reader.ReaderActivity"
@@ -183,13 +145,18 @@
             android:configChanges="uiMode|orientation|screenSize"
             android:exported="false" />
 
+        <!-- KMK cloud backend boundary -->
         <activity
             android:name=".extension.util.ExtensionInstallActivity"
+            android:enabled="false"
             android:exported="false"
             android:theme="@android:style/Theme.Translucent.NoTitleBar" />
+        <!-- KMK cloud backend boundary end -->
 
+        <!-- KMK cloud backend boundary -->
         <activity
             android:name=".ui.setting.track.TrackLoginActivity"
+            android:enabled="false"
             android:exported="true"
             android:label="@string/track_activity_name">
             <intent-filter>
@@ -207,8 +174,11 @@
                 <data android:host="shikimori-auth" />
             </intent-filter>
         </activity>
+        <!-- KMK cloud backend boundary end -->
+        <!-- KMK cloud backend boundary -->
         <activity
             android:name=".ui.setting.track.GoogleDriveLoginActivity"
+            android:enabled="false"
             android:label="GoogleDrive"
             android:exported="true">
             <intent-filter>
@@ -221,11 +191,15 @@
                     android:scheme="eu.kanade.google.oauth" />
             </intent-filter>
         </activity>
+        <!-- KMK cloud backend boundary end -->
 
+        <!-- KMK cloud backend boundary -->
         <activity
             android:name="exh.ui.login.EhLoginActivity"
+            android:enabled="false"
             android:label="EHentaiLogin"
             android:exported="false"/>
+        <!-- KMK cloud backend boundary end -->
 
         <service
             android:name=".data.connections.discord.DiscordRPCService"
@@ -294,8 +268,10 @@
             android:value="true" />
 
         <!-- EH -->
+        <!-- KMK cloud backend boundary -->
         <activity
             android:name="exh.ui.intercept.InterceptActivity"
+            android:enabled="false"
             android:theme="@style/Theme.Tachiyomi"
             android:exported="true">
             <!-- E-Hentai -->
@@ -377,9 +353,12 @@
                 <data android:pathPattern="/chapter/..*" />
             </intent-filter>
         </activity>
+        <!-- KMK cloud backend boundary end -->
 
+        <!-- KMK cloud backend boundary -->
         <activity
             android:name="exh.md.MangaDexLoginActivity"
+            android:enabled="false"
             android:label="MangaDexLogin"
             android:exported="true">
             <intent-filter>
@@ -393,10 +372,21 @@
                     android:scheme="tachiyomisy" />
             </intent-filter>
         </activity>
+        <!-- KMK cloud backend boundary end -->
 
         <activity
             android:name="com.journeyapps.barcodescanner.CaptureActivity"
             tools:remove="screenOrientation" />
+        <!-- KMK old local-library widgets are unavailable in the cloud application -->
+        <receiver
+            android:name="tachiyomi.presentation.widget.UpdatesGridGlanceReceiver"
+            android:enabled="false"
+            tools:replace="android:enabled" />
+        <receiver
+            android:name="tachiyomi.presentation.widget.UpdatesGridCoverScreenGlanceReceiver"
+            android:enabled="false"
+            tools:replace="android:enabled" />
+        <!-- KMK cloud widget boundary end -->
     </application>
 
 </manifest>

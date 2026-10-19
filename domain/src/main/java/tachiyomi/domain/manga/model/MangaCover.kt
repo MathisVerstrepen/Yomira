@@ -17,7 +17,7 @@ data class MangaCover(
     val lastModified: Long,
 ) {
     // SY -->
-    private val customThumbnailUrl = if (isMangaFavorite) {
+    private val customThumbnailUrl = if (/* KMK --> */ isMangaFavorite && mangaId > 0 /* KMK <-- */) {
         getCustomMangaInfo.get(mangaId)?.thumbnailUrl
     } else {
         null
