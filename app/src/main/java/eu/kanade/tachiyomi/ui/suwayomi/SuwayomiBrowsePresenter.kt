@@ -160,7 +160,7 @@ internal fun SuwayomiBrowseTab() {
                             contentPadding = padding,
                             onClickItem = { item, listing -> state.sources.firstOrNull { it.id == item.id }?.let { navigator.push(SuwayomiSourceScreen(session.id, it, listing == Listing.Latest)) } },
                             onClickPin = {},
-                            onLongClickItem = { navigator.push(SuwayomiAdministrationScreen(session.id, it.id)) },
+                            onLongClickItem = { navigator.push(SuwayomiSourcePreferencesScreen(session.id, it.id, it.name, it.lang)) },
                             onChangeSearchQuery = { query = it },
                         )
                     }
@@ -338,7 +338,7 @@ internal class SuwayomiSourceScreen(private val sessionId: String, private val s
                         }, displayMode = display, onDisplayModeChange = { sourcePrefs.sourceDisplayMode().set(it) },
                         navigateUp = { navigator.pop() }, onWebViewClick = { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(Injekt.get<SuwayomiBackend>().requireSession(sessionId).baseUrl))) },
                         onHelpClick = { navigator.push(SuwayomiCompatibilityScreen()) }, onToggleIncognito = { base.incognitoMode().set(!incognito) },
-                        onSettingsClick = { navigator.push(SuwayomiAdministrationScreen(sessionId, source.id)) }, scrollBehavior = behavior,
+                        onSettingsClick = { navigator.push(SuwayomiSourcePreferencesScreen(sessionId, source.id, source.name, source.lang)) }, scrollBehavior = behavior,
                         toggleSelectionMode = {
                             selectionMode = true
                             selected = emptyList()

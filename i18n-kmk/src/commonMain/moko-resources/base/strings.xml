@@ -465,4 +465,15 @@
     <string name="suwayomi_extensions_available">Available</string>
     <string name="suwayomi_no_extensions">No extensions found. Check your search or extension repositories.</string>
     <!-- KMK end -->
+    <!-- KMK source preference layout -->
+    <string name="suwayomi_source_settings">Source settings</string>
+    <string name="suwayomi_source_settings_shared">Shared with everyone on this server</string>
+    <string name="suwayomi_source_settings_empty">This source has no configurable settings.</string>
+    <string name="suwayomi_value_configured">Configured</string>
+    <string name="suwayomi_value_not_set">Not set</string>
+    <string name="suwayomi_value_none">None selected</string>
+    <string name="suwayomi_close">Close</string>
+    <string name="suwayomi_show_value">Show text</string>
+    <string name="suwayomi_hide_value">Hide text</string>
+    <!-- KMK end -->
 </resources>

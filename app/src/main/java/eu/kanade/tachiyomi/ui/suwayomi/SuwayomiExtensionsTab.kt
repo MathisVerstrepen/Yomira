@@ -277,7 +277,7 @@ private class SuwayomiExtensionDetailsScreen(private val sessionId: String, priv
                             items(state.sources.sortedWith(compareBy<ServerSource> { it.lang }.thenBy { it.name }), key = { it.id }) { source ->
                                 BaseBrowseItem(
                                     modifier = Modifier.fillMaxWidth(),
-                                    onClickItem = { navigator.push(SuwayomiAdministrationScreen(sessionId, source.id)) },
+                                    onClickItem = { navigator.push(SuwayomiSourcePreferencesScreen(sessionId, source.id, source.name, source.lang)) },
                                     icon = { ExtensionLogo(sessionId, source.iconUrl) },
                                     action = { Icon(Icons.Outlined.Settings, null) },
                                 ) {

@@ -271,7 +271,7 @@ internal fun SuwayomiMangaPresenter(presentationId: Long, expectedSession: Strin
             },
             onAllChapterSelected = { selected = if (it) native.processedChapters.map { item -> item.id }.toSet() else emptySet() },
             onInvertSelection = { selected = native.processedChapters.map { it.id }.toSet() - selected },
-            getMangaState = { remember(it) { mutableStateOf(it) } }, onClickSourceSettingsClicked = { navigator.push(SuwayomiAdministrationScreen(session.id, remote.sourceId)) },
+            getMangaState = { remember(it) { mutableStateOf(it) } }, onClickSourceSettingsClicked = { navigator.push(SuwayomiSourcePreferencesScreen(session.id, remote.sourceId, remote.source?.name, remote.source?.lang)) },
             onClearManga = { navigator.push(SuwayomiCompatibilityScreen()) }, onOpenMangaFolder = null, onRelatedMangasScreenClick = { navigator.push(SuwayomiCompatibilityScreen()) },
             onRelatedMangaClick = { navigator.push(serverMangaScreen(session.id, SuwayomiMode.remoteId(it.id))) }, onRelatedMangaLongClick = {},
             librarySearch = ::librarySearch, onSourceClick = { source() },
