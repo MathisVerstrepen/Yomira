@@ -1392,6 +1392,9 @@ private fun LazyListScope.sharedChapterItems(
                     !isAnyChapterSelected && (/* KMK --> */ serverBacked || /* KMK <-- */ !(mergedData?.manga?.get(item.chapter.mangaId) ?: manga).isLocal()),
                     downloadStateProvider = { item.downloadState },
                     downloadProgressProvider = { item.downloadProgress },
+                    // KMK -->
+                    serverDownloaded = item.serverDownloaded,
+                    // KMK <--
                     chapterSwipeStartAction = chapterSwipeStartAction,
                     chapterSwipeEndAction = chapterSwipeEndAction,
                     onLongClick = {

@@ -476,4 +476,8 @@
     <string name="suwayomi_show_value">Show text</string>
     <string name="suwayomi_hide_value">Hide text</string>
     <!-- KMK end -->
+    <string name="suwayomi_downloaded_on_server">Downloaded on server</string>
+    <string name="suwayomi_downloaded_on_phone">Downloaded on phone</string>
+    <string name="suwayomi_chapter_downloads">Chapter downloads</string>
+    <string name="suwayomi_cancel_server_download">Cancel server download</string>
 </resources>
