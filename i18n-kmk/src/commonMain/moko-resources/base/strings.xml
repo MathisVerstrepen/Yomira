@@ -1,5 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!-- KMK -->
+    <string name="suwayomi_app_name" translatable="false">Komikku Suwayomi</string>
+    <!-- KMK end -->
     <!-- Actions -->
     <string name="action_search_for_source">Search for sources</string>
     <string name="action_source_search">Search in source</string>

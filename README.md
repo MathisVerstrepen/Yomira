@@ -4,7 +4,7 @@
 
 An Android client for **Suwayomi-Server**, adapted from [Komikku](https://github.com/komikku-app/komikku). It retains Komikku's native navigation, library, manga details, and configurable reader while using Suwayomi for the library, sources, reading progress, trackers, and downloads.
 
-This fork requires a reachable server and uses one active server/account connection. Android 8.0 (API 26) or later is required. The upstream Komikku APK is a separate application; build this repository to use this adaptation.
+This fork requires a reachable server and uses one active server/account connection. Android 8.0 (API 26) or later is required. Download this adaptation from [GitHub Releases](https://github.com/MathisVerstrepen/komikku-suwayomi/releases/latest); choose the universal APK if you are unsure which architecture to use.
 
 ## How it works
 
@@ -72,7 +72,7 @@ Debug APKs are written under `app/build/outputs/apk/debug/`. To install on a con
 ./gradlew installDebug
 ```
 
-The debug package is `app.komikku.dev`. The inherited release package is `app.komikku`; consider package identity before installing alongside another Komikku build. Default builds do not require Firebase or Google OAuth secrets.
+The release package is `app.komikku.suwayomi`; debug builds use `app.komikku.suwayomi.dev`. This adaptation can install alongside upstream Komikku. Earlier development builds using `app.komikku.dev` remain separate and do not transfer their connection automatically. Default builds do not require Firebase or Google OAuth secrets. The upstream app updater is disabled in published builds.
 
 ### Tests
 

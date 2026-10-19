@@ -1,6 +1,6 @@
 # Komikku – AI Agent Guide
 
-Komikku is an Android manga reader (min SDK 26, target SDK 36, JVM target 17 / Kotlin) forked from **Mihon** + **TachiyomiSY**. `applicationId`: `app.komikku` (debug: `app.komikku.dev`).
+Komikku is an Android manga reader (min SDK 26, target SDK 36, JVM target 17 / Kotlin) forked from **Mihon** + **TachiyomiSY**. This Suwayomi adaptation uses `applicationId`: `app.komikku.suwayomi` (debug: `app.komikku.suwayomi.dev`).
 
 Features: configurable reader, downloads/offline reading, trackers (MyAnimeList, AniList, Kitsu, MangaUpdates, Bangumi, Kavita, Komga, MangaDex, Shikimori, Suwayomi), recommendations, metadata editing, library categories/tags/filters, multi-source browsing and feed tabs.
 
