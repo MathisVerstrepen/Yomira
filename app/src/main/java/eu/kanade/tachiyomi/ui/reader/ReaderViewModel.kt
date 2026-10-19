@@ -352,13 +352,8 @@ class ReaderViewModel @JvmOverloads constructor(
 
         chaptersForReader
             // KMK -->
-            .sortedWith(
-                if (manga.source == SuwayomiMode.SOURCE_ID) {
-                    compareBy<Chapter> { it.sourceOrder }.thenBy { it.id }
-                } else {
-                    Comparator(getChapterSort(manga, sortDescending = false))
-                },
-            )
+            // Server chapter projections use Komikku's source-order convention too.
+            .sortedWith(getChapterSort(manga, sortDescending = false))
             // KMK <--
             .run {
                 if (readerPreferences.skipDupe().get()) {

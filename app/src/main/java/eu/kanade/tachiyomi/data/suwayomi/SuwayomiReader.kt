@@ -70,8 +70,8 @@ internal fun ServerChapter.toReaderChapter(): Chapter = Chapter.create().copy(
     name = name,
     url = "suwayomi:chapter:$id",
     chapterNumber = chapterNumber,
-    // Komikku's source-order sort inverts a descending source list.
-    sourceOrder = sourceOrder.toLong(),
+    // Suwayomi counts oldest to newest; Komikku expects newest to oldest.
+    sourceOrder = -sourceOrder.toLong(),
     dateUpload = uploadDate,
     scanlator = scanlator,
     read = user.isRead,

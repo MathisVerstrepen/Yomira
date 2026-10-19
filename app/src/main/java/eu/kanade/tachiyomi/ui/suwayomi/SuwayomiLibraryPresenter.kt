@@ -251,7 +251,7 @@ internal fun SuwayomiLibraryTab() {
                         { manga ->
                             scope.launch {
                                 runCatching {
-                                    val chapter = session.chapters(SuwayomiMode.remoteId(manga.id)).filterNot { it.user.isRead }.maxByOrNull { it.sourceOrder }
+                                    val chapter = session.chapters(SuwayomiMode.remoteId(manga.id)).filterNot { it.user.isRead }.minByOrNull { it.sourceOrder }
                                     if (chapter != null) context.startActivity(ReaderActivity.newIntent(context, manga.id, SuwayomiMode.readerId(chapter.id)))
                                 }.onFailure { snack.showSnackbar(context.stringResource(failureResource(failure(it as? Exception ?: Exception())))) }
                             }
@@ -377,7 +377,7 @@ internal fun orderLibrary(mangas: List<ServerManga>, sort: LibrarySort): List<Se
 }
 
 internal fun downloadChapters(chapters: List<eu.kanade.tachiyomi.data.suwayomi.ServerChapter>, action: DownloadAction): List<eu.kanade.tachiyomi.data.suwayomi.ServerChapter> {
-    val candidates = chapters.filter { !it.user.isDownloaded && (if (action == DownloadAction.BOOKMARKED_CHAPTERS) it.user.isBookmarked else !it.user.isRead) }.sortedByDescending { it.sourceOrder }
+    val candidates = chapters.filter { !it.user.isDownloaded && (if (action == DownloadAction.BOOKMARKED_CHAPTERS) it.user.isBookmarked else !it.user.isRead) }.sortedBy { it.sourceOrder }
     return when (action) {
         DownloadAction.NEXT_1_CHAPTER -> candidates.take(1)
         DownloadAction.NEXT_5_CHAPTERS -> candidates.take(5)

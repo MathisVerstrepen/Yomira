@@ -14,6 +14,8 @@ import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
+import tachiyomi.domain.chapter.service.getChapterSort
+import tachiyomi.domain.manga.model.Manga
 
 class SuwayomiPresentationTest {
     @Test
@@ -57,8 +59,27 @@ class SuwayomiPresentationTest {
     fun `next downloads start with the oldest unread source chapter and skip existing files`() {
         fun chapter(id: Int, order: Int, read: Boolean = false, downloaded: Boolean = false) = ServerChapter(id, 17, "Chapter", 1.0, order, pageCount = 1, user = ServerChapterUser(read, false, 0, 0, downloaded), url = "chapter/$id", manga = ServerChapterMangaIdentity(8, "manga"))
         val list = listOf(chapter(1, 0), chapter(2, 1, read = true), chapter(3, 2, downloaded = true), chapter(4, 3))
-        assertEquals(listOf(4), downloadChapters(list, DownloadAction.NEXT_1_CHAPTER).map { it.id })
-        assertEquals(listOf(4, 1), downloadChapters(list, DownloadAction.UNREAD_CHAPTERS).map { it.id })
+        assertEquals(listOf(1), downloadChapters(list, DownloadAction.NEXT_1_CHAPTER).map { it.id })
+        assertEquals(listOf(1, 4), downloadChapters(list, DownloadAction.UNREAD_CHAPTERS).map { it.id })
+    }
+
+    @Test
+    fun `resume after 43 read chapters selects chapter 44 regardless of display direction`() {
+        // Suwayomi assigns increasing source positions in reading order, independently of IDs.
+        val remote = (100 downTo 1).map { number ->
+            ServerChapter(1000 - number, 17, "Chapter $number", number.toDouble(), number, pageCount = 20, user = ServerChapterUser(number <= 43, false, if (number == 44) 7 else 0, 0, false), url = "chapter/$number", manga = ServerChapterMangaIdentity(8, "manga"))
+        }
+        val chapters = remote.map { it.toReaderChapter() }
+        for (direction in listOf(Manga.CHAPTER_SORT_ASC, Manga.CHAPTER_SORT_DESC)) {
+            val manga = Manga.create().copy(chapterFlags = Manga.CHAPTER_SORTING_SOURCE or direction)
+            val readingOrder = chapters.sortedWith(getChapterSort(manga, false))
+            assertEquals((1..100).map { it.toDouble() }, readingOrder.map { it.chapterNumber })
+            val next = readingOrder.first { !it.read }
+            assertEquals(44.0, next.chapterNumber)
+            assertEquals(SuwayomiMode.readerId(956), next.id)
+            assertEquals(7L, next.lastPageRead)
+            assertEquals(45.0, readingOrder[readingOrder.indexOf(next) + 1].chapterNumber)
+        }
     }
 
     @Test
