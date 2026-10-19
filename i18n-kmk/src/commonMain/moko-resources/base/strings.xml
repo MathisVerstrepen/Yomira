@@ -561,4 +561,8 @@
     <string name="suwayomi_tracker_callback_hint">After authorizing, paste the complete redirected URL below. You can also connect from the server WebUI.</string>
     <string name="suwayomi_tracker_login_failed">Couldn’t sign in to this service. Check your credentials or authorize again.</string>
     <string name="suwayomi_tracker_empty">No tracking services are available on this server.</string>
+    <string name="suwayomi_settings_connection_summary">Server address and account</string>
+    <string name="suwayomi_settings_server_summary">Library updates and downloads</string>
+    <string name="suwayomi_settings_tracking_summary">Tracking accounts and progress</string>
+    <string name="suwayomi_settings_features_summary">Support and limitations</string>
 </resources>
