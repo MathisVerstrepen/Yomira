@@ -20,6 +20,7 @@ data class ServerSource(
     val lang: String,
     val iconUrl: String,
     val supportsLatest: Boolean,
+    val meta: List<ServerMeta> = emptyList(),
 )
 
 @Serializable
@@ -75,7 +76,7 @@ suspend fun SuwayomiSession.serverSources(): List<ServerSource> {
     var cursor: String? = null
     do {
         val page = result<ServerConnection<ServerSource>>(
-            "query(\$after:Cursor) { sources(first:100, after:\$after) { nodes { id name lang iconUrl supportsLatest } totalCount pageInfo { hasNextPage endCursor } } }",
+            "query(\$after:Cursor) { sources(first:100, after:\$after) { nodes { id name lang iconUrl supportsLatest meta{key value} } totalCount pageInfo { hasNextPage endCursor } } }",
             "sources",
             variables("after" to (cursor?.let(::JsonPrimitive) ?: JsonNull)),
         )

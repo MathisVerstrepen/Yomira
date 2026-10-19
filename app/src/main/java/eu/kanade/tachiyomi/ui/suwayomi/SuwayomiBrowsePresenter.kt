@@ -64,6 +64,7 @@ import eu.kanade.tachiyomi.data.suwayomi.SuwayomiException
 import eu.kanade.tachiyomi.data.suwayomi.SuwayomiFailure
 import eu.kanade.tachiyomi.data.suwayomi.SuwayomiMode
 import eu.kanade.tachiyomi.data.suwayomi.browseSource
+import eu.kanade.tachiyomi.data.suwayomi.requireBrowsableSource
 import eu.kanade.tachiyomi.data.suwayomi.sameFilterSchema
 import eu.kanade.tachiyomi.data.suwayomi.snapshot
 import eu.kanade.tachiyomi.data.suwayomi.sourceFilters
@@ -106,7 +107,7 @@ internal fun SuwayomiBrowseTab() {
     val state by model.state.collectAsState()
     var query by remember { mutableStateOf<String?>(null) }
     val navigator = LocalNavigator.currentOrThrow
-    LaunchedEffect(session.id) { model.sources() }
+    androidx.lifecycle.compose.LifecycleEventEffect(androidx.lifecycle.Lifecycle.Event.ON_RESUME) { model.sources() }
     val sources = state.sources.filter { query.isNullOrBlank() || it.name.contains(query.orEmpty(), true) }
     val nativeState = SourcesScreenModel.State(
         isLoading = state.loading,
@@ -178,6 +179,7 @@ private class SuwayomiSourceModel(private val sessionId: String, val source: Ser
                 override suspend fun load(params: LoadParams<Int>): LoadResult<Int, StateFlow<Pair<Manga, RaisedSearchMetadata?>>> = try {
                     val page = params.key ?: 1
                     val session = backend.requireSession(sessionId)
+                    session.requireBrowsableSource(source.id)
                     if (page == 1 && args.changes.isNotEmpty() && !args.schema.sameFilterSchema(session.sourceFilters(source.id))) {
                         resetFilters()
                         throw SuwayomiException(SuwayomiFailure.CONTRACT)

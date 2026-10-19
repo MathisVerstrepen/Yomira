@@ -8,9 +8,10 @@ import eu.kanade.tachiyomi.data.suwayomi.ServerManga
 import eu.kanade.tachiyomi.data.suwayomi.ServerSource
 import eu.kanade.tachiyomi.data.suwayomi.SuwayomiBackend
 import eu.kanade.tachiyomi.data.suwayomi.SuwayomiFailure
+import eu.kanade.tachiyomi.data.suwayomi.browsableServerSources
 import eu.kanade.tachiyomi.data.suwayomi.browseSource
+import eu.kanade.tachiyomi.data.suwayomi.requireBrowsableSource
 import eu.kanade.tachiyomi.data.suwayomi.sameFilterSchema
-import eu.kanade.tachiyomi.data.suwayomi.serverSources
 import eu.kanade.tachiyomi.data.suwayomi.sourceFilters
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
@@ -32,7 +33,7 @@ class SuwayomiBrowseScreenModel(private val sessionId: String, private val backe
         task = screenModelScope.launch(Dispatchers.IO) {
             mutableState.value = State(loading = true)
             try {
-                val sources = backend.requireSession(sessionId).serverSources()
+                val sources = backend.requireSession(sessionId).browsableServerSources()
                 mutableState.value = State(sources = sources)
             } catch (e: Exception) {
                 if (e is CancellationException) throw e
@@ -73,6 +74,7 @@ class SuwayomiBrowseScreenModel(private val sessionId: String, private val backe
             mutableState.update { it.copy(loading = true, error = null, schemaChanged = false, mangas = if (next) it.mangas else emptyList()) }
             try {
                 val session = backend.requireSession(sessionId)
+                session.requireBrowsableSource(source.id)
                 if (changes.isNotEmpty()) {
                     val schema = session.sourceFilters(source.id)
                     if (!state.value.filters.sameFilterSchema(schema)) {

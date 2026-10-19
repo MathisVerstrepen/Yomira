@@ -42,6 +42,11 @@ class SuwayomiReadOnlyServerTest {
             coEvery { session.user() } returns user
             session.serverCategories()
             val sources = session.serverSources()
+            val policy = session.sourceBrowsePolicy()
+            val browsable = session.browsableServerSources()
+            assertTrue(browsable.all(policy::allows))
+            assertTrue(browsable.map { it.id }.toSet() == policy.select(sources).map { it.id }.toSet())
+            println("Read-only browsable source languages: " + browsable.map { it.lang }.distinct().sorted().joinToString())
             sources.firstOrNull { it.id != 0L }?.let { assertTrue(client.image(it.iconUrl).isNotEmpty()) }
             session.serverDownloads()
             session.serverTrackers()

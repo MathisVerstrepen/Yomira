@@ -30,9 +30,9 @@ import eu.kanade.tachiyomi.data.suwayomi.SuwayomiBackend
 import eu.kanade.tachiyomi.data.suwayomi.SuwayomiException
 import eu.kanade.tachiyomi.data.suwayomi.SuwayomiFailure
 import eu.kanade.tachiyomi.data.suwayomi.SuwayomiMode
+import eu.kanade.tachiyomi.data.suwayomi.browsableServerSources
 import eu.kanade.tachiyomi.data.suwayomi.browseSource
 import eu.kanade.tachiyomi.data.suwayomi.searchServerSources
-import eu.kanade.tachiyomi.data.suwayomi.serverSources
 import eu.kanade.tachiyomi.data.suwayomi.toKomikkuManga
 import eu.kanade.tachiyomi.ui.browse.source.globalsearch.SearchItemResult
 import eu.kanade.tachiyomi.ui.browse.source.globalsearch.SearchScreenModel
@@ -64,18 +64,7 @@ internal class SuwayomiGlobalSearchModel(private val sessionId: String, initialQ
     init {
         loadSources()
     }
-    fun loadSources() = screenModelScope.launch(Dispatchers.IO) {
-        mutableState.update { it.copy(loadingSources = true, error = null) }
-        try {
-            val sources = backend.requireSession(sessionId).serverSources()
-            backend.requireSession(sessionId)
-            mutableState.update { it.copy(sources = sources, loadingSources = false) }
-            kotlinx.coroutines.withContext(Dispatchers.Main) { if (state.value.query.isNotBlank()) search(state.value.query) }
-        } catch (e: Exception) {
-            if (e is CancellationException) throw e
-            mutableState.update { it.copy(loadingSources = false, error = failure(e)) }
-        }
-    }
+    fun loadSources() = search(state.value.query)
     fun query(value: String?) {
         mutableState.update { it.copy(query = value.orEmpty()) }
     }
@@ -83,24 +72,32 @@ internal class SuwayomiGlobalSearchModel(private val sessionId: String, initialQ
         searchJob?.cancel()
         val ticket = revision.incrementAndGet()
         val query = value.trim()
-        val sources = state.value.sources
-        mutableState.update { it.copy(query = value, submittedQuery = query, results = if (query.isEmpty()) emptyMap() else sources.associateBy({ source -> source.id }, { SearchItemResult.Loading }), selected = emptyList(), selectionMode = false, confirmation = null, error = null, identities = emptyMap()) }
-        if (query.isEmpty()) return
+        mutableState.update { it.copy(query = value, submittedQuery = query, sources = emptyList(), loadingSources = true, results = emptyMap(), selected = emptyList(), selectionMode = false, confirmation = null, error = null, identities = emptyMap()) }
         searchJob = screenModelScope.launch(Dispatchers.IO) {
-            searchServerSources(sources, query, fetch = { source, text ->
-                backend.requireSession(sessionId).browseSource(source.id, 1, text, "SEARCH", emptyList()).also { backend.requireSession(sessionId) }
-            }, emit = { source, result ->
+            try {
+                val sources = backend.requireSession(sessionId).browsableServerSources()
                 ensureActive()
-                if (ticket == revision.get() && backend.session.value?.id == sessionId) {
-                    val item = result.fold(
-                        onSuccess = { SearchItemResult.Success(it.mangas.map { manga -> manga.toKomikkuManga(sessionId) }) },
-                        onFailure = { SearchItemResult.Error(it) },
-                    )
-                    mutableState.update {
-                        if (ticket != revision.get() || backend.session.value?.id != sessionId) it else it.copy(results = it.results + (source.id to item), identities = it.identities + result.getOrNull()?.mangas.orEmpty().associate { manga -> manga.id to (manga.sourceId to manga.url) })
+                backend.requireSession(sessionId)
+                mutableState.update { if (ticket != revision.get()) it else it.copy(sources = sources, loadingSources = false, results = if (query.isEmpty()) emptyMap() else sources.associateBy({ source -> source.id }, { SearchItemResult.Loading })) }
+                if (query.isEmpty() || ticket != revision.get()) return@launch
+                searchServerSources(sources, query, fetch = { source, text ->
+                    backend.requireSession(sessionId).browseSource(source.id, 1, text, "SEARCH", emptyList()).also { backend.requireSession(sessionId) }
+                }, emit = { source, result ->
+                    ensureActive()
+                    if (ticket == revision.get() && backend.session.value?.id == sessionId) {
+                        val item = result.fold(
+                            onSuccess = { SearchItemResult.Success(it.mangas.map { manga -> manga.toKomikkuManga(sessionId) }) },
+                            onFailure = { SearchItemResult.Error(it) },
+                        )
+                        mutableState.update {
+                            if (ticket != revision.get() || backend.session.value?.id != sessionId) it else it.copy(results = it.results + (source.id to item), identities = it.identities + result.getOrNull()?.mangas.orEmpty().associate { manga -> manga.id to (manga.sourceId to manga.url) })
+                        }
                     }
-                }
-            })
+                })
+            } catch (e: Exception) {
+                if (e is CancellationException) throw e
+                mutableState.update { if (ticket != revision.get()) it else it.copy(loadingSources = false, error = failure(e)) }
+            }
         }
     }
     fun toggleSelection() {
