@@ -46,7 +46,13 @@ fun SourceIcon(
 ) {
     // KMK -->
     if (source.iconUrl != null) {
-        AsyncImage(model = source.iconUrl, contentDescription = null, modifier = modifier.then(defaultModifier))
+        AsyncImage(
+            model = source.iconUrl,
+            contentDescription = null,
+            modifier = modifier.then(defaultModifier),
+            placeholder = rememberResourceBitmapPainter(R.mipmap.ic_default_source),
+            error = rememberResourceBitmapPainter(R.mipmap.ic_default_source),
+        )
         return
     }
     // KMK <--

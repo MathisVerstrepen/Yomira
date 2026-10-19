@@ -41,15 +41,31 @@ class SuwayomiReadOnlyServerTest {
             coEvery { session.execute(any(), any()) } coAnswers { client.graphql(firstArg(), secondArg()) }
             coEvery { session.user() } returns user
             session.serverCategories()
-            session.serverSources()
+            val sources = session.serverSources()
+            sources.firstOrNull { it.id != 0L }?.let { assertTrue(client.image(it.iconUrl).isNotEmpty()) }
             session.serverDownloads()
             session.serverTrackers()
             session.extensions()
             session.extensionStores()
             session.userOptions()
             session.updateRunning()
-            session.activityPage(true, null)
-            session.activityPage(false, null)
+            for (history in listOf(true, false)) {
+                var cursor: String? = null
+                val ids = mutableSetOf<Int>()
+                var pages = 0
+                do {
+                    val page = session.activityPage(history, cursor)
+                    println("Read-only activity: history=$history page=$pages count=${page.nodes.size} total=${page.totalCount} more=${page.pageInfo.hasNextPage}")
+                    assertTrue(page.nodes.all { ids.add(it.id) }, "Activity page repeats chapter IDs")
+                    assertTrue(page.nodes.all { if (history) it.user.lastReadAt > 0 else it.manga.user.inLibrary }, "Activity escaped its history/library constraint")
+                    if (!page.pageInfo.hasNextPage) break
+                    assertTrue(page.nodes.isNotEmpty(), "Activity reports another page after an empty page")
+                    assertTrue(page.pageInfo.endCursor != cursor, "Activity cursor did not advance")
+                    cursor = page.pageInfo.endCursor
+                    pages++
+                } while (pages < if (history) 100 else 2)
+                assertTrue(!history || pages < 100, "Activity pagination exceeded read-only check bound")
+            }
             val status = withTimeout(20000) { client.subscribe("subscription {downloadChanged {state}}").first() }
             assertTrue("downloadChanged" in status)
         } finally {

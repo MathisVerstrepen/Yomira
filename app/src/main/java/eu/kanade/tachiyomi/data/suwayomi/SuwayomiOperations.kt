@@ -255,9 +255,10 @@ suspend fun SuwayomiSession.activityPage(history: Boolean, after: String?): Serv
         require(time >= 0 && id > 0)
         ", or:[{$field:{lessThan:\"$time\"}},{$field:{equalTo:\"$time\"},id:{greaterThan:$id}}]"
     }.orEmpty()
+    val filter = if (after == null) base else "$base, and:[{${seek.removePrefix(", ")}}]"
     val sort = if (history) "LAST_READ_AT" else "FETCHED_AT"
     val page = result<ServerConnection<ServerActivityChapter>>(
-        "query { chapters(first:60, filter: {$base$seek}, order:[{by:$sort,byType:DESC}]) { nodes { id name chapterNumber fetchedAt manga { ${SuwayomiSession.MANGA_FIELDS} } user { isRead isBookmarked lastPageRead lastReadAt isDownloaded } } pageInfo{hasNextPage endCursor} totalCount } }",
+        "query { chapters(first:60, filter: {$filter}, order:[{by:$sort,byType:DESC}]) { nodes { id name chapterNumber fetchedAt manga { ${SuwayomiSession.MANGA_FIELDS} } user { isRead isBookmarked lastPageRead lastReadAt isDownloaded } } pageInfo{hasNextPage endCursor} totalCount } }",
         "chapters",
     )
     val cursor = page.nodes.lastOrNull()?.let { "${if (history) it.user.lastReadAt else it.fetchedAt}:${it.id}" }

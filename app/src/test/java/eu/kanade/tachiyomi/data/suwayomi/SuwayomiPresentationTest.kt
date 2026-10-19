@@ -1,12 +1,16 @@
 // KMK -->
 package eu.kanade.tachiyomi.data.suwayomi
 
+import coil3.toUri
 import eu.kanade.presentation.manga.DownloadAction
 import eu.kanade.tachiyomi.source.model.Filter
 import eu.kanade.tachiyomi.ui.suwayomi.ServerDownloadDisplay
 import eu.kanade.tachiyomi.ui.suwayomi.downloadChapters
+import io.mockk.mockk
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotEquals
+import org.junit.jupiter.api.Assertions.assertNotNull
+import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
@@ -73,6 +77,15 @@ class SuwayomiPresentationTest {
         assertEquals(null, display.totalPages)
         assertEquals(0, display.totalProgress)
         assertTrue(display.serverError)
+    }
+
+    @Test
+    fun `Coil mapped URI icons select the authenticated fetcher and ordinary URLs do not`() {
+        val registry = coil3.ComponentRegistry.Builder().add(SuwayomiImages.UriFactory()).build()
+        val options = mockk<coil3.request.Options>()
+        val loader = mockk<coil3.ImageLoader>()
+        assertNotNull(registry.newFetcher(SuwayomiImages.url("session", "/api/v1/extension/icon/test").toUri(), options, loader))
+        assertNull(registry.newFetcher("https://example.org/image.png".toUri(), options, loader))
     }
 }
 // KMK <--

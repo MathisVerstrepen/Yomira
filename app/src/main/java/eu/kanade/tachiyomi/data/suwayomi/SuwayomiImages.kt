@@ -18,9 +18,9 @@ internal object SuwayomiImages {
 
     fun handles(url: String?): Boolean = url?.startsWith("https://komikku-suwayomi.invalid/") == true
 
-    class StringFactory : coil3.fetch.Fetcher.Factory<String> {
-        override fun create(data: String, options: Options, imageLoader: coil3.ImageLoader): Fetcher? =
-            if (handles(data)) fetcher(data, options) else null
+    class UriFactory : coil3.fetch.Fetcher.Factory<coil3.Uri> {
+        override fun create(data: coil3.Uri, options: Options, imageLoader: coil3.ImageLoader): Fetcher? =
+            if (handles(data.toString())) fetcher(data.toString(), options) else null
     }
 
     fun fetcher(url: String, options: Options): Fetcher = object : Fetcher {
