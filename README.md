@@ -1,206 +1,101 @@
-<div align="center">
+# Komikku Suwayomi
 
-<a href="https://komikku-app.github.io">
-  <img width=200px height=200px src="./.github/readme-images/app-icon.png"/>
-</a><br/>
-<a href="https://trendshift.io/repositories/13696" target="_blank"><img src="https://trendshift.io/api/badge/repositories/13696" alt="komikku-app%2Fkomikku | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>
- <h1 align="center"> Komikku </h1>
+<img src="./.github/readme-images/app-icon.png" alt="Komikku icon" width="120" height="120" />
 
-| Releases | Preview |
-|----------|---------|
-| <div align="center"> [![GitHub downloads](https://img.shields.io/github/downloads/komikku-app/komikku/latest/total?label=Latest%20Downloads&labelColor=27303D&color=0D1117&logo=github&logoColor=FFFFFF&style=flat)](https://github.com/komikku-app/komikku/releases/latest) [![GitHub downloads](https://img.shields.io/github/downloads/komikku-app/komikku/total?label=Total%20Downloads&labelColor=27303D&color=0D1117&logo=github&logoColor=FFFFFF&style=flat)](https://github.com/komikku-app/komikku/releases) [![Stable build](https://img.shields.io/github/actions/workflow/status/komikku-app/komikku/build_release.yml?labelColor=27303D&label=Stable&labelColor=06599d&color=043b69)](https://github.com/komikku-app/komikku/actions/workflows/build_release.yml) | <div align="center"> [![GitHub downloads](https://img.shields.io/github/downloads/komikku-app/komikku-preview/latest/total?label=Latest%20Downloads&labelColor=27303D&color=0D1117&logo=github&logoColor=FFFFFF&style=flat)](https://github.com/komikku-app/komikku-preview/releases/latest) [![GitHub downloads](https://img.shields.io/github/downloads/komikku-app/komikku-preview/total?label=Total%20Downloads&labelColor=27303D&color=0D1117&logo=github&logoColor=FFFFFF&style=flat)](https://github.com/komikku-app/komikku-preview/releases) [![Preview build](https://img.shields.io/github/actions/workflow/status/komikku-app/komikku-preview/build_app.yml?labelColor=27303D&label=Preview&labelColor=2c2c47&color=1c1c39)](https://github.com/komikku-app/komikku-preview/actions/workflows/build_app.yml) |
+An Android client for **Suwayomi-Server**, adapted from [Komikku](https://github.com/komikku-app/komikku). It retains Komikku's native navigation, library, manga details, and configurable reader while using Suwayomi for the library, sources, reading progress, trackers, and downloads.
 
-*Requires Android 8.0 or higher.*
+This fork requires a reachable server and uses one active server/account connection. Android 8.0 (API 26) or later is required. The upstream Komikku APK is a separate application; build this repository to use this adaptation.
 
-[![Discord](https://img.shields.io/discord/1242381704459452488.svg?label=&labelColor=6A7EC2&color=7389D8&logo=discord&logoColor=FFFFFF)](https://discord.gg/85jB7V5AJR)
-[![CI](https://img.shields.io/github/actions/workflow/status/komikku-app/komikku/build_push.yml?labelColor=27303D&label=CI)](https://github.com/komikku-app/komikku/actions/workflows/build_push.yml)
-[![License: Apache-2.0](https://img.shields.io/github/license/komikku-app/komikku?labelColor=27303D&color=0877d2)](/LICENSE)
-[![Translation status](https://img.shields.io/weblate/progress/komikku-app?labelColor=27303D&color=946300)](https://hosted.weblate.org/engage/komikku-app/)
+## How it works
 
-## Download
+The app keeps Komikku's **Library, Updates, History, Browse, and More** tabs. Existing content and scroll position remain visible while background refreshes fetch updated server data.
 
-[![Stable](https://img.shields.io/github/release/komikku-app/komikku.svg?maxAge=3600&label=Stable&labelColor=06599d&color=043b69)](https://github.com/komikku-app/komikku/releases/latest)
-[![Preview](https://img.shields.io/github/v/release/komikku-app/komikku-preview.svg?maxAge=3600&label=Preview&labelColor=2c2c47&color=1c1c39)](https://github.com/komikku-app/komikku-preview/releases/latest)
+Suwayomi owns the library and executes source extensions. The phone displays temporary server projections and streams chapter pages through the authenticated connection. Existing phone-local Komikku libraries are not imported into the server.
 
-*Requires Android 8.0 or higher.*
+On servers with a shared library, changes to manga, categories, reading state, settings, trackers, and the download queue can affect other clients. Per-user isolation depends on the server's API and permissions.
 
-[![Sponsor me on GitHub](https://custom-icon-badges.demolab.com/badge/-Sponsor-ea4aaa?style=for-the-badge&logo=heart&logoColor=white)](https://github.com/sponsors/cuong-tran "Sponsor me on GitHub")
+## Supported workflows
 
-<div align="left">
-A free and open source manga reader which is based off TachiyomiSY & Mihon/Tachiyomi. This fork is meant to provide new & useful features while regularly take features/updates from Mihon or other forks like SY, J2K and Neko...
+- **Library:** native cover grids and lists, badges, search, filters, sorting, grouping, category management, and bulk actions.
+- **Reading:** Komikku's reader modes, themes, gestures, chapter controls, server progress/resume, read/unread state, and bookmarks.
+- **Updates and history:** server-backed chapter updates and recent reading with pagination.
+- **Browse:** authenticated provider logos, individual source browsing and search, popular/latest lists, source filters, and global manga search across providers. Browse and global search respect the server WebUI's saved language and enabled-source restrictions.
+- **Downloads:** view and control the server queue, including start/pause, reorder, cancel, and clear. Files remain on the server.
+- **Trackers:** use server-managed accounts, manga bindings, search, and record updates.
+- **Administration:** manage server extensions, repositories, source preferences, and supported update/download settings. Some administration opens the server WebUI, which authenticates separately.
+- **Synchronization:** background revalidation preserves loaded content. Reading changes use a persistent, connection-specific queue; failures or conflicting results remain visible for retry or discard.
 
-![screenshots of app](./.github/readme-images/screens.png)
+## Connect to a server
 
-<div align="left">
+1. Set up Suwayomi-Server and install/configure its source extensions. Configure the languages and providers you want to browse in the server WebUI.
+2. Open the app and enter the full server URL, including any reverse-proxy path prefix.
+3. Select the authentication mode configured on the server: `NONE`, `BASIC_AUTH`, `SIMPLE_LOGIN`, or `UI_LOGIN`. Enter credentials when required.
+4. Connect to load the server library. Use Browse to find manga through the server's providers.
 
-## Features
+Use HTTPS outside a trusted network. Connection credentials are encrypted with Android Keystore and stored in the app's no-backup directory. Authentication also applies to images and subscriptions.
 
-### Komikku's unique features:
-- `Suggestions` automatically showing source-website's recommendations / suggestions / related to current entry for all sources.
-- `Hidden categories` to hide yours things from *nosy* people.
-- `Auto theme color` based on each entry's cover for entry View & Reader.
-- `App custom theme` with `Color palettes` for endless color lover.
-- `Bulk-favorite` multiple entries all at once.
-- Source & Language icon on Library & various places. (Some language flags are not really accurate)
-- `Feed` now supports **all** sources, with more items (20 for now).
-- Fast browsing (for who with large library experiencing slow loading)
-- Grouped entries in Update tab (inspired by J2K).
-- Update notification with manga cover.
-- Auto `2-way sync` progress with trackers.
-- Chips for `Saved search` in source browse
-- `Panorama cover` showing wide cover in full.
-- `Merge multiple` library entries together at same time.
-- `Range-selection` for Migration.
-- Ability to `enable/disable repo`, with icon.
-- `Update Error` screen & migrating them away.
-- `to-be-updated` screen: which entries are going to be checked with smart-update?
-- `Search for sources` & Quick NSFW sources filter in Extensions, Browse & Migration screen.
-- `Feed` backup/restore/sync/re-order.
-- Long-click to add/remove single entry to/from library, everywhere.
-- Docking Read/Resume button to left/right.
-- In-app progress banner shows Library syncing / Backup restoring / Library updating progress.
-- Auto-install app update.
-- Configurable interval to refresh entries from downloaded storage.
-- Forked from SY so everything from SY.
-- Always up-to-date with Mihon & SY
-- More app themes & better UI, improvements...
+### Server compatibility
 
+The implementation has been validated against these API contracts:
 
-<details>
-  <summary>Features from Mihon / Tachiyomi</summary>
+| Server | Library model |
+| --- | --- |
+| Suwayomi-Server **v2.4.2366** | One shared library |
+| Suwayomi-Server **v2.4.2424**, commit `e2ce828abb81f0f5ce1a3fb86194a2746b519c85` | Per-user API inspected on 2026-10-18 |
 
-#### All up-to-date features from Mihon / Tachiyomi (original), include:
+Connection setup checks actual schema capabilities and protected reads. These are tested contracts, not a guarantee that every server release supports every operation. Available features depend on the server version and account permissions. Authentication mode must be selected during setup.
 
-* Online reading from a variety of sources
-* Local reading of downloaded content
-* A configurable reader with multiple viewers, reading directions and other settings.
-* Tracker support: [MyAnimeList](https://myanimelist.net/), [AniList](https://anilist.co/), [Kitsu](https://kitsu.app/), [MangaUpdates](https://mangaupdates.com), [Shikimori](https://shikimori.one), [Bangumi](https://bgm.tv/)
-* Categories to organize your library
-* Light and dark themes
-* Schedule updating your library for new chapters
-* Create backups locally to read offline or to your desired cloud service
-* Continue reading button in library
+## Current limits
 
-</details>
+- **No phone offline-reading mode.** Server downloads are not device downloads; a reachable server is required. Image caching and queued reading changes do not provide an offline library.
+- Android source APKs are not executed by this client. Install extensions on the server.
+- Upstream workflows such as feeds, merged manga, recommendations, source migration, widgets, and phone-local backup/cloud-sync are not fully integrated into the server-backed app.
+- Independent history deletion and reading-duration statistics require further server API integration.
+- Only selected reading preferences synchronize through the server. Presentation and device settings, such as brightness and orientation, remain local.
+- Incognito suppresses new personal reading-state writes from the app, but page requests and server-managed activity can still be observed by the server.
 
-<details>
-  <summary>Features from Tachiyomi SY</summary>
+## Build and install
 
-#### All features from TachiyomiSY:
-* Feed tab, where you can easily view the latest entries or saved search from multiple sources at same time.
-* Automatic webtoon detection, allowing the reader to switch to webtoon mode automatically when viewing one
-* Manga recommendations, uses MAL and Anilist, as well as Neko Similar Manga for Mangadex manga (Thanks to Az, She11Shocked, Carlos, and Goldbattle)
-* Lewd filter, hide the lewd manga in your library when you want to
-* Tracking filter, filter your tracked manga so you can see them or see non-tracked manga, made by She11Shocked
-* Search tracking status in library, made by She11Shocked
-* Custom categories for sources, liked the pinned sources, but you can make your own versions and put any sources in them
-* Manga info edit
-* Manga Cover view + share and save
-* Dynamic Categories, view the library in multiple ways
-* Smart background for reading modes like LTR or Vertical, changes the background based on the page color
-* Force disable webtoon zoom
-* Hentai features enable/disable, in advanced settings
-* Quick clean titles
-* Source migration, migrate all your manga from one source to another
-* Saving searches
-* Autoscroll
-* Page preload customization
-* Customize image cache size
-* Batch import of custom sources and featured extensions
-* Advanced source settings page, searching, enable/disable all
-* Click tag for local search, long click tag for global search
-* Merge multiple of the same manga from different sources
-* Drag and drop library sorting
-* Library search engine, includes exclude, quotes as absolute, and a bunch of other ways to search
-* New E-Hentai/ExHentai features, such as language settings and watched list settings
-* Enhanced views for internal and integrated sources
-* Enhanced usability for internal and delegated sources
+Use **JDK 21** and **Android SDK 36**. The repository includes the Gradle wrapper; bytecode targets Java 17. Configure the SDK through Android Studio or `sdk.dir` in your local `local.properties`.
 
-Custom sources:
-* E-Hentai/ExHentai
+```sh
+git clone https://github.com/MathisVerstrepen/komikku-suwayomi.git
+cd komikku-suwayomi
+./gradlew spotlessApply
+./gradlew spotlessCheck
+./gradlew assembleDebug
+```
 
-Additional features for some extensions, features include custom description, opening in app, batch add to library, and a bunch of other things based on the source:
-* 8Muses (EroMuse)
-* Mangadex
-* NHentai
-* Puruin
-* LANraragi
+Debug APKs are written under `app/build/outputs/apk/debug/`. To install on a connected device or emulator:
 
-</details>
+```sh
+./gradlew installDebug
+```
 
-## Issues, Feature Requests and Contributing
+The debug package is `app.komikku.dev`. The inherited release package is `app.komikku`; consider package identity before installing alongside another Komikku build. Default builds do not require Firebase or Google OAuth secrets.
 
-Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.
+### Tests
 
-<details><summary>Issues</summary>
+Run the Suwayomi unit tests with:
 
-[Website](https://komikku-app.github.io/)
+```sh
+./gradlew :app:testDebugUnitTest --tests '*Suwayomi*Test'
+```
 
-1. **Before reporting a new issue, take a look at the [FAQ](https://komikku-app.github.io/docs/faq/general), the [changelog](https://github.com/komikku-app/komikku/releases) and the already opened [issues](https://github.com/komikku-app/komikku/issues).**
-2. If you are unsure, ask here: [![Discord](https://img.shields.io/discord/1242381704459452488.svg?label=&labelColor=6A7EC2&color=7389D8&logo=discord&logoColor=FFFFFF)](https://discord.gg/85jB7V5AJR)
+Live-server tests are opt-in and skip without their environment configuration. `SuwayomiReadOnlyServerTest` exercises authenticated reads. **`SuwayomiLiveServerTest` changes server data and must use a disposable test server.** The [acceptance fixture script](./scripts/suwayomi_acceptance_fixture.py) supports isolated acceptance testing.
 
-</details>
+## Issues and contributions
 
-<details><summary>Bugs</summary>
+Report adaptation bugs and feature requests in [this repository's issue tracker](https://github.com/MathisVerstrepen/komikku-suwayomi/issues). Include the app version or commit, server version and authentication mode, Android version, reproduction steps, and relevant redacted logs/screenshots. Keep passwords, tokens, and private server data out of reports.
 
-* Include version (More → About → Version)
- * If not latest, try updating, it may have already been solved
- * Preview version is equal to the number of commits as seen on the main page
-* Include steps to reproduce (if not obvious from description)
-* Include screenshot (if needed)
-* If it could be device-dependent, try reproducing on another device (if possible)
-* Don't group unrelated requests into one issue
+Follow [AGENTS.md](./AGENTS.md) for repository conventions and required checks. Kotlin/XML changes require `spotlessApply`, `spotlessCheck`, and `assembleDebug`, in that order. New fork-specific strings belong in the base locale of `i18n-kmk`; changes to existing code use `KMK` markers. The inherited [contribution guide](./CONTRIBUTING.md) provides upstream development background; its upstream community links and standalone feature instructions may not apply to this adaptation. See also the [Code of Conduct](./CODE_OF_CONDUCT.md).
 
-Use the [issue forms](https://github.com/komikku-app/komikku/issues/new/choose) to submit a bug.
+## Credits and license
 
-</details>
+Built on [Komikku](https://github.com/komikku-app/komikku), [Mihon](https://github.com/mihonapp/mihon), [TachiyomiSY](https://github.com/jobobby04/TachiyomiSY), and Tachiyomi, with thanks to their contributors. Server functionality is provided by [Suwayomi-Server](https://github.com/Suwayomi/Suwayomi-Server).
 
-<details><summary>Feature Requests</summary>
+This application hosts no manga content and is not affiliated with the content providers available through server extensions.
 
-* Write a detailed issue, explaining what it should do or how.
-* Include screenshot (if needed).
-</details>
+Licensed under the [Apache License 2.0](./LICENSE).
 
-<details><summary>Contributing</summary>
-
-See [CONTRIBUTING.md](./CONTRIBUTING.md).
-</details>
-
-<details><summary>Code of Conduct</summary>
-
-See [CODE_OF_CONDUCT.md](./CODE_OF_CONDUCT.md).
-</details>
-
-<div align="center">
-
-### Credits
-
-Thank you to all the people who have contributed!
-
-<a href="https://github.com/komikku-app/komikku/graphs/contributors">
-    <img src="https://contrib.rocks/image?repo=komikku-app/komikku" alt="Komikku app contributors" title="Komikku app contributors" width="800"/>
-</a>
-
-![Visitor Count](https://count.getloli.com/get/@komikku-app?theme=capoo-2)
-
-### Disclaimer
-
-The developer(s) of this application does not have any affiliation with the content providers available, and this application hosts zero content.
-
-<div align="left">
-
-## License
-
-    Copyright 2015 Javier Tomás
-
-    Licensed under the Apache License, Version 2.0 (the "License");
-    you may not use this file except in compliance with the License.
-    You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-    Unless required by applicable law or agreed to in writing, software
-    distributed under the License is distributed on an "AS IS" BASIS,
-    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-    See the License for the specific language governing permissions and
-    limitations under the License.
+Copyright 2015 Javier Tomás. See the license and source files for additional notices.

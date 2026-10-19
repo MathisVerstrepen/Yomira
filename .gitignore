@@ -25,3 +25,4 @@ app/standard/preview/*
 .agents
 .local
 SUWAYOMI_IMPLEMENTATION_HANDOFF.md
+/SUWAYOMI_BACKEND_STATUS.md
