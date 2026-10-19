@@ -14,6 +14,15 @@ import org.junit.jupiter.api.Test
 
 class SuwayomiAdministrationTest {
     @Test
+    fun `source list summary shows selected entry label with default fallback`() {
+        val preference = ServerPreference("ListPreference", summary = "%s", valueString = "medium", defaultString = "original", entries = listOf("Original", "Medium"), entryValues = listOf("original", "medium"))
+        assertEquals("Medium", preference.displaySummary())
+        assertEquals("Original", preference.copy(valueString = null).displaySummary())
+        assertEquals("Quality: Medium", preference.copy(summary = "Quality: %1\$s").displaySummary())
+        assertEquals("%s", preference.copy(type = "EditTextPreference").displaySummary())
+    }
+
+    @Test
     fun `extension details use package identity and retain every source language`() = runBlocking<Unit> {
         val session = mockk<SuwayomiSession>()
         coEvery { session.execute(any(), any()) } returns Json.parseToJsonElement("""{"extension":{"source":{"nodes":[{"id":"7","name":"Provider","lang":"en","iconUrl":"/icon.png","supportsLatest":true},{"id":"8","name":"Provider","lang":"fr","iconUrl":"/icon.png","supportsLatest":false}]}}}""").jsonObject

@@ -36,6 +36,14 @@ data class ServerPreference(
     val entries: List<String> = emptyList(),
     val entryValues: List<String> = emptyList(),
 ) {
+    /** Android list preferences use the selected entry's label in their summary template. */
+    fun displaySummary(): String? {
+        if (type != "ListPreference") return summary
+        val value = valueString ?: defaultString.orEmpty()
+        val label = entries.getOrNull(entryValues.indexOf(value)) ?: value
+        return summary?.replace("%1\$s", label)?.replace("%s", label)
+    }
+
     fun sameSchema(other: ServerPreference): Boolean = type == other.type && key == other.key && entryValues == other.entryValues
 }
 

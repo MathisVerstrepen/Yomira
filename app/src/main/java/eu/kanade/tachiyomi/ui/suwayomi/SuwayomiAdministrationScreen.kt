@@ -191,7 +191,7 @@ private fun SourcePreference(preference: ServerPreference, enabled: Boolean, cha
     val editable = enabled && preference.enabled
     Column {
         Text(preference.title.orEmpty(), style = MaterialTheme.typography.titleSmall)
-        preference.summary?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
+        preference.displaySummary()?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
         when (preference.type) {
             "SwitchPreference", "CheckBoxPreference" -> Checkbox(preference.valueBool ?: preference.defaultBool ?: false, { change(if (preference.type == "SwitchPreference") "switchState" else "checkBoxState", JsonPrimitive(it)) }, enabled = editable)
             "EditTextPreference", "ListPreference", "MultiSelectListPreference" -> TextButton(onClick = { editing = true }, enabled = editable) { Text(stringResource(KMR.strings.suwayomi_edit_preference)) }
