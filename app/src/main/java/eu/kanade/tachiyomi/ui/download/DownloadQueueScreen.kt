@@ -24,6 +24,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -72,7 +73,7 @@ object DownloadQueueScreen : Screen() {
     override fun Content() {
         // KMK -->
         if (eu.kanade.tachiyomi.data.suwayomi.SuwayomiMode.enabled) {
-            eu.kanade.tachiyomi.ui.suwayomi.SuwayomiDownloadQueuePresenter()
+            eu.kanade.tachiyomi.ui.suwayomi.SuwayomiDownloadQueuePresenter(this)
             return
         }
         // KMK <--
@@ -88,7 +89,6 @@ object DownloadQueueScreen : Screen() {
 @Composable
 internal fun DownloadQueueContent(screenModel: DownloadQueueController) {
     val navigator = LocalNavigator.currentOrThrow
-    val scope = rememberCoroutineScope()
     val context = androidx.compose.ui.platform.LocalContext.current
     val loading by screenModel.isLoading.collectAsState()
     val hasLoaded by screenModel.hasLoaded.collectAsState()
@@ -318,53 +318,42 @@ internal fun DownloadQueueContent(screenModel: DownloadQueueController) {
         val colorScheme = AndroidViewColorScheme(MaterialTheme.colorScheme)
         // KMK <--
 
-        Box(modifier = Modifier.nestedScroll(nestedScrollConnection)) {
-            AndroidView(
-                modifier = Modifier.fillMaxWidth(),
-                factory = { context ->
-                    screenModel.controllerBinding = DownloadListBinding.inflate(LayoutInflater.from(context))
-                    screenModel.adapter = DownloadAdapter(
-                        screenModel.listener,
-                        // KMK -->
-                        colorScheme,
-                        // KMK <--
-                    )
-                    screenModel.controllerBinding.root.adapter = screenModel.adapter
-                    // KMK -->
-                    screenModel.adapter?.isHandleDragEnabled = controls
-                    screenModel.adapter?.canControlQueue = controls
-                    // KMK <--
-                    screenModel.controllerBinding.root.layoutManager = LinearLayoutManager(context)
-
-                    ViewCompat.setNestedScrollingEnabled(screenModel.controllerBinding.root, true)
-
-                    scope.launchUI {
-                        screenModel.getDownloadStatusFlow()
-                            .collect(screenModel::onStatusChange)
-                    }
-                    scope.launchUI {
-                        screenModel.getDownloadProgressFlow()
-                            .collect(screenModel::onUpdateDownloadedPages)
-                    }
-
-                    screenModel.controllerBinding.root
-                },
-                update = {
-                    screenModel.controllerBinding.root
-                        .updatePadding(
-                            left = left,
-                            top = top,
-                            right = right,
-                            bottom = bottom,
-                        )
-
-                    // KMK -->
-                    screenModel.adapter?.isHandleDragEnabled = controls
-                    screenModel.adapter?.canControlQueue = controls
-                    // KMK <--
-                    screenModel.adapter?.updateDataSet(downloadList)
-                },
-            )
+        // The native view and collectors belong to this specific controller instance.
+        key(screenModel) {
+            val viewScope = rememberCoroutineScope()
+            Box(modifier = Modifier.nestedScroll(nestedScrollConnection)) {
+                AndroidView(
+                    modifier = Modifier.fillMaxWidth(),
+                    factory = { context ->
+                        val binding = DownloadListBinding.inflate(LayoutInflater.from(context))
+                        val adapter = DownloadAdapter(screenModel.listener, colorScheme)
+                        binding.root.adapter = adapter
+                        binding.root.layoutManager = LinearLayoutManager(context)
+                        ViewCompat.setNestedScrollingEnabled(binding.root, true)
+                        screenModel.attachView(binding, adapter)
+                        viewScope.launchUI {
+                            screenModel.getDownloadStatusFlow().collect(screenModel::onStatusChange)
+                        }
+                        viewScope.launchUI {
+                            screenModel.getDownloadProgressFlow().collect(screenModel::onUpdateDownloadedPages)
+                        }
+                        binding.root
+                    },
+                    update = { view ->
+                        // Use AndroidView's actual view, rather than a potentially replaced controller's binding.
+                        view.updatePadding(left = left, top = top, right = right, bottom = bottom)
+                        (view.adapter as? DownloadAdapter)?.apply {
+                            isHandleDragEnabled = controls
+                            canControlQueue = controls
+                            updateDataSet(downloadList)
+                        }
+                    },
+                    onRelease = { view ->
+                        screenModel.detachView(view)
+                        view.adapter = null
+                    },
+                )
+            }
         }
     }
 }

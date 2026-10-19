@@ -148,7 +148,7 @@ class SuwayomiDownloadsModel(private val sessionId: String) : StateScreenModel<S
 class SuwayomiDownloadsScreen(private val sessionId: String) : Screen() {
     @Composable
     override fun Content() {
-        SuwayomiDownloadQueuePresenter(sessionId)
+        SuwayomiDownloadQueuePresenter(this, sessionId)
     }
 }
 // KMK <--

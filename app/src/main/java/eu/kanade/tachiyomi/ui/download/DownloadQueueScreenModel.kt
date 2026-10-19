@@ -36,7 +36,9 @@ class DownloadQueueScreenModel(
     private val _state = MutableStateFlow(emptyList<DownloadHeaderItem>())
     /* KMK --> */ override /* KMK <-- */ val state = _state.asStateFlow()
 
-    /* KMK --> */ override /* KMK <-- */ lateinit var controllerBinding: DownloadListBinding
+    // KMK -->
+    override var controllerBinding: DownloadListBinding? = null
+    // KMK <--
 
     /**
      * Adapter containing the active downloads.
@@ -153,6 +155,9 @@ class DownloadQueueScreenModel(
         }
         progressJobs.clear()
         adapter = null
+        // KMK -->
+        controllerBinding = null
+        // KMK <--
     }
 
     /* KMK --> */ override /* KMK <-- */ val isDownloaderRunning = downloadManager.isDownloaderRunning
@@ -303,6 +308,8 @@ class DownloadQueueScreenModel(
     // KMK -->
     private fun getHolder(download: eu.kanade.tachiyomi.data.download.model.DownloadDisplay): DownloadHolder? {
         // KMK <--
-        return controllerBinding.root.findViewHolderForItemId(download.chapter.id) as? DownloadHolder
+        // KMK -->
+        return controllerBinding?.root?.findViewHolderForItemId(download.chapter.id) as? DownloadHolder
+        // KMK <--
     }
 }
