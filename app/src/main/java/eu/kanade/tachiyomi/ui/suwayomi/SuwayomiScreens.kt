@@ -26,8 +26,6 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -44,7 +42,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -64,7 +61,6 @@ import eu.kanade.presentation.more.settings.screen.SettingsAppearanceScreen
 import eu.kanade.presentation.more.settings.screen.SettingsReaderScreen
 import eu.kanade.presentation.util.Screen
 import eu.kanade.tachiyomi.data.suwayomi.ChapterIntentKind
-import eu.kanade.tachiyomi.data.suwayomi.SuwayomiAuthMode
 import eu.kanade.tachiyomi.data.suwayomi.SuwayomiBackend
 import eu.kanade.tachiyomi.data.suwayomi.SuwayomiFailure
 import eu.kanade.tachiyomi.data.suwayomi.SuwayomiMode
@@ -103,14 +99,16 @@ object SuwayomiHomeScreen : Screen() {
         var password by remember { mutableStateOf("") }
         LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { model.refresh() }
         Scaffold(topBar = {
-            eu.kanade.presentation.components.AppBar(
-                title = stringResource(KMR.strings.suwayomi_connect),
-                navigateUp = if (navigator.canPop) {
-                    { navigator.pop() }
-                } else {
-                    null
-                },
-            )
+            if (state.session != null || navigator.canPop) {
+                eu.kanade.presentation.components.AppBar(
+                    title = if (state.session != null) stringResource(KMR.strings.suwayomi_setup_connection) else "",
+                    navigateUp = if (navigator.canPop) {
+                        { navigator.pop() }
+                    } else {
+                        null
+                    },
+                )
+            }
         }) { padding ->
             if (state.session == null) {
                 Column(Modifier.padding(padding)) { ServerSetup(state.loading, state.error, model::connect) }
@@ -203,39 +201,6 @@ object SuwayomiHomeScreen : Screen() {
                 },
             )
         }
-    }
-}
-
-@Composable
-internal fun ServerSetup(loading: Boolean, error: SuwayomiFailure?, connect: (String, SuwayomiAuthMode, String, String) -> Any, initialUrl: String = "") {
-    var url by rememberSaveable { mutableStateOf(initialUrl) }
-    var mode by rememberSaveable { mutableStateOf(SuwayomiAuthMode.NONE) }
-    var username by rememberSaveable { mutableStateOf("") }
-    // Credentials must not be serialized into saved-instance-state or screenshots of diagnostics.
-    var password by remember { mutableStateOf("") }
-    var modes by remember { mutableStateOf(false) }
-    Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        Text(stringResource(KMR.strings.suwayomi_connect), style = MaterialTheme.typography.headlineSmall)
-        Text(stringResource(KMR.strings.suwayomi_setup_notice))
-        OutlinedTextField(url, { url = it }, keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Uri, autoCorrectEnabled = false), label = { Text(stringResource(KMR.strings.suwayomi_server_url)) }, singleLine = true, enabled = !loading, modifier = Modifier.fillMaxWidth())
-        Box {
-            TextButton(onClick = { modes = true }, enabled = !loading) { Text(stringResource(KMR.strings.suwayomi_authentication) + ": " + mode.name) }
-            DropdownMenu(modes, { modes = false }) {
-                SuwayomiAuthMode.entries.forEach { item ->
-                    DropdownMenuItem(text = { Text(item.name) }, onClick = {
-                        mode = item
-                        modes = false
-                    })
-                }
-            }
-        }
-        if (mode != SuwayomiAuthMode.NONE) {
-            OutlinedTextField(username, { username = it }, label = { Text(stringResource(KMR.strings.suwayomi_username)) }, singleLine = true, enabled = !loading, modifier = Modifier.fillMaxWidth())
-            OutlinedTextField(password, { password = it }, label = { Text(stringResource(KMR.strings.suwayomi_password)) }, singleLine = true, visualTransformation = PasswordVisualTransformation(), keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Password, autoCorrectEnabled = false), enabled = !loading, modifier = Modifier.fillMaxWidth())
-        }
-        error?.let { Text(failureText(it), color = MaterialTheme.colorScheme.error) }
-        Button(onClick = { connect(url, mode, username, password) }, enabled = !loading && url.isNotBlank()) { Text(stringResource(KMR.strings.suwayomi_connect)) }
-        if (loading) CircularProgressIndicator()
     }
 }
 

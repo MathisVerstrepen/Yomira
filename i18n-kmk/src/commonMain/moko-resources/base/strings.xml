@@ -485,4 +485,25 @@
     <string name="suwayomi_download_saved_count">%1$d of %2$d downloaded</string>
     <string name="suwayomi_download_selection_count">Selected chapters: %1$d</string>
     <string name="suwayomi_remove_from_server">Remove from server</string>
+    <string name="suwayomi_setup_connection">Server connection</string>
+    <string name="suwayomi_setup_brand">FOR SUWAYOMI</string>
+    <string name="suwayomi_setup_welcome">Your library.\nYour next chapter.</string>
+    <string name="suwayomi_setup_intro">Bring your Suwayomi library and reading progress to this phone.</string>
+    <string name="suwayomi_setup_url_example" translatable="false">https://server.example</string>
+    <string name="suwayomi_setup_url_hint">Include any server proxy path.</string>
+    <string name="suwayomi_setup_url_error">Enter a valid server address, such as https://server.example.</string>
+    <string name="suwayomi_setup_sign_in_method">Sign-in method</string>
+    <string name="suwayomi_setup_auth_account">Server account</string>
+    <string name="suwayomi_setup_auth_none">No sign-in</string>
+    <string name="suwayomi_setup_auth_basic">HTTP Basic authentication</string>
+    <string name="suwayomi_setup_auth_legacy">Simple login (legacy)</string>
+    <string name="suwayomi_setup_username_error">Enter your server username.</string>
+    <string name="suwayomi_setup_password_error">Enter your server password.</string>
+    <string name="suwayomi_setup_show_password">Show password</string>
+    <string name="suwayomi_setup_hide_password">Hide password</string>
+    <string name="suwayomi_setup_http">HTTP isn’t encrypted. Use HTTPS outside your local network.</string>
+    <string name="suwayomi_setup_auth_error">Couldn’t sign in. Check your username, password, and sign-in method.</string>
+    <string name="suwayomi_setup_response_error">Couldn’t connect to Suwayomi at this address. Check the address and sign-in method.</string>
+    <string name="suwayomi_setup_connect">Connect</string>
+    <string name="suwayomi_setup_connecting">Connecting…</string>
 </resources>
