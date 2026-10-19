@@ -126,18 +126,14 @@ internal fun ServerSetup(
             modifier = Modifier.widthIn(max = 480.dp).fillMaxWidth().verticalScroll(rememberScrollState()).padding(24.dp),
             verticalArrangement = Arrangement.spacedBy(24.dp),
         ) {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-                    Surface(shape = RoundedCornerShape(20.dp), color = colors.primaryContainer) {
-                        Icon(painterResource(R.drawable.ic_komikku), contentDescription = null, tint = colors.onPrimaryContainer, modifier = Modifier.padding(10.dp).size(28.dp))
-                    }
-                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                        Text(stringResource(MR.strings.app_name), style = MaterialTheme.typography.titleLarge)
-                        Text(stringResource(KMR.strings.suwayomi_setup_brand), style = MaterialTheme.typography.labelMedium, color = colors.onSurfaceVariant)
-                    }
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                Surface(shape = RoundedCornerShape(20.dp), color = colors.primaryContainer) {
+                    Icon(painterResource(R.drawable.ic_komikku), contentDescription = null, tint = colors.onPrimaryContainer, modifier = Modifier.padding(10.dp).size(28.dp))
                 }
-                Text(stringResource(KMR.strings.suwayomi_setup_welcome), style = MaterialTheme.typography.headlineLarge)
-                Text(stringResource(KMR.strings.suwayomi_setup_intro), style = MaterialTheme.typography.bodyMedium, color = colors.onSurfaceVariant)
+                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text(stringResource(MR.strings.app_name), style = MaterialTheme.typography.titleLarge)
+                    Text(stringResource(KMR.strings.suwayomi_setup_brand), style = MaterialTheme.typography.labelMedium, color = colors.onSurfaceVariant)
+                }
             }
             Surface(shape = RoundedCornerShape(24.dp), color = colors.surfaceContainer) {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
