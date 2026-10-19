@@ -99,9 +99,9 @@ object SuwayomiHomeScreen : Screen() {
         var password by remember { mutableStateOf("") }
         LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { model.refresh() }
         Scaffold(topBar = {
-            if (state.session != null || navigator.canPop) {
+            if (state.session != null) {
                 eu.kanade.presentation.components.AppBar(
-                    title = if (state.session != null) stringResource(KMR.strings.suwayomi_setup_connection) else "",
+                    title = stringResource(KMR.strings.suwayomi_setup_connection),
                     navigateUp = if (navigator.canPop) {
                         { navigator.pop() }
                     } else {
@@ -111,7 +111,14 @@ object SuwayomiHomeScreen : Screen() {
             }
         }) { padding ->
             if (state.session == null) {
-                Column(Modifier.padding(padding)) { ServerSetup(state.loading, state.error, model::connect) }
+                Column(Modifier.padding(padding)) {
+                    ServerSetup(
+                        state.loading,
+                        state.error,
+                        model::connect,
+                        navigateUp = if (navigator.canPop) ({ navigator.pop() }) else null,
+                    )
+                }
             } else {
                 val session = state.session!!
                 Column(Modifier.padding(padding).verticalScroll(rememberScrollState())) {

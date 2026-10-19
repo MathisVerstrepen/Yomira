@@ -19,6 +19,7 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.outlined.ExpandMore
 import androidx.compose.material.icons.outlined.Info
@@ -77,6 +78,7 @@ internal fun ServerSetup(
     connect: (String, SuwayomiAuthMode, String, String) -> Any,
     initialUrl: String = "",
     modifier: Modifier = Modifier,
+    navigateUp: (() -> Unit)? = null,
 ) {
     var url by rememberSaveable { mutableStateOf(initialUrl) }
     var mode by rememberSaveable { mutableStateOf(SuwayomiAuthMode.UI_LOGIN) }
@@ -123,7 +125,10 @@ internal fun ServerSetup(
         contentAlignment = Alignment.Center,
     ) {
         Column(
-            modifier = Modifier.widthIn(max = 480.dp).fillMaxWidth().verticalScroll(rememberScrollState()).padding(24.dp),
+            modifier = Modifier.widthIn(max = 480.dp).fillMaxWidth()
+                // Keep the form centered in the page while reserving room for back navigation.
+                .padding(vertical = if (navigateUp != null) 56.dp else 0.dp)
+                .verticalScroll(rememberScrollState()).padding(24.dp),
             verticalArrangement = Arrangement.spacedBy(24.dp),
         ) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
@@ -257,6 +262,11 @@ internal fun ServerSetup(
                         if (!loading) Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null, modifier = Modifier.padding(start = 8.dp).size(20.dp))
                     }
                 }
+            }
+        }
+        navigateUp?.let { back ->
+            IconButton(onClick = back, modifier = Modifier.align(Alignment.TopStart).padding(8.dp)) {
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(KMR.strings.suwayomi_back))
             }
         }
     }
