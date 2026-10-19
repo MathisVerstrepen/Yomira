@@ -442,7 +442,7 @@ class SuwayomiSession internal constructor(
     }
 
     companion object {
-        internal const val MANGA_FIELDS = "id url sourceId source {name lang} title thumbnailUrl thumbnailUrlLastFetched author artist description genre status categories {nodes {id name order}} user { inLibrary inLibraryAt unreadCount downloadCount bookmarkCount lastReadChapter {user {lastReadAt}} } meta { key value }"
+        internal const val MANGA_FIELDS = "id url sourceId source {name lang iconUrl} chapters {totalCount} title thumbnailUrl thumbnailUrlLastFetched author artist description genre status categories {nodes {id name order}} user { inLibrary inLibraryAt unreadCount downloadCount bookmarkCount lastReadChapter {user {lastReadAt}} } meta { key value }"
         internal const val CHAPTER_FIELDS = "id mangaId url manga {sourceId url} name chapterNumber sourceOrder scanlator uploadDate pageCount user { isRead isBookmarked lastPageRead lastReadAt isDownloaded }"
     }
 }

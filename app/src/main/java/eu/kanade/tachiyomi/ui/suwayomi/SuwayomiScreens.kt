@@ -102,7 +102,7 @@ object SuwayomiHomeScreen : Screen() {
         val incognito by preferences.incognitoMode().collectAsState()
         LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { model.refresh() }
         Scaffold(topBar = {
-            TopAppBar(title = { Text(stringResource(KMR.strings.suwayomi_library)) }, actions = {
+            TopAppBar(title = { Text(stringResource(KMR.strings.suwayomi_connect)) }, actions = {
                 if (state.session != null) {
                     IconButton(onClick = { model.refresh() }, enabled = !state.loading) {
                         Icon(Icons.Default.Refresh, stringResource(KMR.strings.suwayomi_reload))
@@ -198,7 +198,7 @@ object SuwayomiHomeScreen : Screen() {
                         if (session.sharedLibrary) Text(stringResource(KMR.strings.suwayomi_shared_library_notice), Modifier.padding(horizontal = 16.dp, vertical = 8.dp), style = MaterialTheme.typography.bodySmall)
                         if (incognito) Text(stringResource(KMR.strings.suwayomi_incognito_notice), Modifier.padding(16.dp), style = MaterialTheme.typography.bodySmall)
                         if (state.loading) LinearProgressIndicator(Modifier.fillMaxWidth())
-                        SuwayomiLibraryContent(state, model, navigator, incognito, Modifier.weight(1f))
+                        TextButton(onClick = { navigator.pop() }) { Text(stringResource(KMR.strings.suwayomi_back)) }
                     }
                 }
             }
@@ -425,7 +425,7 @@ internal fun ServerCover(session: SuwayomiSession, path: String?, modifier: Modi
 }
 
 @Composable
-private fun PendingChanges(session: SuwayomiSession) {
+internal fun PendingChanges(session: SuwayomiSession) {
     val pending by session.pending.collectAsState()
     val failure by session.mutationFailure.collectAsState()
     val scope = rememberCoroutineScope()
@@ -458,7 +458,7 @@ private fun PendingChanges(session: SuwayomiSession) {
 }
 
 @Composable
-private fun ConnectionError(failure: SuwayomiFailure, retry: () -> Unit, configure: (() -> Unit)? = null) {
+internal fun ConnectionError(failure: SuwayomiFailure, retry: () -> Unit, configure: (() -> Unit)? = null) {
     Column(Modifier.fillMaxWidth().padding(24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text(failureText(failure), color = MaterialTheme.colorScheme.error)
         Button(onClick = retry) { Text(stringResource(KMR.strings.suwayomi_retry)) }
@@ -467,16 +467,16 @@ private fun ConnectionError(failure: SuwayomiFailure, retry: () -> Unit, configu
 }
 
 @Composable
-internal fun failureText(failure: SuwayomiFailure): String = stringResource(
-    when (failure) {
-        SuwayomiFailure.CONNECTION_REQUIRED -> KMR.strings.suwayomi_connection_required
-        SuwayomiFailure.AUTHENTICATION_REQUIRED -> KMR.strings.suwayomi_auth_required
-        SuwayomiFailure.PERMISSION_DENIED -> KMR.strings.suwayomi_permission_denied
-        SuwayomiFailure.NETWORK -> KMR.strings.suwayomi_network_error
-        SuwayomiFailure.SERVER -> KMR.strings.suwayomi_server_error
-        SuwayomiFailure.CONTRACT -> KMR.strings.suwayomi_contract_error
-        SuwayomiFailure.UNSUPPORTED_SERVER -> KMR.strings.suwayomi_unsupported_server
-        SuwayomiFailure.SESSION_CHANGED -> KMR.strings.suwayomi_session_changed
-    },
-)
+internal fun failureText(failure: SuwayomiFailure): String = stringResource(failureResource(failure))
+
+internal fun failureResource(failure: SuwayomiFailure): dev.icerock.moko.resources.StringResource = when (failure) {
+    SuwayomiFailure.CONNECTION_REQUIRED -> KMR.strings.suwayomi_connection_required
+    SuwayomiFailure.AUTHENTICATION_REQUIRED -> KMR.strings.suwayomi_auth_required
+    SuwayomiFailure.PERMISSION_DENIED -> KMR.strings.suwayomi_permission_denied
+    SuwayomiFailure.NETWORK -> KMR.strings.suwayomi_network_error
+    SuwayomiFailure.SERVER -> KMR.strings.suwayomi_server_error
+    SuwayomiFailure.CONTRACT -> KMR.strings.suwayomi_contract_error
+    SuwayomiFailure.UNSUPPORTED_SERVER -> KMR.strings.suwayomi_unsupported_server
+    SuwayomiFailure.SESSION_CHANGED -> KMR.strings.suwayomi_session_changed
+}
 // KMK <--

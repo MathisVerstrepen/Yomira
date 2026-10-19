@@ -1,5 +1,6 @@
 package eu.kanade.presentation.library
 
+// KMK -->
 import android.content.res.Configuration
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -36,7 +37,7 @@ import eu.kanade.presentation.components.TabbedDialog
 import eu.kanade.presentation.components.TabbedDialogPaddings
 import eu.kanade.presentation.more.settings.widget.TriStateListDialog
 import eu.kanade.tachiyomi.R
-import eu.kanade.tachiyomi.ui.library.LibrarySettingsScreenModel
+import eu.kanade.tachiyomi.ui.library.LibrarySettingsController
 import eu.kanade.tachiyomi.util.system.isReleaseBuildType
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toImmutableList
@@ -64,11 +65,12 @@ import tachiyomi.presentation.core.components.TriStateItem
 import tachiyomi.presentation.core.components.material.TextButton
 import tachiyomi.presentation.core.i18n.stringResource
 import tachiyomi.presentation.core.util.collectAsState
+// KMK <--
 
 @Composable
 fun LibrarySettingsDialog(
     onDismissRequest: () -> Unit,
-    screenModel: LibrarySettingsScreenModel,
+    screenModel: /* KMK --> */ LibrarySettingsController /* KMK <-- */,
     category: Category?,
     // SY -->
     hasCategories: Boolean,
@@ -121,7 +123,7 @@ fun LibrarySettingsDialog(
 @Suppress("UnusedReceiverParameter")
 @Composable
 private fun ColumnScope.FilterPage(
-    screenModel: LibrarySettingsScreenModel,
+    screenModel: /* KMK --> */ LibrarySettingsController /* KMK <-- */,
     categories: List<Category>,
 ) {
     val filterDownloaded by screenModel.libraryPreferences.filterDownloaded().collectAsState()
@@ -163,7 +165,7 @@ private fun ColumnScope.FilterPage(
         onClick = { screenModel.toggleFilter(LibraryPreferences::filterCompleted) },
     )
     // TODO: re-enable when custom intervals are ready for stable
-    if ((!isReleaseBuildType) && LibraryPreferences.MANGA_OUTSIDE_RELEASE_PERIOD in autoUpdateMangaRestrictions) {
+    if (/* KMK --> */ !screenModel.serverBacked && /* KMK <-- */ (!isReleaseBuildType) && LibraryPreferences.MANGA_OUTSIDE_RELEASE_PERIOD in autoUpdateMangaRestrictions) {
         val filterIntervalCustom by screenModel.libraryPreferences.filterIntervalCustom().collectAsState()
         TriStateItem(
             label = stringResource(MR.strings.action_filter_interval_custom),
@@ -171,14 +173,20 @@ private fun ColumnScope.FilterPage(
             onClick = { screenModel.toggleFilter(LibraryPreferences::filterIntervalCustom) },
         )
     }
-    // SY -->
-    val filterLewd by screenModel.libraryPreferences.filterLewd().collectAsState()
-    TriStateItem(
-        label = stringResource(SYMR.strings.lewd),
-        state = filterLewd,
-        onClick = { screenModel.toggleFilter(LibraryPreferences::filterLewd) },
-    )
-    // SY <--
+    // KMK -->
+    if (!screenModel.serverBacked) {
+        // KMK <--
+        // SY -->
+        val filterLewd by screenModel.libraryPreferences.filterLewd().collectAsState()
+        TriStateItem(
+            label = stringResource(SYMR.strings.lewd),
+            state = filterLewd,
+            onClick = { screenModel.toggleFilter(LibraryPreferences::filterLewd) },
+        )
+        // SY <--
+        // KMK -->
+    }
+    // KMK <--
 
     // KMK -->
     CategoriesFilter(
@@ -219,7 +227,7 @@ private fun ColumnScope.FilterPage(
 @Composable
 private fun ColumnScope.SortPage(
     category: Category?,
-    screenModel: LibrarySettingsScreenModel,
+    screenModel: /* KMK --> */ LibrarySettingsController /* KMK <-- */,
 ) {
     val trackers by screenModel.trackersFlow.collectAsState()
     // SY -->
@@ -270,7 +278,9 @@ private fun ColumnScope.SortPage(
         )
     }
 
-    options.map { (titleRes, mode) ->
+    // KMK -->
+    options.filter { it.second in screenModel.supportedSorts }.map { (titleRes, mode) ->
+        // KMK <--
         if (mode == LibrarySort.Type.Random) {
             BaseSortItem(
                 label = stringResource(titleRes),
@@ -318,7 +328,7 @@ private val displayModes = listOf(
 @Suppress("UnusedReceiverParameter")
 @Composable
 private fun ColumnScope.DisplayPage(
-    screenModel: LibrarySettingsScreenModel,
+    screenModel: /* KMK --> */ LibrarySettingsController /* KMK <-- */,
 ) {
     val displayMode by screenModel.libraryPreferences.displayMode().collectAsState()
     SettingsChipRow(MR.strings.action_display_mode) {
@@ -365,10 +375,16 @@ private fun ColumnScope.DisplayPage(
         label = stringResource(MR.strings.action_display_unread_badge),
         pref = screenModel.libraryPreferences.unreadBadge(),
     )
-    CheckboxItem(
-        label = stringResource(MR.strings.action_display_local_badge),
-        pref = screenModel.libraryPreferences.localBadge(),
-    )
+    // KMK -->
+    if (!screenModel.serverBacked) {
+        // KMK <--
+        CheckboxItem(
+            label = stringResource(MR.strings.action_display_local_badge),
+            pref = screenModel.libraryPreferences.localBadge(),
+        )
+        // KMK -->
+    }
+    // KMK <--
     CheckboxItem(
         label = stringResource(MR.strings.action_display_language_badge),
         pref = screenModel.libraryPreferences.languageBadge(),
@@ -428,7 +444,7 @@ private fun groupTypeDrawableRes(type: Int): Int {
 @Suppress("UnusedReceiverParameter")
 @Composable
 private fun ColumnScope.GroupPage(
-    screenModel: LibrarySettingsScreenModel,
+    screenModel: /* KMK --> */ LibrarySettingsController /* KMK <-- */,
     hasCategories: Boolean,
 ) {
     val trackers by screenModel.trackersFlow.collectAsState()

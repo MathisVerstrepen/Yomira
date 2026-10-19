@@ -21,7 +21,7 @@ data class UpdatesWithRelations(
     val coverData: MangaCover,
 ) {
     // SY -->
-    val mangaTitle: String = getCustomMangaInfo.get(mangaId)?.title ?: ogMangaTitle
+    val mangaTitle: String = /* KMK --> */ if (mangaId < 0) ogMangaTitle else /* KMK <-- */ getCustomMangaInfo.get(mangaId)?.title ?: ogMangaTitle
 
     companion object {
         private val getCustomMangaInfo: GetCustomMangaInfo by injectLazy()

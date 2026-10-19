@@ -44,6 +44,12 @@ fun SourceIcon(
     source: Source,
     modifier: Modifier = Modifier,
 ) {
+    // KMK -->
+    if (source.iconUrl != null) {
+        AsyncImage(model = source.iconUrl, contentDescription = null, modifier = modifier.then(defaultModifier))
+        return
+    }
+    // KMK <--
     val icon = source.icon
 
     when {

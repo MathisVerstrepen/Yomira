@@ -50,7 +50,7 @@ data class Manga(
 
     // SY -->
     /* KMK --> */ @Transient /* KMK <-- */
-    private val customMangaInfo = if (favorite) {
+    private val customMangaInfo = if (/* KMK --> */ favorite && id > 0 /* KMK <-- */) {
         getCustomMangaInfo.get(id)
     } else {
         null

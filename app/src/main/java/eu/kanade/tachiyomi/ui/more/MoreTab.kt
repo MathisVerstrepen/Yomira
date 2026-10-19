@@ -62,11 +62,23 @@ data object MoreTab : Tab {
         }
 
     override suspend fun onReselect(navigator: Navigator) {
+        // KMK -->
+        if (eu.kanade.tachiyomi.data.suwayomi.SuwayomiMode.enabled) {
+            navigator.push(SettingsScreen())
+            return
+        }
+        // KMK <--
         navigator.push(SettingsScreen())
     }
 
     @Composable
     override fun Content() {
+        // KMK -->
+        if (eu.kanade.tachiyomi.data.suwayomi.SuwayomiMode.enabled) {
+            eu.kanade.tachiyomi.ui.suwayomi.SuwayomiMoreTab()
+            return
+        }
+        // KMK <--
         val context = LocalContext.current
         val navigator = LocalNavigator.currentOrThrow
         val screenModel = rememberScreenModel { MoreScreenModel() }

@@ -74,6 +74,8 @@ fun UpdateScreen(
     // KMK -->
     usePanoramaCover: Boolean,
     collapseToggle: (key: String) -> Unit,
+    onLoadMore: (() -> Unit)? = null,
+    showCalendar: Boolean = true,
     // KMK <--
 ) {
     BackHandler(enabled = state.selectionMode) {
@@ -83,7 +85,9 @@ fun UpdateScreen(
     Scaffold(
         topBar = { scrollBehavior ->
             UpdatesAppBar(
-                onCalendarClicked = { onCalendarClicked() },
+                // KMK -->
+                onCalendarClicked = if (showCalendar) onCalendarClicked else null,
+                // KMK <--
                 onUpdateLibrary = { onUpdateLibrary() },
                 onFilterClicked = { onFilterClicked() },
                 hasFilters = hasActiveFilters,
@@ -159,6 +163,14 @@ fun UpdateScreen(
                             onUpdateSwipe = onUpdateSwipe,
                             // KMK <--
                         )
+                        // KMK -->
+                        if (onLoadMore != null) {
+                            item(key = "server-next-page") {
+                                androidx.compose.runtime.LaunchedEffect(Unit) { onLoadMore() }
+                                androidx.compose.material3.CircularProgressIndicator()
+                            }
+                        }
+                        // KMK <--
                     }
                 }
             }
@@ -168,7 +180,9 @@ fun UpdateScreen(
 
 @Composable
 private fun UpdatesAppBar(
-    onCalendarClicked: () -> Unit,
+    // KMK -->
+    onCalendarClicked: (() -> Unit)?,
+    // KMK <--
     onUpdateLibrary: () -> Unit,
     onFilterClicked: () -> Unit,
     hasFilters: Boolean,
@@ -192,11 +206,21 @@ private fun UpdatesAppBar(
                         iconTint = if (hasFilters) MaterialTheme.colorScheme.active else LocalContentColor.current,
                         onClick = onFilterClicked,
                     ),
-                    AppBar.Action(
-                        title = stringResource(MR.strings.action_view_upcoming),
-                        icon = Icons.Outlined.CalendarMonth,
-                        onClick = onCalendarClicked,
-                    ),
+                    // KMK -->
+                    *if (onCalendarClicked == null) {
+                        emptyArray()
+                    } else {
+                        arrayOf(
+                            // KMK <--
+                            AppBar.Action(
+                                title = stringResource(MR.strings.action_view_upcoming),
+                                icon = Icons.Outlined.CalendarMonth,
+                                onClick = onCalendarClicked,
+                            ),
+                            // KMK -->
+                        )
+                    },
+                    // KMK <--
                     AppBar.Action(
                         title = stringResource(MR.strings.action_update_library),
                         icon = Icons.Outlined.Refresh,

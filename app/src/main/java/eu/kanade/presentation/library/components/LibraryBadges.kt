@@ -77,6 +77,10 @@ fun SourceIconBadge(
     source: Source?,
 ) {
     if (source == null) return
+    if (source.iconUrl != null) {
+        Badge(painter = coil3.compose.rememberAsyncImagePainter(source.iconUrl), color = Color.Transparent, modifier = Modifier.height(18.dp))
+        return
+    }
     val icon = source.icon
 
     when {

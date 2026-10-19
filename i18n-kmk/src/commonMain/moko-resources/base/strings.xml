@@ -424,4 +424,5 @@
     <string name="suwayomi_shared_settings_notice">These update and download options apply to the shared server library.</string>
     <string name="suwayomi_shared_tracking_notice">Tracker accounts, bindings, and progress belong to the shared server library.</string>
     <string name="suwayomi_unsupported_server">This server does not expose a supported library API. Check the server version and API compatibility.</string>
+    <string name="suwayomi_server_downloads_summary">Show titles with chapters downloaded on the server. A server connection is still required.</string>
 </resources>

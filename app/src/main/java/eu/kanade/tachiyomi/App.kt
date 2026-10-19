@@ -270,6 +270,9 @@ class App : Application(), DefaultLifecycleObserver, SingletonImageLoader.Factor
         return ImageLoader.Builder(this).apply {
             val callFactoryLazy = lazy { Injekt.get<NetworkHelper>().client }
             components {
+                // KMK -->
+                add(eu.kanade.tachiyomi.data.suwayomi.SuwayomiImages.StringFactory())
+                // KMK <--
                 // NetworkFetcher.Factory
                 add(OkHttpNetworkFetcherFactory(callFactoryLazy::value))
                 // Decoder.Factory

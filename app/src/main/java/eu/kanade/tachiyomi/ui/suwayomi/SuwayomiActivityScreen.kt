@@ -68,6 +68,8 @@ class SuwayomiActivityModel(private val sessionId: String, private val history: 
                 val session = backend.requireSession(sessionId)
                 if (fetch) session.updateLibraryOnServer()
                 val page = session.activityPage(history, if (next) state.value.cursor else null)
+                if (page.pageInfo.hasNextPage && (page.pageInfo.endCursor == null || (next && page.pageInfo.endCursor == state.value.cursor) || page.nodes.isEmpty())) throw eu.kanade.tachiyomi.data.suwayomi.SuwayomiException(SuwayomiFailure.CONTRACT)
+                backend.requireSession(sessionId)
                 val running = if (history) false else session.updateRunning()
                 mutableState.update {
                     it.copy(
@@ -83,6 +85,20 @@ class SuwayomiActivityModel(private val sessionId: String, private val history: 
                 mutableState.update { it.copy(loading = false, error = failure(e)) }
             }
         }
+    }
+    fun act(action: suspend (eu.kanade.tachiyomi.data.suwayomi.SuwayomiSession) -> Unit) = screenModelScope.launch(Dispatchers.IO) {
+        mutex.withLock {
+            mutableState.update { it.copy(loading = true, error = null) }
+            try {
+                action(backend.requireSession(sessionId))
+            } catch (e: Exception) {
+                if (e is CancellationException) throw e
+                mutableState.update { it.copy(loading = false, error = failure(e)) }
+                return@launch
+            }
+            mutableState.update { it.copy(loading = false) }
+        }
+        refresh()
     }
     data class State(val chapters: List<ServerActivityChapter> = emptyList(), val cursor: String? = null, val hasNext: Boolean = false, val loading: Boolean = true, val updating: Boolean = false, val error: SuwayomiFailure? = null)
 }

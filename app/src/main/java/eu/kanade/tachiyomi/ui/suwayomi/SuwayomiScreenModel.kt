@@ -82,7 +82,7 @@ class SuwayomiScreenModel(private val backend: SuwayomiBackend = Injekt.get()) :
 
     private suspend fun reload() = libraryMutex.withLock {
         val session = state.value.session ?: return@withLock
-        mutableState.update { it.copy(loading = true, error = null, mangas = emptyList(), hasNext = false, cursor = null) }
+        mutableState.update { it.copy(loading = true, error = null, hasNext = false, cursor = null) }
         try {
             session.flush()
             val user = session.user()
@@ -151,6 +151,30 @@ class SuwayomiScreenModel(private val backend: SuwayomiBackend = Injekt.get()) :
                 mutableState.update { it.copy(error = failure(e)) }
             } finally {
                 mutableState.update { it.copy(loading = false) }
+            }
+        }
+    }
+
+    fun selectionOperation(action: suspend (SuwayomiSession, ServerManga) -> Unit) = screenModelScope.launch(Dispatchers.IO) {
+        libraryMutex.withLock {
+            val current = state.value
+            val session = current.session ?: return@withLock
+            if (current.loading) return@withLock
+            mutableState.update { it.copy(loading = true, error = null) }
+            try {
+                for (manga in current.mangas.filter { it.id in current.selected }) {
+                    val remote = session.manga(manga.id)
+                    if (remote.sourceId != manga.sourceId || remote.url != manga.url) throw eu.kanade.tachiyomi.data.suwayomi.SuwayomiException(SuwayomiFailure.SESSION_CHANGED)
+                    action(session, remote)
+                    val updated = session.manga(manga.id)
+                    backend.requireSession(session.id)
+                    mutableState.update { value -> value.copy(selected = value.selected - manga.id, mangas = value.mangas.map { if (it.id == manga.id) updated else it }.filter { it.user.inLibrary }) }
+                }
+            } catch (e: Exception) {
+                if (e is CancellationException) throw e
+                if (state.value.session?.id == session.id) mutableState.update { it.copy(error = failure(e)) }
+            } finally {
+                if (state.value.session?.id == session.id) mutableState.update { it.copy(loading = false) }
             }
         }
     }

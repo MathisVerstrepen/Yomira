@@ -60,6 +60,7 @@ fun HistoryItem(
     onClickFavorite: () -> Unit,
     modifier: Modifier = Modifier,
     // KMK -->
+    canDeleteHistory: Boolean = true,
     selected: Boolean,
     readProgress: String?,
     hasUnread: Boolean,
@@ -77,10 +78,12 @@ fun HistoryItem(
             .selectedBackground(selected)
             .combinedClickable(
                 onClick = onClick,
-                onLongClick = {
-                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                    onLongClick()
-                },
+                onLongClick = (
+                    {
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        onLongClick()
+                    }
+                    ).takeIf { canDeleteHistory },
             )
             // KMK <--
             .height(HistoryItemHeight)
@@ -106,10 +109,12 @@ fun HistoryItem(
                         // KMK -->
                         .combinedClickable(
                             onClick = onClickCover,
-                            onLongClick = {
-                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                onLongClick()
-                            },
+                            onLongClick = (
+                                {
+                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                    onLongClick()
+                                }
+                                ).takeIf { canDeleteHistory },
                         ),
                     // KMK <--
                     data = mangaCover,
@@ -130,10 +135,12 @@ fun HistoryItem(
                         // KMK -->
                         .combinedClickable(
                             onClick = onClickCover,
-                            onLongClick = {
-                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                onLongClick()
-                            },
+                            onLongClick = (
+                                {
+                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                    onLongClick()
+                                }
+                                ).takeIf { canDeleteHistory },
                         ),
                     // KMK <--
                     data = mangaCover,
@@ -221,13 +228,19 @@ fun HistoryItem(
             }
         }
 
-        IconButton(onClick = onClickDelete) {
-            Icon(
-                imageVector = Icons.Outlined.Delete,
-                contentDescription = stringResource(MR.strings.action_delete),
-                tint = MaterialTheme.colorScheme.onSurface,
-            )
+        // KMK -->
+        if (canDeleteHistory) {
+            // KMK <--
+            IconButton(onClick = onClickDelete) {
+                Icon(
+                    imageVector = Icons.Outlined.Delete,
+                    contentDescription = stringResource(MR.strings.action_delete),
+                    tint = MaterialTheme.colorScheme.onSurface,
+                )
+            }
+            // KMK -->
         }
+        // KMK <--
     }
 }
 

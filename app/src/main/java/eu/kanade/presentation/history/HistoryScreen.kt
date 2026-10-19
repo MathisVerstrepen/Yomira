@@ -59,6 +59,8 @@ fun HistoryScreen(
     onFilterClicked: () -> Unit,
     hasActiveFilters: Boolean,
     usePanoramaCover: Boolean,
+    canDeleteHistory: Boolean = true,
+    onLoadMore: (() -> Unit)? = null,
     // KMK <--
 ) {
     // KMK -->
@@ -92,13 +94,23 @@ fun HistoryScreen(
                                     onClick = onFilterClicked,
                                 ),
                                 // KMK <--
-                                AppBar.Action(
-                                    title = stringResource(MR.strings.pref_clear_history),
-                                    // KMK -->
-                                    icon = Icons.Outlined.Checklist,
-                                    onClick = toggleSelectionMode,
-                                    // KMK <--
-                                ),
+                                // KMK -->
+                                *if (!canDeleteHistory) {
+                                    emptyArray()
+                                } else {
+                                    arrayOf(
+                                        // KMK <--
+                                        AppBar.Action(
+                                            title = stringResource(MR.strings.pref_clear_history),
+                                            // KMK -->
+                                            icon = Icons.Outlined.Checklist,
+                                            onClick = toggleSelectionMode,
+                                            // KMK <--
+                                        ),
+                                        // KMK -->
+                                    )
+                                },
+                                // KMK <--
                             ),
                         )
                     },
@@ -141,6 +153,8 @@ fun HistoryScreen(
                     selectionMode = state.selectionMode,
                     onHistorySelected = onHistorySelected,
                     usePanoramaCover = usePanoramaCover,
+                    canDeleteHistory = canDeleteHistory,
+                    onLoadMore = onLoadMore,
                     // KMK <--
                 )
             }
@@ -163,6 +177,8 @@ private fun HistoryScreenContent(
     selectionMode: Boolean,
     onHistorySelected: (HistoryWithRelations, HistorySelectionOptions) -> Unit,
     usePanoramaCover: Boolean,
+    canDeleteHistory: Boolean = true,
+    onLoadMore: (() -> Unit)? = null,
     // KMK <--
 ) {
     FastScrollLazyColumn(
@@ -231,11 +247,20 @@ private fun HistoryScreenContent(
                             },
                         hasUnread = value.unreadCount > 0,
                         usePanoramaCover = usePanoramaCover,
+                        canDeleteHistory = canDeleteHistory,
                         // KMK <--
                     )
                 }
             }
         }
+        // KMK -->
+        if (onLoadMore != null) {
+            item(key = "server-next-page") {
+                androidx.compose.runtime.LaunchedEffect(Unit) { onLoadMore() }
+                androidx.compose.material3.CircularProgressIndicator()
+            }
+        }
+        // KMK <--
     }
 }
 

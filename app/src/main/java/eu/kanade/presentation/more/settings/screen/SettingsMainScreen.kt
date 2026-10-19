@@ -1,5 +1,6 @@
 package eu.kanade.presentation.more.settings.screen
 
+// KMK -->
 import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.padding
@@ -54,7 +55,9 @@ import tachiyomi.i18n.kmk.KMR
 import tachiyomi.i18n.sy.SYMR
 import tachiyomi.presentation.core.components.material.Scaffold
 import tachiyomi.presentation.core.i18n.stringResource
+import uy.kohesive.injekt.api.get
 import cafe.adriel.voyager.core.screen.Screen as VoyagerScreen
+// KMK <--
 
 object SettingsMainScreen : Screen() {
     @Suppress("unused")
@@ -97,11 +100,21 @@ object SettingsMainScreen : Screen() {
                     actions = {
                         AppBarActions(
                             persistentListOf(
-                                AppBar.Action(
-                                    title = stringResource(MR.strings.action_search),
-                                    icon = Icons.Outlined.Search,
-                                    onClick = { navigator.navigate(SettingsSearchScreen(), twoPane) },
-                                ),
+                                // KMK -->
+                                *if (eu.kanade.tachiyomi.data.suwayomi.SuwayomiMode.enabled) {
+                                    emptyArray()
+                                } else {
+                                    arrayOf(
+                                        // KMK <--
+                                        AppBar.Action(
+                                            title = stringResource(MR.strings.action_search),
+                                            icon = Icons.Outlined.Search,
+                                            onClick = { navigator.navigate(SettingsSearchScreen(), twoPane) },
+                                        ),
+                                        // KMK -->
+                                    )
+                                },
+                                // KMK <--
                             ),
                         )
                     },
@@ -112,7 +125,10 @@ object SettingsMainScreen : Screen() {
             content = { contentPadding ->
                 val state = rememberLazyListState()
                 // SY -->
-                val items = items.filter { it.screen !is SearchableSettings || it.screen.isEnabled() }
+                // KMK -->
+                val serverBacked = eu.kanade.tachiyomi.data.suwayomi.SuwayomiMode.enabled
+                val items = (if (serverBacked) serverItems() else items).filter { it.screen !is SearchableSettings || it.screen.isEnabled() }
+                // KMK <--
                 // SY <--
                 val indexSelected = if (twoPane) {
                     items.indexOfFirst { it.screen::class == navigator.items.first()::class }
@@ -181,6 +197,20 @@ object SettingsMainScreen : Screen() {
         val icon: ImageVector,
         val screen: VoyagerScreen,
     )
+
+    // KMK -->
+    private fun serverItems(): List<Item> {
+        val session = uy.kohesive.injekt.Injekt.get<eu.kanade.tachiyomi.data.suwayomi.SuwayomiBackend>().session.value
+        return items.filter { it.screen == SettingsAppearanceScreen || it.screen == SettingsReaderScreen || it.screen == SettingsSecurityScreen || it.screen is AboutScreen } + buildList {
+            add(Item(KMR.strings.suwayomi_connect, KMR.strings.suwayomi_setup_notice, icon = Icons.Outlined.Link, screen = eu.kanade.tachiyomi.ui.suwayomi.SuwayomiHomeScreen))
+            if (session != null) {
+                add(Item(KMR.strings.suwayomi_administration, KMR.strings.suwayomi_shared_source_notice, icon = Icons.Outlined.Storage, screen = eu.kanade.tachiyomi.ui.suwayomi.SuwayomiAdministrationScreen(session.id)))
+                add(Item(KMR.strings.suwayomi_tracking, KMR.strings.suwayomi_tracking_notice, icon = Icons.Outlined.Sync, screen = eu.kanade.tachiyomi.ui.suwayomi.SuwayomiTrackingScreen(session.id)))
+            }
+            add(Item(KMR.strings.suwayomi_feature_availability, KMR.strings.suwayomi_availability_deferred, icon = Icons.Outlined.Info, screen = eu.kanade.tachiyomi.ui.suwayomi.SuwayomiCompatibilityScreen()))
+        }
+    }
+    // KMK <--
 
     private val items = listOf(
         Item(

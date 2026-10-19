@@ -120,7 +120,10 @@ data class ServerReadTime(@Serializable(with = ServerLongSerializer::class) val 
 data class ServerMangaCategories(val nodes: List<ServerCategory> = emptyList())
 
 @Serializable
-data class ServerMangaSource(val name: String, val lang: String)
+data class ServerMangaSource(val name: String, val lang: String, val iconUrl: String? = null)
+
+@Serializable
+data class ServerChapterCount(val totalCount: Int = 0)
 
 @Serializable
 data class ServerMeta(val key: String, val value: String)
@@ -142,6 +145,7 @@ data class ServerManga(
     val url: String = "",
     val categories: ServerMangaCategories = ServerMangaCategories(),
     val source: ServerMangaSource? = null,
+    val chapters: ServerChapterCount = ServerChapterCount(),
 )
 
 @Serializable

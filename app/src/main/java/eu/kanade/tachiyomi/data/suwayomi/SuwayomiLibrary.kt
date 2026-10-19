@@ -14,7 +14,7 @@ enum class LibraryFilter { ALL, UNREAD, READ, DOWNLOADED, BOOKMARKED }
 
 /** Device presentation belongs to the active account session, never to canonical category fields. */
 @Serializable
-data class CategoryPresentation(val grid: Boolean = true, val sort: LibrarySort = LibrarySort.TITLE, val reverse: Boolean = false, val hidden: Boolean = false)
+data class CategoryPresentation(val grid: Boolean = true, val sort: LibrarySort = LibrarySort.TITLE, val reverse: Boolean = false, val hidden: Boolean = false, val sortFlags: Long? = null)
 
 @Serializable
 data class LibraryPresentation(

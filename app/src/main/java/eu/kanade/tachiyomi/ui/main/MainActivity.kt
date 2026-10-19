@@ -208,7 +208,7 @@ class MainActivity : BaseActivity() {
             enableEdgeToEdge()
             ready = true
             setComposeContent {
-                Navigator(SuwayomiHomeScreen) { cloudNavigator ->
+                Navigator(HomeScreen) { cloudNavigator ->
                     DefaultNavigatorScreenTransition(navigator = cloudNavigator)
                     CheckForUpdates()
                 }

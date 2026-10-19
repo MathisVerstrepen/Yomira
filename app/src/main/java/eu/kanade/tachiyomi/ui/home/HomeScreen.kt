@@ -1,5 +1,6 @@
 package eu.kanade.tachiyomi.ui.home
 
+// KMK -->
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
@@ -21,6 +22,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
@@ -63,6 +65,7 @@ import tachiyomi.presentation.core.components.material.Scaffold
 import tachiyomi.presentation.core.i18n.pluralStringResource
 import uy.kohesive.injekt.Injekt
 import uy.kohesive.injekt.api.get
+// KMK <--
 
 object HomeScreen : Screen() {
     @Suppress("unused")
@@ -88,6 +91,16 @@ object HomeScreen : Screen() {
 
     @Composable
     override fun Content() {
+        // KMK -->
+        if (eu.kanade.tachiyomi.data.suwayomi.SuwayomiMode.enabled) {
+            val backend = remember { Injekt.get<eu.kanade.tachiyomi.data.suwayomi.SuwayomiBackend>() }
+            val connection by backend.session.collectAsState()
+            if (connection == null) {
+                eu.kanade.tachiyomi.ui.suwayomi.SuwayomiHomeScreen.Content()
+                return
+            }
+        }
+        // KMK <--
         val navigator = LocalNavigator.currentOrThrow
 
         // SY -->
