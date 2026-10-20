@@ -167,6 +167,7 @@ class SuwayomiSession internal constructor(
     @Volatile private var closed = false
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val drainMutex = Mutex()
+    internal val migrationMutex = Mutex()
     private var scheduledFlush: Job? = null
     private val outboxFile = AtomicFile(File(context.noBackupFilesDir, "suwayomi-outbox-$id"))
     internal val pageCache = File(context.cacheDir, "suwayomi/$id/${java.util.UUID.randomUUID()}")

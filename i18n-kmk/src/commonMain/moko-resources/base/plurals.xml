@@ -1,3 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!-- KMK Suwayomi source migration -->
+    <plurals name="suwayomi_migration_provider_chapters">
+        <item quantity="one">%1$d chapter</item>
+        <item quantity="other">%1$d chapters</item>
+    </plurals>
+    <!-- KMK Suwayomi source migration end -->
 </resources>
