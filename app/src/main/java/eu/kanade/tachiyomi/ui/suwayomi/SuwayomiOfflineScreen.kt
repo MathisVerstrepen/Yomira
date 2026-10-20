@@ -16,6 +16,7 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -80,6 +81,7 @@ class SuwayomiOfflineScreen(private val sessionId: String) : Screen() {
         }
         var used by remember { mutableLongStateOf(0) }
         var editLimit by remember { mutableStateOf(false) }
+        var editCount by remember { mutableStateOf(false) }
         var limit by remember(snapshot.limitMiB) { mutableStateOf(snapshot.limitMiB.toString()) }
         var remove by remember { mutableStateOf<Int?>(null) }
         LaunchedEffect(snapshot) { used = withContext(Dispatchers.IO) { session.offline.usedBytes() } }
@@ -100,6 +102,30 @@ class SuwayomiOfflineScreen(private val sessionId: String) : Screen() {
                     if (actionError) Text(stringResource(KMR.strings.suwayomi_offline_error), Modifier.padding(16.dp), color = MaterialTheme.colorScheme.error)
                     PendingChanges(session)
                     HorizontalDivider()
+                    Text(stringResource(KMR.strings.suwayomi_smart_downloads), Modifier.padding(16.dp), style = MaterialTheme.typography.titleMedium)
+                    Text(stringResource(KMR.strings.suwayomi_smart_downloads_summary), Modifier.padding(horizontal = 16.dp), style = MaterialTheme.typography.bodySmall)
+                    TextPreferenceWidget(title = stringResource(KMR.strings.suwayomi_smart_count), subtitle = stringResource(KMR.strings.suwayomi_smart_count_value, snapshot.smartChapterCount), onPreferenceClick = { editCount = true })
+                    SwitchPreferenceWidget(
+                        title = stringResource(KMR.strings.suwayomi_smart_remove_read),
+                        subtitle = stringResource(KMR.strings.suwayomi_smart_remove_read_summary),
+                        checked = snapshot.smartRemoveRead,
+                        onCheckedChanged = { value -> action { it.configureSmartDownloads(snapshot.smartChapterCount, value) } },
+                    )
+                    Text(stringResource(KMR.strings.suwayomi_smart_titles), Modifier.padding(16.dp), style = MaterialTheme.typography.titleSmall)
+                    if (snapshot.smartTitles.isEmpty()) Text(stringResource(KMR.strings.suwayomi_smart_titles_empty), Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
+                }
+                items(snapshot.smartTitles.sorted(), key = { "smart-$it" }) { mangaId ->
+                    val title = snapshot.titles[mangaId]
+                    if (title != null) {
+                        SwitchPreferenceWidget(
+                            title = title.manga.title,
+                            checked = true,
+                            onCheckedChanged = { action { it.selectSmartDownloads(title.manga, title.chapters, false) } },
+                        )
+                    }
+                }
+                item {
+                    HorizontalDivider()
                 }
                 if (snapshot.downloads.isEmpty()) item { Text(stringResource(KMR.strings.suwayomi_offline_empty), Modifier.padding(24.dp)) }
                 items(snapshot.downloads, key = { it.chapterId }) { download ->
@@ -112,6 +138,7 @@ class SuwayomiOfflineScreen(private val sessionId: String) : Screen() {
                             supportingContent = {
                                 Column {
                                     Text(chapter?.name.orEmpty())
+                                    if (download.automatic) Text(stringResource(KMR.strings.suwayomi_smart_automatic))
                                     Text(stringResource(offlineStatus(download.state), download.pages, download.total))
                                 }
                             },
@@ -129,6 +156,29 @@ class SuwayomiOfflineScreen(private val sessionId: String) : Screen() {
                     }
                 }
             }
+        }
+        if (editCount) {
+            AlertDialog(
+                onDismissRequest = { editCount = false },
+                title = { Text(stringResource(KMR.strings.suwayomi_smart_count)) },
+                text = {
+                    Column {
+                        listOf(1, 3, 5, 10, 20).forEach { count ->
+                            Row(
+                                Modifier.fillMaxWidth().clickable {
+                                    editCount = false
+                                    action { it.configureSmartDownloads(count, snapshot.smartRemoveRead) }
+                                },
+                                verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+                            ) {
+                                RadioButton(selected = snapshot.smartChapterCount == count, onClick = null)
+                                Text(stringResource(KMR.strings.suwayomi_smart_count_value, count), Modifier.padding(8.dp))
+                            }
+                        }
+                    }
+                },
+                confirmButton = { TextButton(onClick = { editCount = false }) { Text(stringResource(MR.strings.action_close)) } },
+            )
         }
         if (editLimit) {
             AlertDialog(

@@ -689,4 +689,18 @@
     <string name="suwayomi_migration_next_title">Next title</string>
     <string name="suwayomi_migration_finish_queue">Finish</string>
     <!-- KMK Suwayomi source migration end -->
+    <!-- KMK: Smart phone downloads -->
+    <string name="suwayomi_smart_downloads">Smart phone downloads</string>
+    <string name="suwayomi_smart_downloads_summary">Keep the next unread chapters on your phone for selected titles. Checks for server updates hourly and after progress synchronizes.</string>
+    <string name="suwayomi_smart_title_summary">Automatically keep the next %1$d unread chapters of this title on your phone.</string>
+    <string name="suwayomi_smart_enable">Keep this title available</string>
+    <string name="suwayomi_smart_count">Unread chapters to keep</string>
+    <string name="suwayomi_smart_count_value">Next %1$d unread chapters per title</string>
+    <string name="suwayomi_smart_remove_read">Remove synchronized read copies</string>
+    <string name="suwayomi_smart_remove_read_summary">Remove automatically downloaded phone copies after the server confirms they are read. Manually saved copies are kept.</string>
+    <string name="suwayomi_smart_titles">Selected titles</string>
+    <string name="suwayomi_smart_titles_empty">Open a title’s menu and choose Smart phone downloads to enable it.</string>
+    <string name="suwayomi_smart_settings">Phone download settings</string>
+    <string name="suwayomi_smart_automatic">Automatically downloaded</string>
+    <string name="suwayomi_smart_disable_summary">Turning this off stops automatic downloads and keeps completed phone copies.</string>
 </resources>

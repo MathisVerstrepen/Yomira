@@ -208,6 +208,7 @@ fun MangaScreen(
     coverRatio: MutableFloatState,
     onPaletteScreenClick: () -> Unit,
     hazeState: HazeState,
+    onSmartDownloadsClicked: (() -> Unit)? = null,
     // KMK <--
 ) {
     val context = LocalContext.current
@@ -277,6 +278,7 @@ fun MangaScreen(
             coverRatio = coverRatio,
             onPaletteScreenClick = onPaletteScreenClick,
             hazeState = hazeState,
+            onSmartDownloadsClicked = onSmartDownloadsClicked,
             // KMK <--
         )
     } else {
@@ -339,6 +341,7 @@ fun MangaScreen(
             coverRatio = coverRatio,
             onPaletteScreenClick = onPaletteScreenClick,
             hazeState = hazeState,
+            onSmartDownloadsClicked = onSmartDownloadsClicked,
             // KMK <--
         )
     }
@@ -418,6 +421,7 @@ private fun MangaScreenSmallImpl(
     coverRatio: MutableFloatState,
     onPaletteScreenClick: () -> Unit,
     hazeState: HazeState,
+    onSmartDownloadsClicked: (() -> Unit)? = null,
     // KMK <--
 ) {
     val chapterListState = rememberLazyListState()
@@ -489,6 +493,7 @@ private fun MangaScreenSmallImpl(
                 },
                 // KMK -->
                 onClickSourceSettings = onClickSourceSettingsClicked,
+                onSmartDownloadsClicked = onSmartDownloadsClicked,
                 onClearManga = onClearManga,
                 onOpenMangaFolder = onOpenMangaFolder,
                 onClickRelatedMangas = onRelatedMangasScreenClick.takeIf {
@@ -892,6 +897,7 @@ private fun MangaScreenLargeImpl(
     coverRatio: MutableFloatState,
     onPaletteScreenClick: () -> Unit,
     hazeState: HazeState,
+    onSmartDownloadsClicked: (() -> Unit)? = null,
     // KMK <--
 ) {
     val layoutDirection = LocalLayoutDirection.current
@@ -955,6 +961,7 @@ private fun MangaScreenLargeImpl(
                 },
                 // KMK -->
                 onClickSourceSettings = onClickSourceSettingsClicked,
+                onSmartDownloadsClicked = onSmartDownloadsClicked,
                 onClearManga = onClearManga,
                 onOpenMangaFolder = onOpenMangaFolder,
                 onClickRelatedMangas = onRelatedMangasScreenClick.takeIf {
