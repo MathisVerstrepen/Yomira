@@ -123,12 +123,14 @@ def seed():
         (DATA / "covers" / f"{manga['id']}.jpg").write_bytes(cover)
         entry = {**item, "server_id": manga["id"], "display_title": details["manga"]["title"], "chapters": len(details["chapters"]), "cover_sha256": hashlib.sha256(cover).hexdigest()}
         report["titles"].append(entry)
-        (DATA / "seed-report.json").write_text(json.dumps(report, indent=2) + "\n")
         print(f"Added {entry['display_title']} ({entry['chapters']} English chapter records)", flush=True)
         time.sleep(0.3)
     removed = {m["server_id"] for m in previous["titles"]} - {m["server_id"] for m in report["titles"]}
     if removed:
         graphql("mutation($ids:[Int!]!){updateMangas(input:{ids:$ids,patch:{inLibrary:false}}){mangas{id}}}", {"ids": sorted(removed)})
+    temporary_report = DATA / "seed-report.json.tmp"
+    temporary_report.write_text(json.dumps(report, indent=2) + "\n")
+    temporary_report.replace(DATA / "seed-report.json")
     print(f"Ready: {len(report['titles'])} curated Safe-rated titles at {BASE}")
 
 
