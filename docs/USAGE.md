@@ -34,7 +34,7 @@ Connection setup checks actual schema capabilities and protected reads. Recorded
 | Server | Scope |
 | --- | --- |
 | Suwayomi-Server **v2.4.2366** | Integration work against a shared-library server |
-| Suwayomi-Server **v2.4.2422** | Local SFW library, title details, and reader checked on an emulator on 2026-10-20 |
+| Suwayomi-Server **v2.4.2422** | Local library, title details, and reader checked on an emulator on 2026-10-20 |
 | Suwayomi-Server **v2.4.2424**, commit `e2ce828abb81f0f5ce1a3fb86194a2746b519c85` | Per-user API inspected on 2026-10-18 |
 
 These are recorded checks, not a guarantee that every server release supports every operation. Available features depend on the server version and account permissions. The sign-in method must match the server configuration.
@@ -71,4 +71,4 @@ Loaded content and scroll position remain visible during background refreshes. R
 - [Architecture and data ownership](./ARCHITECTURE.md)
 - [Privacy](./PRIVACY.md)
 - [App identity and upgrade compatibility](./BRANDING.md)
-- [Local SFW screenshot server](../tools/screenshots/README.md)
+- [Local screenshot server](../tools/screenshots/README.md)
