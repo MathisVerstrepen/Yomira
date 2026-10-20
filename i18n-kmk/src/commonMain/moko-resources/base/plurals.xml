@@ -15,4 +15,9 @@
         <item quantity="one">Keep the next unread chapter on this phone.</item>
         <item quantity="other">Keep the next %1$d unread chapters on this phone.</item>
     </plurals>
+    <!-- KMK: Phone download management -->
+    <plurals name="suwayomi_phone_chapters">
+        <item quantity="one">%1$d chapter</item>
+        <item quantity="other">%1$d chapters</item>
+    </plurals>
 </resources>

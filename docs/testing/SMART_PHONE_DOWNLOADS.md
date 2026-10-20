@@ -31,3 +31,9 @@ The temporary quota file, Android user, server process, and ADB reverse forwardi
 ## Modal UI follow-up
 
 The compact modal was built with `spotlessApply`, `spotlessCheck`, and `assembleDebug`, then installed on the same OnePlus and emulator. Verified the OnePlus title dialog and its route to Phone downloads. On a disposable emulator user, verified enable/disable persistence and an inline save error by temporarily removing write permission from the offline-store directory; restoring permission and retrying cleared the error. At 1.5× font scale, portrait content remained visible, and landscape content scrolled while the title and Close action stayed accessible. The single-chapter summary uses its singular plural-resource entry. No personal library settings were changed.
+
+## Phone download page follow-up
+
+Reorganized the page into Downloads and Settings tabs, with title-grouped chapter rows, storage usage, compact transfer rules, and per-chapter overflow actions. The title modal opens the Settings tab directly. Re-ran `spotlessApply`, `spotlessCheck`, `assembleDebug`, and the 26 `SuwayomiSmartDownloadTest` / `SuwayomiOfflineTest` cases; all passed with no skips.
+
+Installed and inspected the final APK on the OnePlus. In an isolated Android 16 user, verified the empty view, the modal-to-settings route, persisted Wi-Fi/buffer/cleanup/storage changes, rejection of a 64 MiB quota, canceling and confirming single-chapter removal, offline reading from a chapter row, pause/resume, snackbar feedback for a failed settings write and successful retry, and independent tab scroll positions. Inspected settings at 1.5× font scale in portrait and landscape. Personal phone preferences and chapters were preserved.

@@ -300,7 +300,7 @@ internal fun SuwayomiMangaPresenter(presentationId: Long, expectedSession: Strin
             },
             onSettings = {
                 smartDownloads = false
-                navigator.push(SuwayomiOfflineScreen(session.id))
+                navigator.push(SuwayomiOfflineScreen(session.id, showSettings = true))
             },
         )
     }

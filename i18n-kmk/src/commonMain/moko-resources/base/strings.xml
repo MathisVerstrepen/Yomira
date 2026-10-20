@@ -709,4 +709,28 @@
     <string name="suwayomi_smart_dialog_settings">Download settings</string>
     <string name="suwayomi_smart_dialog_settings_summary">Chapter count, Wi-Fi and storage</string>
     <string name="suwayomi_smart_save_error">Couldn’t save this setting. Try again.</string>
+    <!-- KMK: Phone download management -->
+    <string name="suwayomi_phone_downloads_tab">Downloads</string>
+    <string name="suwayomi_phone_settings_tab">Settings</string>
+    <string name="suwayomi_phone_storage">Storage limit</string>
+    <string name="suwayomi_phone_storage_hint">New downloads wait when full. Lowering the limit keeps existing files.</string>
+    <string name="suwayomi_phone_overview">%1$d saved · %2$d waiting</string>
+    <string name="suwayomi_phone_pause">Pause</string>
+    <string name="suwayomi_phone_resume">Resume</string>
+    <string name="suwayomi_phone_empty">No chapters on this phone yet</string>
+    <string name="suwayomi_phone_empty_hint">Open a title and choose Download to phone, or enable Smart phone downloads.</string>
+    <string name="suwayomi_phone_auto">Auto</string>
+    <string name="suwayomi_phone_chapter_actions">Actions for %1$s</string>
+    <string name="suwayomi_phone_transfers">Transfers</string>
+    <string name="suwayomi_phone_wifi">Wi-Fi only</string>
+    <string name="suwayomi_phone_wifi_hint">Pause transfers on other networks. Saved chapters stay readable.</string>
+    <string name="suwayomi_phone_smart_hint">Keep unread chapters ready. Checks hourly and after progress syncs.</string>
+    <string name="suwayomi_phone_buffer">Chapters to keep</string>
+    <string name="suwayomi_phone_cleanup">Remove read copies</string>
+    <string name="suwayomi_phone_cleanup_hint">After progress syncs. Manually saved chapters are kept.</string>
+    <string name="suwayomi_phone_selected">Selected titles (%1$d)</string>
+    <string name="suwayomi_phone_server_section">On the server</string>
+    <string name="suwayomi_phone_server_hint">Manage server copies separately.</string>
+    <string name="suwayomi_phone_action_error">Couldn’t complete this action. Try again.</string>
+    <string name="suwayomi_phone_remove">Remove</string>
 </resources>
