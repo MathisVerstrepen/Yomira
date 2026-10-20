@@ -1,8 +1,10 @@
-# Komikku – AI Agent Guide
+# Yomira – AI Agent Guide
 
-Komikku is an Android manga reader (min SDK 26, target SDK 36, JVM target 17 / Kotlin) forked from **Mihon** + **TachiyomiSY**. This Suwayomi adaptation uses `applicationId`: `app.komikku.suwayomi` (debug: `app.komikku.suwayomi.dev`).
+Yomira is an independent Suwayomi client forked from Komikku, an Android manga reader (min SDK 26, target SDK 36, JVM target 17 / Kotlin) forked from **Mihon** + **TachiyomiSY**. This Suwayomi adaptation uses `applicationId`: `app.komikku.suwayomi` (debug: `app.komikku.suwayomi.dev`).
 
 Features: configurable reader, downloads/offline reading, trackers (MyAnimeList, AniList, Kitsu, MangaUpdates, Bangumi, Kavita, Komga, MangaDex, Shikimori, Suwayomi), recommendations, metadata editing, library categories/tags/filters, multi-source browsing and feed tabs.
+
+Branding and compatibility are documented in `docs/BRANDING.md`. Preserve upstream credits, KMK/KMR provenance markers, package/storage identifiers, and historical releases. Yomira app artwork uses `ic_yomira*`; original Komikku icons remain for attribution.
 
 ### Upstreams
 
@@ -10,7 +12,7 @@ Features: configurable reader, downloads/offline reading, trackers (MyAnimeList,
 |----------|-------------|---------|
 | Mihon | none (base code) | `MR` (`i18n/`) |
 | TachiyomiSY | `// SY -->` … `// SY <--` (legacy `// EXH` blocks also come from SY) | `SYMR` (`i18n-sy/`) |
-| **Komikku** (this repo) | `// KMK -->` … `// KMK <--` | `KMR` (`i18n-kmk/`) |
+| **Yomira / Komikku heritage** (this repo) | `// KMK -->` … `// KMK <--` | `KMR` (`i18n-kmk/`) |
 
 ---
 
@@ -170,8 +172,8 @@ Gradle `-P` flags (`buildSrc/src/main/kotlin/mihon/buildlogic/BuildConfig.kt`):
 
 | Flag | Effect |
 |------|--------|
-| `include-telemetry` | Firebase Analytics + Crashlytics |
-| `enable-updater` | In-app update checker |
+| `include-telemetry` | Disabled in Yomira; upstream telemetry is never enabled |
+| `enable-updater` | Disabled in Yomira; use this fork’s releases from About |
 | `disable-code-shrink` | Skip R8 minification |
 | `include-dependency-info` | Dependency metadata in APK |
 
@@ -181,7 +183,7 @@ Gradle `-P` flags (`buildSrc/src/main/kotlin/mihon/buildlogic/BuildConfig.kt`):
 ./gradlew :app:compileDebugKotlin          # compile-only check
 ./gradlew assembleDebug                    # debug APK
 ./gradlew assemblePreview                  # preview (beta) APK, CI equivalent
-./gradlew assemblePreview -Pinclude-telemetry -Penable-updater  # full CI build
+./gradlew assemblePreview -Pinclude-telemetry -Penable-updater  # inherited flags; both remain disabled in Yomira
 ./gradlew assembleRelease                  # release APK
 ./gradlew testReleaseUnitTest              # CI unit tests
 ./gradlew test                             # all unit tests

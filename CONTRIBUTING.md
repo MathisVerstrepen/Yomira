@@ -1,67 +1,27 @@
-Looking to report an issue/bug or make a feature request? Please refer to the [README file](https://github.com/komikku-app/komikku#issues-feature-requests-and-contributing).
+# Contributing to Yomira
 
----
+Yomira is an independent Suwayomi client forked from [Komikku](https://github.com/komikku-app/komikku). Komikku, Mihon, TachiyomiSY, Tachiyomi, and Suwayomi remain credited in the app, README, and [NOTICE](./NOTICE).
 
-Thanks for your interest in contributing to Komikku!
+Report Yomira bugs and request features in [this repository](https://github.com/MathisVerstrepen/komikku-suwayomi/issues). Include the Yomira version, Android version, Suwayomi version, authentication mode, reproduction steps, and redacted logs when relevant. Server source extensions execute on Suwayomi; include the source and extension version for provider-specific issues.
 
+## Development
 
-# Code contributions
+Use JDK 21 and Android SDK 36. Read [AGENTS.md](./AGENTS.md) for architecture, source markers, and build rules. Before submitting Kotlin or Android XML changes, run:
 
-Pull requests are welcome!
+```sh
+./gradlew spotlessApply
+./gradlew spotlessCheck
+./gradlew assembleDebug
+```
 
-If you're interested in taking on [an open issue](https://github.com/komikku-app/komikku/issues), please comment on it so others are aware.
-You do not need to ask for permission nor an assignment.
+Run `./gradlew testReleaseUnitTest` for the release unit-test suite. Live tests that mutate server data require a disposable test server.
 
-## Prerequisites
+Keep fork-specific strings in the base locale of `i18n-kmk`, and retain `KMK`, `SY`, and upstream provenance markers. Existing Komikku translations remain inherited; Yomira has no separate Weblate project. Do not send fork-specific issues or translation requests to upstream maintainers.
 
-Before you start, please note that the ability to use following technologies is **required** and that existing contributors will not actively teach them to you.
+## Fork identity and attribution
 
-- Basic [Android development](https://developer.android.com/)
-- [Kotlin](https://kotlinlang.org/)
+The [original Komikku contribution and fork guide](./docs/UPSTREAM_KOMIKKU_CONTRIBUTING.md) is preserved verbatim. Its fork guidance requires a distinct app name and icon, a separate application ID, and independent update and reporting services.
 
-### Tools
+Yomira uses its own name and artwork. Its existing `app.komikku.suwayomi` application ID is already separate from Komikku's `app.komikku` and is retained so existing users can upgrade. Upstream update checking and telemetry are disabled. Yomira releases use this repository's signing workflow and the existing fork signing key.
 
-- [Android Studio](https://developer.android.com/studio)
-- Emulator or phone with developer options enabled to test changes.
-
-## Getting help
-
-- Join [the Discord server](https://discord.gg/85jB7V5AJR) for online help and to ask questions while developing.
-
-# Translations
-
-Translations are done externally via [Weblate](https://hosted.weblate.org/engage/komikku-app/). See [our website](https://komikku-app.github.io/docs/contribute#translation) for more details.
-
-
-# Forks
-
-Forks are allowed so long as they abide by [the project's LICENSE](https://github.com/komikku-app/komikku/blob/master/LICENSE).
-
-When creating a fork, remember to:
-
-- To avoid confusion with the main app:
-    - Change the app name
-    - Change the app icon
-    - Change or disable the [app update checker](https://github.com/komikku-app/komikku/blob/master/app/src/main/java/eu/kanade/tachiyomi/data/updater/AppUpdateChecker.kt)
-- To avoid installation conflicts:
-    - Change the `applicationId` in [`build.gradle.kts`](https://github.com/komikku-app/komikku/blob/master/app/build.gradle.kts)
-- To avoid having your data polluting the main app's analytics and crash report services:
-    - If you want to use Firebase analytics, replace [`google-services.json`](https://github.com/komikku-app/komikku/blob/master/app/src/standard/google-services.json) with your own
-    - If you want to use ACRA crash reporting, replace the `ACRA_URI` endpoint in [`build.gradle.kts`](https://github.com/komikku-app/komikku/blob/master/app/build.gradle.kts) with your own
-
-
-### Supporting Cloud Sync - Google Drive Implementation
-1. Go to [Google Cloud Console](https://console.cloud.google.com)
-2. Create a new project
-3. Go to API & Services -> Library -> Google Drive API and click enable
-4. Go to API & Services -> Oauth consent screen
-5. Create it, fill in the app name, user support email, and developer contact information
-6. In the next screen, click add or remove scopes, and add the `.../auth/drive.appdata` and `.../auth/drive.file` scopes
-7. Don't add any test users and go back to the dashboard
-8. Click publish
-9. Go to API & Services -> Credentials
-10. Click Create credentials -> Oauth client ID
-11. Select Android, give it a name, and set `eu.kanade.google.oauth` as the package name
-12. To get the SHA-1 key, run `keytool -printcert -jarfile app-standard-universal-release.apk` on your apk, and copy the listed SHA-1
-13. Expand advanced settings, and enable Custom URL scheme
-14. After that just download the json, name it to `client_secrets.json` and put it in `app/src/main/assets/`
+Retain the Apache-2.0 [LICENSE](./LICENSE), original copyright notices, source history, and upstream credits. Historical releases and compatibility identifiers may still say Komikku Suwayomi. See [branding and compatibility](./docs/BRANDING.md) before changing those identifiers.

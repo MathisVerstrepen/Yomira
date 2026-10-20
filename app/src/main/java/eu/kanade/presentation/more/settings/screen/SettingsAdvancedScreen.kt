@@ -786,7 +786,9 @@ object SettingsAdvancedScreen : SearchableSettings {
                     title = stringResource(SYMR.strings.enable_source_blacklist),
                     subtitle = stringResource(
                         SYMR.strings.enable_source_blacklist_summary,
-                        stringResource(MR.strings.app_name),
+                        // KMK -->
+                        stringResource(KMR.strings.suwayomi_app_name),
+                        // KMK <--
                     ),
                 ),
                 Preference.PreferenceItem.SwitchPreference(
@@ -794,7 +796,9 @@ object SettingsAdvancedScreen : SearchableSettings {
                     title = stringResource(SYMR.strings.toggle_delegated_sources),
                     subtitle = stringResource(
                         SYMR.strings.toggle_delegated_sources_summary,
-                        stringResource(MR.strings.app_name),
+                        // KMK -->
+                        stringResource(KMR.strings.suwayomi_app_name),
+                        // KMK <--
                         AndroidSourceManager.DELEGATED_SOURCES.map { it.sourceName }.distinct()
                             .joinToString(),
                     ),

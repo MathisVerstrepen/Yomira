@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800">
+  <defs><clipPath id="yo-outline"><path d="M36 31 H87 Q96 31 96 40 V88 Q96 97 87 97 H34 Q27 97 27 90 Q27 83 34 83 H82 V71 H43 Q36 71 36 64 Q36 57 43 57 H82 V45 H36 Q29 45 29 38 Q29 31 36 31 Z"/></clipPath>
+    <symbol id="icon" viewBox="0 0 128 128"><rect width="128" height="128" rx="28" fill="#251329"/><g clip-path="url(#yo-outline)"><rect width="128" height="128" fill="#FFF8F0"/><rect x="26" y="56" width="25" height="16" fill="#F00995"/></g></symbol>
+    <clipPath id="circle"><circle cx="64" cy="64" r="64"/></clipPath>
+  </defs>
+  <rect width="1200" height="800" fill="#F8F4F7"/>
+  <text x="64" y="63" fill="#766575" font-family="DejaVu Sans,sans-serif" font-size="14" letter-spacing="3">YOMIRA / ICON CONCEPT</text>
+  <use href="#icon" x="64" y="126" width="400" height="400"/>
+  <text x="552" y="227" fill="#251329" font-family="DejaVu Sans,sans-serif" font-size="64" font-weight="bold" letter-spacing="-2">Yomira</text>
+  <text x="556" y="279" fill="#766575" font-family="DejaVu Sans,sans-serif" font-size="21">A Japanese mark. Three manga panels.</text>
+  <text x="556" y="312" fill="#766575" font-family="DejaVu Sans,sans-serif" font-size="21">A small magenta tab.</text>
+  <g transform="translate(556 365)">
+    <rect width="48" height="48" rx="12" fill="#251329"/>
+    <rect x="64" width="48" height="48" rx="12" fill="#FFF8F0" stroke="#E4D9E2"/>
+    <rect x="128" width="48" height="48" rx="12" fill="#F00995"/>
+    <text y="76" fill="#766575" font-family="DejaVu Sans,sans-serif" font-size="13">PLUM</text>
+    <text x="64" y="76" fill="#766575" font-family="DejaVu Sans,sans-serif" font-size="13">IVORY</text>
+    <text x="128" y="76" fill="#766575" font-family="DejaVu Sans,sans-serif" font-size="13">MAGENTA</text>
+  </g>
+  <path d="M64 574 H1136" stroke="#E4D9E2"/>
+  <text x="64" y="620" fill="#766575" font-family="DejaVu Sans,sans-serif" font-size="14" letter-spacing="2">AT LAUNCHER SIZE</text>
+  <use href="#icon" x="64" y="648" width="64" height="64"/>
+  <use href="#icon" x="168" y="656" width="48" height="48"/>
+  <use href="#icon" x="256" y="664" width="32" height="32"/>
+  <text x="80" y="748" fill="#766575" font-family="DejaVu Sans,sans-serif" font-size="13">64 px</text>
+  <text x="175" y="748" fill="#766575" font-family="DejaVu Sans,sans-serif" font-size="13">48 px</text>
+  <text x="254" y="748" fill="#766575" font-family="DejaVu Sans,sans-serif" font-size="13">32 px</text>
+  <g transform="translate(688 638) scale(.7)"><g clip-path="url(#circle)"><rect width="128" height="128" fill="#251329"/><g clip-path="url(#yo-outline)"><rect width="128" height="128" fill="#FFF8F0"/><rect x="26" y="56" width="25" height="16" fill="#F00995"/></g></g></g>
+  <g transform="translate(898 638) scale(.7)"><rect width="128" height="128" rx="28" fill="#EAD8E8"/><path d="M36 31 H87 Q96 31 96 40 V88 Q96 97 87 97 H34 Q27 97 27 90 Q27 83 34 83 H82 V71 H43 Q36 71 36 64 Q36 57 43 57 H82 V45 H36 Q29 45 29 38 Q29 31 36 31 Z" fill="#251329"/></g>
+  <text x="709" y="748" fill="#766575" font-family="DejaVu Sans,sans-serif" font-size="13">Circular</text>
+  <text x="899" y="748" fill="#766575" font-family="DejaVu Sans,sans-serif" font-size="13">Monochrome</text>
+</svg>

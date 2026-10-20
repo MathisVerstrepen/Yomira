@@ -293,7 +293,9 @@ object SettingsMainScreen : Screen() {
             titleRes = MR.strings.pref_category_about,
             subtitleRes = StringResource(0),
             formatSubtitle = {
-                "${stringResource(MR.strings.app_name)} ${AboutScreen.getVersionName(withBuildDate = false)}"
+                // KMK -->
+                "${stringResource(KMR.strings.suwayomi_app_name)} ${AboutScreen.getVersionName(withBuildDate = false)}"
+                // KMK <--
             },
             icon = Icons.Outlined.Info,
             screen = AboutScreen(),

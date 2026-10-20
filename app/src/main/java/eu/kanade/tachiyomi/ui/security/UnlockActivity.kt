@@ -11,6 +11,7 @@ import logcat.LogPriority
 import tachiyomi.core.common.i18n.stringResource
 import tachiyomi.core.common.util.system.logcat
 import tachiyomi.i18n.MR
+import tachiyomi.i18n.kmk.KMR
 
 /**
  * Blank activity with a BiometricPrompt.
@@ -20,7 +21,9 @@ class UnlockActivity : BaseActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         startAuthentication(
-            stringResource(MR.strings.unlock_app_title, stringResource(MR.strings.app_name)),
+            // KMK -->
+            stringResource(MR.strings.unlock_app_title, stringResource(KMR.strings.suwayomi_app_name)),
+            // KMK <--
             confirmationRequired = false,
             callback = object : AuthenticatorUtil.AuthenticationCallback() {
                 override fun onAuthenticationError(

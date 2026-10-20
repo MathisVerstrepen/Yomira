@@ -64,7 +64,9 @@ class SuwayomiOfflineWorker(context: Context, parameters: WorkerParameters) : Co
         val channel = "suwayomi_phone_downloads"
         val title = session.offline.state.value.titles[item.mangaId]?.manga?.title.orEmpty()
         context.getSystemService(NotificationManager::class.java).createNotificationChannel(NotificationChannel(channel, context.stringResource(KMR.strings.suwayomi_phone_downloads), NotificationManager.IMPORTANCE_LOW))
-        val notification = NotificationCompat.Builder(context, channel).setSmallIcon(R.drawable.ic_komikku)
+        // KMK -->
+        val notification = NotificationCompat.Builder(context, channel).setSmallIcon(R.drawable.ic_yomira_mark)
+            // KMK <--
             .setContentTitle(title).setContentText(context.stringResource(KMR.strings.suwayomi_offline_progress, item.pages, item.total))
             .setProgress(item.total, item.pages, item.total == 0).setOngoing(true).setOnlyAlertOnce(true).build()
         return ForegroundInfo(70141, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC)

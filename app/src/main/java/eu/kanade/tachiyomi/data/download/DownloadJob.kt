@@ -43,8 +43,10 @@ class DownloadJob(private val context: Context, workerParams: WorkerParameters) 
         val notification = applicationContext.notificationBuilder(Notifications.CHANNEL_DOWNLOADER_PROGRESS) {
             setContentTitle(applicationContext.getString(R.string.download_notifier_downloader_title))
             setSmallIcon(android.R.drawable.stat_sys_download)
-            setColor(ContextCompat.getColor(applicationContext, R.color.ic_launcher))
-            setLargeIcon(BitmapFactory.decodeResource(context.resources, R.drawable.komikku))
+            // KMK -->
+            setColor(ContextCompat.getColor(applicationContext, R.color.yomira_accent))
+            setLargeIcon(BitmapFactory.decodeResource(context.resources, R.drawable.yomira))
+            // KMK <--
         }.build()
         return ForegroundInfo(
             Notifications.ID_DOWNLOAD_CHAPTER_PROGRESS,

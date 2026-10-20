@@ -64,6 +64,7 @@ import tachiyomi.domain.manga.model.Manga
 import tachiyomi.domain.source.service.SourceManager
 import tachiyomi.domain.track.interactor.GetTracks
 import tachiyomi.i18n.MR
+import tachiyomi.i18n.kmk.KMR
 import uy.kohesive.injekt.Injekt
 import uy.kohesive.injekt.api.get
 import java.io.File
@@ -326,7 +327,9 @@ class Downloader(
                     notifier.onWarning(
                         context.stringResource(
                             MR.strings.download_queue_size_warning,
-                            context.stringResource(MR.strings.app_name),
+                            // KMK -->
+                            context.stringResource(KMR.strings.suwayomi_app_name),
+                            // KMK <--
                         ),
                         WARNING_NOTIF_TIMEOUT_MS,
                         NotificationHandler.openUrl(context, LibraryUpdateNotifier.HELP_WARNING_URL),

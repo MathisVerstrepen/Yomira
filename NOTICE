@@ -1,0 +1,27 @@
+Yomira
+https://github.com/MathisVerstrepen/komikku-suwayomi
+
+Yomira is an independent Android client for Suwayomi-Server, forked from Komikku.
+It is not an official release of Komikku, Mihon, TachiyomiSY, Tachiyomi, or Suwayomi.
+
+This work includes software derived from:
+- Komikku: https://github.com/komikku-app/komikku
+- Mihon: https://github.com/mihonapp/mihon
+- TachiyomiSY: https://github.com/jobobby04/TachiyomiSY
+- Tachiyomi and its contributors
+
+Server functionality is provided by Suwayomi-Server:
+https://github.com/Suwayomi/Suwayomi-Server
+
+Original copyright, attribution, and license notices remain in LICENSE,
+source files, dependency license records, and repository history.
+The original Komikku contribution and fork guide is preserved at
+docs/UPSTREAM_KOMIKKU_CONTRIBUTING.md.
+
+The Yomira Yo panel icon is new artwork for this fork. Retained Komikku artwork
+identifies and credits the original project; it does not identify Yomira releases.
+
+The architecture illustration identifies Suwayomi and Sorayomi using their
+project logos, Copyright Contributors to the Suwayomi project. See
+docs/ARCHITECTURE.md and .github/readme-images/yomira/architecture-LICENSE.txt
+for illustration attribution and licensing.

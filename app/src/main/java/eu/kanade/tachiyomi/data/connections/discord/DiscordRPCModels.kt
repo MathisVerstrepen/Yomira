@@ -186,7 +186,9 @@ enum class DiscordScreen(
     @StringRes val details: Int,
     val imageUrl: String,
 ) {
-    APP(R.string.app_name, R.string.discord_status_using, KOMIKKU_IMAGE),
+    // KMK -->
+    APP(R.string.suwayomi_app_name, R.string.discord_status_using, KOMIKKU_IMAGE),
+    // KMK <--
     LIBRARY(R.string.label_library, R.string.discord_status_browsing, LIBRARY_IMAGE_URL),
     UPDATES(R.string.label_recent_updates, R.string.discord_status_scrolling, UPDATES_IMAGE_URL),
     HISTORY(R.string.label_recent_manga, R.string.discord_status_scrolling, HISTORY_IMAGE_URL),

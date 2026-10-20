@@ -15,6 +15,7 @@ import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import eu.kanade.presentation.theme.TachiyomiPreviewTheme
 import tachiyomi.i18n.MR
+import tachiyomi.i18n.kmk.KMR
 import tachiyomi.presentation.core.components.material.padding
 import tachiyomi.presentation.core.i18n.stringResource
 
@@ -32,7 +33,9 @@ internal class GuidesStep(
             modifier = Modifier.padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(MaterialTheme.padding.small),
         ) {
-            Text(stringResource(MR.strings.onboarding_guides_new_user, stringResource(MR.strings.app_name)))
+            // KMK -->
+            Text(stringResource(MR.strings.onboarding_guides_new_user, stringResource(KMR.strings.suwayomi_app_name)))
+            // KMK <--
             Button(
                 modifier = Modifier.fillMaxWidth(),
                 onClick = { handler.openUri(GETTING_STARTED_URL) },
@@ -45,7 +48,9 @@ internal class GuidesStep(
                 color = MaterialTheme.colorScheme.onPrimaryContainer,
             )
 
-            Text(stringResource(MR.strings.onboarding_guides_returning_user, stringResource(MR.strings.app_name)))
+            // KMK -->
+            Text(stringResource(MR.strings.onboarding_guides_returning_user, stringResource(KMR.strings.suwayomi_app_name)))
+            // KMK <--
             Button(
                 modifier = Modifier.fillMaxWidth(),
                 onClick = onRestoreBackup,

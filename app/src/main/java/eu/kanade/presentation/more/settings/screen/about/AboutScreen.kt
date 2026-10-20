@@ -66,6 +66,12 @@ class AboutScreen : Screen() {
 
     @Composable
     override fun Content() {
+        // KMK -->
+        if (eu.kanade.tachiyomi.data.suwayomi.SuwayomiMode.enabled) {
+            YomiraAboutContent()
+            return
+        }
+        // KMK <--
         val scope = rememberCoroutineScope()
         val context = LocalContext.current
         val uriHandler = LocalUriHandler.current

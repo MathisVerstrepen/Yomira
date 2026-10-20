@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- KMK: Yomira brand colors; inherited Komikku palettes remain available. -->
+    <color name="yomira_plum">#251329</color>
+    <color name="yomira_accent">#F00995</color>
+</resources>

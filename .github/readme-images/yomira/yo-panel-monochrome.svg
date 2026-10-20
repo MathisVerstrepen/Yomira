@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 128 128" role="img" aria-labelledby="title description">
+  <title id="title">Yomira Yo panel monochrome mark</title>
+  <desc id="description">A single-color katakana Yo mark with a transparent background.</desc>
+  <path d="M36 31 H87 Q96 31 96 40 V88 Q96 97 87 97 H34 Q27 97 27 90 Q27 83 34 83 H82 V71 H43 Q36 71 36 64 Q36 57 43 57 H82 V45 H36 Q29 45 29 38 Q29 31 36 31 Z" fill="#000000"/>
+</svg>

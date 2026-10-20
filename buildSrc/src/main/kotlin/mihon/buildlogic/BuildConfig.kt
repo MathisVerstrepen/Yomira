@@ -10,8 +10,11 @@ interface BuildConfig {
 }
 
 val Project.Config: BuildConfig get() = object : BuildConfig {
-    override val includeTelemetry: Boolean = project.hasProperty("include-telemetry")
-    override val enableUpdater: Boolean = project.hasProperty("enable-updater")
+    // KMK -->
+    // Yomira has no upstream analytics credentials or update service.
+    override val includeTelemetry: Boolean = false
+    override val enableUpdater: Boolean = false
+    // KMK <--
     override val enableCodeShrink: Boolean = !project.hasProperty("disable-code-shrink")
     override val includeDependencyInfo: Boolean = project.hasProperty("include-dependency-info")
 }

@@ -1,3 +1,5 @@
+# KMK -->
+# Yomira fork workflow; upstream destinations remain restricted where retained.
 name: Remote Dispatch Preview Build
 # Manually send a dispatch to build preview
 
@@ -25,6 +27,8 @@ concurrency:
 
 jobs:
   trigger_preview_build:
+    # KMK: Dispatches to Komikku infrastructure only in the original upstream repository.
+    if: github.repository == 'komikku-app/komikku'
     name: Trigger preview build
     runs-on: 'ubuntu-24.04'
 
@@ -60,3 +64,4 @@ jobs:
           ref: "refs/heads/main"
           token: "${{ secrets.BOT_PAT }}"
           inputs: '{ "git-ref": "${{ steps.branch_names.outputs.current_branch }}" }'
+# KMK <--

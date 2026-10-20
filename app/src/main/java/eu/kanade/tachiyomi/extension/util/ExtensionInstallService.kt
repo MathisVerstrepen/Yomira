@@ -33,9 +33,11 @@ class ExtensionInstallService : Service() {
 
     override fun onCreate() {
         val notification = notificationBuilder(Notifications.CHANNEL_EXTENSIONS_UPDATE) {
-            setSmallIcon(R.drawable.ic_komikku)
-            setColor(ContextCompat.getColor(applicationContext, R.color.ic_launcher))
-            setLargeIcon(BitmapFactory.decodeResource(applicationContext.resources, R.drawable.komikku))
+            // KMK -->
+            setSmallIcon(R.drawable.ic_yomira_mark)
+            setColor(ContextCompat.getColor(applicationContext, R.color.yomira_accent))
+            setLargeIcon(BitmapFactory.decodeResource(applicationContext.resources, R.drawable.yomira))
+            // KMK <--
             setAutoCancel(false)
             setOngoing(true)
             setShowWhen(false)

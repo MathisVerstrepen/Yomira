@@ -66,9 +66,9 @@ jobs:
           else
             notes=".github/release-notes/$RELEASE_TAG.md"
             if [ -f "$notes" ]; then
-              gh release create "$RELEASE_TAG" release-artifacts/* --verify-tag --title "Komikku Suwayomi $RELEASE_TAG" --notes-file "$notes" --latest
+              gh release create "$RELEASE_TAG" release-artifacts/* --verify-tag --title "Yomira $RELEASE_TAG" --notes-file "$notes" --latest
             else
-              gh release create "$RELEASE_TAG" release-artifacts/* --verify-tag --title "Komikku Suwayomi $RELEASE_TAG" --generate-notes --latest
+              gh release create "$RELEASE_TAG" release-artifacts/* --verify-tag --title "Yomira $RELEASE_TAG" --generate-notes --latest
             fi
           fi
 # KMK <--

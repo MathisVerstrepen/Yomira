@@ -1,0 +1,26 @@
+# KMK -->
+name: yomira-sfw-screenshots
+services:
+  suwayomi:
+    # Suwayomi v2.4.2422. Pin the image so later screenshot sessions use the same server.
+    image: ghcr.io/suwayomi/suwayomi-server@sha256:9397e89561c3d0d05bd8657b89808bb306f4a228ca3d055b81c471cee834af41
+    container_name: yomira-sfw-screenshots
+    user: "${LOCAL_UID:-1000}:${LOCAL_GID:-1000}"
+    ports:
+      - "127.0.0.1:4569:4567"
+    environment:
+      TZ: Europe/Paris
+      AUTH_MODE: none
+      UPDATE_INTERVAL: "0"
+      BACKUP_INTERVAL: "0"
+      WEB_UI_CHANNEL: bundled
+      EXTENSION_STORES: '["https://raw.githubusercontent.com/keiyoushi/extensions/repo/index.pb"]'
+    volumes:
+      - ../../.local/sfw-screenshots/data:/home/suwayomi/.local/share/Tachidesk
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "2"
+# KMK <--

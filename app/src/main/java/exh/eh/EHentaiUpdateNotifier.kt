@@ -17,6 +17,7 @@ import tachiyomi.core.common.i18n.pluralStringResource
 import tachiyomi.core.common.i18n.stringResource
 import tachiyomi.domain.manga.model.Manga
 import tachiyomi.i18n.MR
+import tachiyomi.i18n.kmk.KMR
 import uy.kohesive.injekt.injectLazy
 import java.math.RoundingMode
 import java.text.NumberFormat
@@ -34,7 +35,9 @@ class EHentaiUpdateNotifier(private val context: Context) {
      * Bitmap of the app for notifications.
      */
     private val notificationBitmap by lazy {
-        BitmapFactory.decodeResource(context.resources, R.drawable.komikku)
+        // KMK -->
+        BitmapFactory.decodeResource(context.resources, R.drawable.yomira)
+        // KMK <--
     }
 
     /**
@@ -42,9 +45,13 @@ class EHentaiUpdateNotifier(private val context: Context) {
      */
     val progressNotificationBuilder by lazy {
         context.notificationBuilder(Notifications.CHANNEL_LIBRARY_EHENTAI) {
-            setContentTitle(context.stringResource(MR.strings.app_name))
+            // KMK -->
+            setContentTitle(context.stringResource(KMR.strings.suwayomi_app_name))
+            // KMK <--
             setSmallIcon(R.drawable.ic_refresh_24dp)
-            setColor(ContextCompat.getColor(context, R.color.ic_launcher))
+            // KMK -->
+            setColor(ContextCompat.getColor(context, R.color.yomira_accent))
+            // KMK <--
             setLargeIcon(notificationBitmap)
             setOngoing(true)
             setOnlyAlertOnce(true)
@@ -97,8 +104,10 @@ class EHentaiUpdateNotifier(private val context: Context) {
         ) {
             setContentTitle(context.pluralStringResource(MR.plurals.notification_update_error, failed, failed))
             setContentText(context.stringResource(MR.strings.action_show_errors))
-            setSmallIcon(R.drawable.ic_komikku)
-            setColor(ContextCompat.getColor(context, R.color.ic_launcher))
+            // KMK -->
+            setSmallIcon(R.drawable.ic_yomira_mark)
+            setColor(ContextCompat.getColor(context, R.color.yomira_accent))
+            // KMK <--
             setLargeIcon(notificationBitmap)
 
             setContentIntent(NotificationReceiver.openErrorLogPendingActivity(context, uri))

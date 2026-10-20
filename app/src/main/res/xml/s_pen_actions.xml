@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- KMK: Fork application label. -->
 <remote-actions
-    actionset_label="@string/app_name"
+    actionset_label="@string/suwayomi_app_name"
     version="1.2">
     <action
         id="tachiyomi_kmk_next_page"

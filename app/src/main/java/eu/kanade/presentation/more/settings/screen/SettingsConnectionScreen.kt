@@ -97,7 +97,9 @@ object SettingsConnectionScreen : SearchableSettings {
                         openSettings = { navigator.push(SettingsDiscordScreen) },
                     ),
                     Preference.PreferenceItem.InfoPreference(
-                        stringResource(KMR.strings.connections_discord_info, stringResource(MR.strings.app_name)),
+                        // KMK -->
+                        stringResource(KMR.strings.connections_discord_info, stringResource(KMR.strings.suwayomi_app_name)),
+                        // KMK <--
                     ),
                 ),
             ),

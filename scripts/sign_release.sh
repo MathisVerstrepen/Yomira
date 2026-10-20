@@ -15,7 +15,7 @@ mkdir -p "$output_dir"
 
 for abi in universal arm64-v8a armeabi-v7a x86 x86_64; do
     input="app/build/outputs/apk/release/app-$abi-release-unsigned.apk"
-    output="$output_dir/Komikku-Suwayomi-$release_tag-$abi.apk"
+    output="$output_dir/Yomira-$release_tag-$abi.apk"
     "$apksigner" sign --ks "$KOMIKKU_RELEASE_KEYSTORE" --ks-key-alias "$KOMIKKU_RELEASE_ALIAS" \
         --ks-pass env:KOMIKKU_RELEASE_STORE_PASSWORD --key-pass env:KOMIKKU_RELEASE_KEY_PASSWORD \
         --out "$output" "$input"
@@ -23,7 +23,7 @@ for abi in universal arm64-v8a armeabi-v7a x86 x86_64; do
 done
 (
     cd "$output_dir"
-    sha256sum Komikku-Suwayomi-"$release_tag"-*.apk > SHA256SUMS.txt
+    sha256sum Yomira-"$release_tag"-*.apk > SHA256SUMS.txt
     sha256sum --check SHA256SUMS.txt
 )
 # KMK <--

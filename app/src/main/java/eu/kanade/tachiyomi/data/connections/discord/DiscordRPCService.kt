@@ -44,6 +44,13 @@ class DiscordRPCService : Service() {
 
     override fun onCreate() {
         super.onCreate()
+        // KMK -->
+        // Yomira has no independent Discord application identity.
+        if (eu.kanade.tachiyomi.data.suwayomi.SuwayomiMode.enabled) {
+            stopSelf()
+            return
+        }
+        // KMK <--
         Timber.tag(TAG).i("Starting Discord RPC service")
 
         val token = connectionsPreferences.connectionsToken(connectionsManager.discord).get()
@@ -97,6 +104,12 @@ class DiscordRPCService : Service() {
     override fun onBind(intent: Intent): IBinder? = null
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        // KMK -->
+        if (eu.kanade.tachiyomi.data.suwayomi.SuwayomiMode.enabled) {
+            stopSelf()
+            return START_NOT_STICKY
+        }
+        // KMK <--
         when (intent?.action) {
             ACTION_RESTART -> restartRPC()
             STOP_SERVICE -> {
@@ -148,11 +161,15 @@ class DiscordRPCService : Service() {
 
         val builder = context.notificationBuilder(Notifications.CHANNEL_DISCORD_RPC) {
             setSmallIcon(R.drawable.ic_discord_24dp)
-            setColor(ContextCompat.getColor(context, R.color.ic_launcher))
-            setLargeIcon(BitmapFactory.decodeResource(context.resources, R.drawable.komikku))
+            // KMK -->
+            setColor(ContextCompat.getColor(context, R.color.yomira_accent))
+            setLargeIcon(BitmapFactory.decodeResource(context.resources, R.drawable.yomira))
+            // KMK <--
             setContentText(context.getString(R.string.pref_discord_rpc))
             // KMK -->
-            setContentTitle(context.getString(R.string.app_name))
+            // KMK -->
+            setContentTitle(context.getString(R.string.suwayomi_app_name))
+            // KMK <--
             addAction(R.drawable.ic_close_24dp, context.getString(R.string.action_stop), stopIntent)
             // KMK <--
             setAutoCancel(false)
@@ -315,7 +332,9 @@ class DiscordRPCService : Service() {
             imageUrl: String,
             timestamps: Activity.Timestamps?,
             sinceTime: Long = since,
-            appName: String = context.getString(R.string.app_name),
+            // KMK -->
+            appName: String = context.getString(R.string.suwayomi_app_name),
+            // KMK <--
             // KMK <--
         ) {
             val customMessage = connectionsPreferences.discordCustomMessage().get()
