@@ -5,7 +5,7 @@
 Use **JDK 21** and **Android SDK 36**. The repository includes the Gradle wrapper; bytecode targets Java 17. Configure the SDK through Android Studio or `sdk.dir` in your local `local.properties`.
 
 ```sh
-git clone https://github.com/MathisVerstrepen/komikku-suwayomi.git yomira
+git clone https://github.com/MathisVerstrepen/Yomira.git yomira
 cd yomira
 ./gradlew spotlessApply
 ./gradlew spotlessCheck

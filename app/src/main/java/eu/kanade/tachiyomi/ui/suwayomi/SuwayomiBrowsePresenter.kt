@@ -109,7 +109,13 @@ internal fun SuwayomiBrowseTab() {
     val extensionsModel = eu.kanade.tachiyomi.ui.browse.BrowseTab.rememberScreenModel(tag = "server-extensions-${session.id}") { SuwayomiExtensionsModel(session.id) }
     val extensionsState by extensionsModel.state.collectAsState()
     var extensionQuery by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf<String?>(null) }
-    val pager = androidx.compose.foundation.pager.rememberPagerState { 2 }
+    val migrationModel = eu.kanade.tachiyomi.ui.browse.BrowseTab.rememberScreenModel(tag = "server-migration-library-${session.id}") { SuwayomiMigrationLibraryModel(session.id) }
+    var migrationQuery by androidx.compose.runtime.saveable.rememberSaveable(session.id) { mutableStateOf<String?>(null) }
+    val pager = androidx.compose.foundation.pager.rememberPagerState { 3 }
+    BackHandler(enabled = pager.currentPage == 2 && migrationQuery != null) { migrationQuery = null }
+    LaunchedEffect(pager.currentPage, session.id) {
+        if (pager.currentPage == 2) migrationModel.refresh()
+    }
     BackHandler(enabled = pager.currentPage == 1 && extensionQuery != null) { extensionQuery = null }
     LaunchedEffect(extensionsState.extensions) {
         if (extensionsState.hasLoaded) model.sources()
@@ -128,6 +134,7 @@ internal fun SuwayomiBrowseTab() {
     androidx.lifecycle.compose.LifecycleEventEffect(androidx.lifecycle.Lifecycle.Event.ON_RESUME) {
         model.sources()
         extensionsModel.refresh()
+        if (pager.currentPage == 2) migrationModel.refresh()
     }
     val sources = state.sources.filter { query.isNullOrBlank() || it.name.contains(query.orEmpty(), true) }
     val nativeState = SourcesScreenModel.State(
@@ -142,8 +149,8 @@ internal fun SuwayomiBrowseTab() {
     TabbedScreen(
         titleRes = MR.strings.browse,
         state = pager,
-        searchQuery = extensionQuery,
-        onChangeSearchQuery = { extensionQuery = it },
+        searchQuery = if (pager.currentPage == 2) migrationQuery else extensionQuery,
+        onChangeSearchQuery = { if (pager.currentPage == 2) migrationQuery = it else extensionQuery = it },
         tabs = persistentListOf(
             TabContent(
                 titleRes = MR.strings.label_sources,
@@ -168,6 +175,7 @@ internal fun SuwayomiBrowseTab() {
                 }
             },
             suwayomiExtensionsTab(session.id, extensionsModel, extensionQuery),
+            suwayomiMigrationTab(session.id, migrationModel, migrationQuery),
         ),
     )
 }
