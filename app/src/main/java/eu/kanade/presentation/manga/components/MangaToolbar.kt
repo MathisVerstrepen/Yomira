@@ -72,6 +72,7 @@ fun MangaToolbar(
     // KMK -->
     onPaletteScreenClick: () -> Unit,
     showLocalActions: Boolean = true,
+    onSmartDownloadsClicked: (() -> Unit)? = null,
     // KMK <--
     modifier: Modifier = Modifier,
 ) {
@@ -186,6 +187,14 @@ fun MangaToolbar(
                         )
                     }
                     // KMK -->
+                    if (onSmartDownloadsClicked != null) {
+                        add(
+                            AppBar.OverflowAction(
+                                title = stringResource(KMR.strings.suwayomi_smart_downloads),
+                                onClick = onSmartDownloadsClicked,
+                            ),
+                        )
+                    }
                     if (showLocalActions) {
                         // KMK <--
                         add(

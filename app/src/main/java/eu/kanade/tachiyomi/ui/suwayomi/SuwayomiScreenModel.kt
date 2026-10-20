@@ -228,6 +228,7 @@ class SuwayomiMangaScreenModel(
                 }
                 val chapters = session.overlay(session.chapters(mangaId))
                 session.offline.remember(manga, chapters)
+                session.requestSmartDownloads()
                 val user = session.user()
                 val categories = session.serverCategories()
                 backend.requireSession(sessionId)

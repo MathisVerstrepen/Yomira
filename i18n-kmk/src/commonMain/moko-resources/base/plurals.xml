@@ -10,4 +10,14 @@
         <item quantity="other">%1$d library titles</item>
     </plurals>
     <!-- KMK Suwayomi source migration end -->
+    <!-- KMK: Smart phone downloads -->
+    <plurals name="suwayomi_smart_buffer_summary">
+        <item quantity="one">Keep the next unread chapter on this phone.</item>
+        <item quantity="other">Keep the next %1$d unread chapters on this phone.</item>
+    </plurals>
+    <!-- KMK: Phone download management -->
+    <plurals name="suwayomi_phone_chapters">
+        <item quantity="one">%1$d chapter</item>
+        <item quantity="other">%1$d chapters</item>
+    </plurals>
 </resources>

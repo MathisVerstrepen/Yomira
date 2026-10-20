@@ -118,6 +118,7 @@ internal fun SuwayomiMangaPresenter(presentationId: Long, expectedSession: Strin
     var selected by remember(session.id, mangaId) { mutableStateOf(emptySet<Long>()) }
     var selectionAnchor by remember { mutableStateOf<Long?>(null) }
     var settings by remember { mutableStateOf(false) }
+    var smartDownloads by remember { mutableStateOf(false) }
     var categoryDialog by remember { mutableStateOf(false) }
     var scanlators by remember { mutableStateOf(false) }
     var cover by remember { mutableStateOf(false) }
@@ -229,6 +230,7 @@ internal fun SuwayomiMangaPresenter(presentationId: Long, expectedSession: Strin
     val swipeEnd by prefs.swipeToStartAction().collectAsState()
     TachiyomiTheme(seedColor = seedColor.takeIf { coverTheme }) {
         MangaContent(
+            onSmartDownloadsClicked = { smartDownloads = true },
             state = native, snackbarHostState = snack, nextUpdate = null, isTabletUi = isTabletUi(),
             chapterSwipeStartAction = swipeStart, chapterSwipeEndAction = swipeEnd, navigateUp = { navigator.pop() }, onChapterClicked = ::open,
             onDownloadChapter = { items, action -> download = items.map { SuwayomiMode.remoteId(it.id) } to action },
@@ -283,6 +285,23 @@ internal fun SuwayomiMangaPresenter(presentationId: Long, expectedSession: Strin
                 }
             },
             coverRatio = remember { mutableFloatStateOf(1f) }, onPaletteScreenClick = {}, hazeState = remember { HazeState() },
+        )
+    }
+    if (smartDownloads) {
+        SuwayomiSmartDownloadDialog(
+            title = remote.title,
+            enabled = mangaId in offline.smartTitles,
+            count = offline.smartChapterCount,
+            onDismiss = { smartDownloads = false },
+            onToggle = { enabled ->
+                withContext(Dispatchers.IO) {
+                    backend.requireSession(session.id).selectSmartDownloads(remote, state.chapters, enabled)
+                }
+            },
+            onSettings = {
+                smartDownloads = false
+                navigator.push(SuwayomiOfflineScreen(session.id, showSettings = true))
+            },
         )
     }
     if (settings) {

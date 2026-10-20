@@ -42,12 +42,20 @@ These are recorded checks, not a guarantee that every server release supports ev
 ## Read offline
 
 1. Open a title and use a chapter’s download action, or select chapters/titles in bulk. Choose **Download to phone**. **Download on server** manages the server’s separate copies. Chapter icons distinguish server downloads from phone downloads; tap the icon to choose another destination even when a copy already exists.
-2. Open **More → Phone downloads** to check progress, pause/resume, retry, read saved chapters, or remove device copies.
-3. Phone downloads default to **Wi-Fi only** and a **2 GiB storage limit**. The limit is editable in MiB (1024 MiB = 1 GiB). Transfers pause when Wi-Fi is lost or storage reaches the limit; freeing space or changing the settings allows them to continue. Completed pages are retained when a transfer is interrupted.
+2. Open **More → Phone downloads → Downloads** to check progress, pause/resume, retry, and read saved chapters grouped by title. Tap a completed chapter to read it; its overflow menu contains the remove action.
+3. In the **Settings** tab, phone downloads default to **Wi-Fi only** and a **2 GiB storage limit**. The limit is editable in MiB (1024 MiB = 1 GiB). Transfers pause when Wi-Fi is lost or storage reaches the limit; freeing space or changing the settings allows them to continue. Completed pages are retained when a transfer is interrupted.
 4. A chapter is **Available offline** only after every page is saved. Completed downloads include title/chapter metadata and a cover when available, so they remain accessible after restarting without a server connection. **Downloaded on phone only** in More filters the library to device copies.
 5. Read normally in Yomira’s inherited Komikku reader. Reading progress and bookmarks are saved locally and queued for synchronization after reconnecting, including after process restart. Uncertain mutations or account/identity conflicts remain visible for deliberate retry or discard.
 
 Downloaded chapters use private app storage, outside Android’s disposable image cache, and are excluded from Android backup. Storage accounting includes saved pages, partial transfers, covers, and metadata. Lowering the limit preserves existing downloads; new transfers wait until there is room. Deleting a phone copy preserves server files and reading progress. Replacing/disconnecting the server account clears its phone downloads and pending changes; reauthenticating the same account preserves them.
+
+## Smart phone downloads
+
+Open a title’s **More → Smart phone downloads** menu and turn on **Auto-download**. The default buffer is the next **3 unread chapters**, in source reading order. Choose 1, 3, 5, 10, or 20 in **More → Phone downloads → Settings → Chapters to keep**. The same tab lists selected titles and lets you stop automation for each title. The title modal’s **Download settings** link opens this tab directly.
+
+Yomira checks selected titles for chapters already available on the server hourly, after progress synchronizes, when viewing a title, and when connectivity returns. Android may delay background work. It uses the existing phone-download Wi-Fi restriction, pause control, and storage limit. Fetch new chapters through the server’s normal library updates or the title’s refresh action.
+
+**Remove synchronized read copies** is on by default. It removes only automatically downloaded phone copies, after fresh server state confirms the chapter is read and no chapter changes remain pending. Unsynchronized, uncertain, or failed progress keeps the copy available. Files currently open in the reader are retained until the reader releases them. Manual downloads and server copies are preserved. Turning off cleanup keeps read copies; turning off a selected title cancels its unfinished automatic transfers and keeps completed copies. Removing a phone copy manually excludes it from automatic refill until the title is enabled again or the chapter is downloaded manually.
 
 ## Migrate providers
 

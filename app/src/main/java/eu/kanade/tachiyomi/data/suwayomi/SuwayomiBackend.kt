@@ -48,6 +48,7 @@ class SuwayomiBackend(private val context: Context) {
                     delay(1000)
                     val active = session.value ?: return@launch
                     active.flushSoon()
+                    SuwayomiSmartDownloadWorker.schedule(context, active, immediate = true, replace = true)
                     val snapshot = active.offline.state.value
                     if (!snapshot.paused && snapshot.downloads.any { it.state in listOf(OfflineState.QUEUED, OfflineState.WIFI, OfflineState.NETWORK) }) SuwayomiOfflineWorker.schedule(context, active, replace = true)
                 }
@@ -291,15 +292,46 @@ class SuwayomiSession internal constructor(
         SuwayomiOfflineWorker.schedule(context, this, replace = true)
     }
 
+    internal fun selectSmartDownloads(manga: ServerManga, chapters: List<ServerChapter>, enabled: Boolean) {
+        assertActive()
+        val before = offline.state.value.downloads.map { it.chapterId }.toSet()
+        offline.selectSmart(manga, chapters, enabled)
+        discardRemovedOffline(before - offline.state.value.downloads.map { it.chapterId }.toSet())
+        SuwayomiSmartDownloadWorker.schedule(context, this, immediate = true)
+        SuwayomiOfflineWorker.schedule(context, this, replace = true)
+    }
+
+    internal fun configureSmartDownloads(count: Int, removeRead: Boolean) {
+        assertActive()
+        offline.configureSmart(count, removeRead)
+        SuwayomiSmartDownloadWorker.schedule(context, this, immediate = true)
+    }
+
+    internal suspend fun reconcileSmartDownloads(mangaId: Int) = drainMutex.withLock {
+        assertActive()
+        if (!incognito()) {
+            val manga = manga(mangaId)
+            val chapters = chapters(mangaId)
+            synchronized(this) { offline.reconcileSmart(manga, chapters, outbox.operations()) }
+        }
+    }
+
+    internal fun requestSmartDownloads() {
+        assertActive()
+        SuwayomiSmartDownloadWorker.schedule(context, this, immediate = true)
+    }
+
     internal fun configureOffline(wifiOnly: Boolean, limitMiB: Int) {
         assertActive()
         offline.configure(wifiOnly, limitMiB)
+        requestSmartDownloads()
         SuwayomiOfflineWorker.schedule(context, this, replace = true)
     }
 
     internal fun pauseOffline(paused: Boolean) {
         assertActive()
         offline.pause(paused)
+        if (!paused) requestSmartDownloads()
         if (paused) SuwayomiOfflineWorker.cancel(context, id) else SuwayomiOfflineWorker.schedule(context, this, replace = true)
     }
 
@@ -307,22 +339,29 @@ class SuwayomiSession internal constructor(
         assertActive()
         offline.pause(false)
         offline.retry()
+        requestSmartDownloads()
         SuwayomiOfflineWorker.schedule(context, this, replace = true)
     }
 
     internal fun removeOffline(id: Int) {
         assertActive()
         offline.remove(id)
+        discardRemovedOffline(setOf(id))
+        SuwayomiOfflineWorker.schedule(context, this, replace = true)
+    }
+
+    private fun discardRemovedOffline(ids: Set<Int>) {
+        if (ids.isEmpty()) return
         scope.launch {
             uy.kohesive.injekt.Injekt.get<SuwayomiBackend>().offlineDownloadMutex.withLock {
-                if (!closed && offline.state.value.downloads.none { it.chapterId == id }) offline.discardPartial(id)
+                if (!closed) ids.filter { id -> offline.state.value.downloads.none { it.chapterId == id } }.forEach(offline::discardPartial)
             }
         }
-        SuwayomiOfflineWorker.schedule(context, this, replace = true)
     }
 
     internal fun resumeOfflineWork() {
         assertActive()
+        SuwayomiSmartDownloadWorker.schedule(context, this)
         if (offline.next() != null) SuwayomiOfflineWorker.schedule(context, this)
         if (pending.value.isNotEmpty()) SuwayomiProgressWorker.schedule(context, id)
     }
@@ -383,6 +422,7 @@ class SuwayomiSession internal constructor(
         return outbox.ticket(chapters.map { it.id }, chapters.associate { it.id to it.identity() })
     }
 
+    @Synchronized
     fun enqueue(chapterId: Int, kind: ChapterIntentKind, patch: ChapterPatch, ticket: ReadingTicket? = null, identity: ChapterIdentity? = null) {
         assertActive()
         if (incognito()) return
@@ -403,6 +443,7 @@ class SuwayomiSession internal constructor(
         assertActive()
         if (incognito()) return@withLock
         mutableFailure.value = null
+        var readSynchronized = false
         for (intent in outbox.operations()) {
             if (incognito()) break
             if (outbox.operations().none { it.id == intent.id }) continue
@@ -418,6 +459,7 @@ class SuwayomiSession internal constructor(
                     if (matches(remote, intent.patch)) {
                         updateServerTracking(intent)
                         outbox.acknowledge(intent.id)
+                        if (intent.patch.isRead != null) readSynchronized = true
                         mutablePending.value = outbox.operations()
                         continue
                     }
@@ -453,6 +495,7 @@ class SuwayomiSession internal constructor(
                 }
                 updateServerTracking(intent)
                 outbox.acknowledge(intent.id)
+                if (intent.patch.isRead != null) readSynchronized = true
             } catch (e: CancellationException) {
                 // Persist uncertainty even when the process/activity or HTTP call was cancelled.
                 if (sent) outbox.setStatus(intent.id, ChapterIntentStatus.AMBIGUOUS)
@@ -466,6 +509,7 @@ class SuwayomiSession internal constructor(
                 mutablePending.value = outbox.operations()
             }
         }
+        if (readSynchronized) requestSmartDownloads()
     }
 
     suspend fun retryPending() {
@@ -533,6 +577,7 @@ class SuwayomiSession internal constructor(
         if (clear) {
             SuwayomiOfflineWorker.cancel(context, id)
             SuwayomiProgressWorker.cancel(context, id)
+            SuwayomiSmartDownloadWorker.cancel(context, id)
         }
         pageCache.deleteRecursively()
         if (clear) {
