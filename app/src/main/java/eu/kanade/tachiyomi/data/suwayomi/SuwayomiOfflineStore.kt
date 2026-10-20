@@ -21,6 +21,7 @@ internal data class OfflineDownload(
     val pages: Int = 0,
     val total: Int = 0,
     val sizes: List<Long> = emptyList(),
+    val automatic: Boolean = false,
 )
 
 @Serializable
@@ -33,6 +34,10 @@ internal data class OfflineSnapshot(
     val wifiOnly: Boolean = true,
     val paused: Boolean = false,
     val limitMiB: Int = 2048,
+    val smartTitles: Set<Int> = emptySet(),
+    val smartChapterCount: Int = 3,
+    val smartRemoveRead: Boolean = true,
+    val smartExcluded: Set<Int> = emptySet(),
 )
 
 internal class OfflineStorageFull : Exception()
@@ -95,9 +100,11 @@ internal class SuwayomiOfflineStore(private val root: File) {
             if (previous == null || previous.state != OfflineState.COMPLETE) {
                 entries.removeAll { it.chapterId == id }
                 entries += OfflineDownload(id, manga.id)
+            } else if (previous.automatic) {
+                entries[entries.indexOf(previous)] = previous.copy(automatic = false)
             }
         }
-        save(before.copy(titles = before.titles + (manga.id to OfflineTitle(manga, chapters)), downloads = entries))
+        save(before.copy(titles = before.titles + (manga.id to OfflineTitle(manga, chapters)), downloads = entries, smartExcluded = before.smartExcluded - ids.toSet()))
     }
 
     @Synchronized
@@ -108,7 +115,62 @@ internal class SuwayomiOfflineStore(private val root: File) {
         val downloads = state.value.downloads.map { item ->
             if (item.mangaId == manga.id && (!valid || chapters.none { it.id == item.chapterId && old.chapters.any { previous -> previous.id == it.id && previous.identity() == it.identity() } })) item.copy(state = OfflineState.ERROR) else item
         }
-        save(state.value.copy(titles = state.value.titles + (manga.id to OfflineTitle(manga, chapters)), downloads = downloads))
+        save(state.value.copy(titles = state.value.titles + (manga.id to OfflineTitle(manga, chapters)), downloads = downloads, smartTitles = if (valid) state.value.smartTitles else state.value.smartTitles - manga.id))
+    }
+
+    @Synchronized
+    fun configureSmart(count: Int, removeRead: Boolean) {
+        require(count in 1..20)
+        save(state.value.copy(smartChapterCount = count, smartRemoveRead = removeRead))
+    }
+
+    @Synchronized
+    fun selectSmart(manga: ServerManga, chapters: List<ServerChapter>, enabled: Boolean) {
+        require(chapters.all { it.mangaId == manga.id })
+        remember(manga, chapters)
+        val snapshot = state.value
+        save(
+            snapshot.copy(
+                titles = snapshot.titles + (manga.id to OfflineTitle(manga, chapters)),
+                smartTitles = if (enabled) snapshot.smartTitles + manga.id else snapshot.smartTitles - manga.id,
+                smartExcluded = snapshot.smartExcluded - chapters.map { it.id }.toSet(),
+            ),
+        )
+        if (!enabled) {
+            // Stopping automation leaves completed phone copies available for offline reading.
+            state.value.downloads.filter { it.mangaId == manga.id && it.automatic && it.state != OfflineState.COMPLETE }.forEach { remove(it.chapterId, automaticCleanup = true) }
+        }
+    }
+
+    /** Only fresh server state may authorize deletion; local overlays never confirm synchronization. */
+    @Synchronized
+    fun reconcileSmart(manga: ServerManga, remote: List<ServerChapter>, pending: List<ChapterIntent>) {
+        if (manga.id !in state.value.smartTitles || state.value.paused) return
+        require(remote.all { it.mangaId == manga.id })
+        val previous = state.value.titles[manga.id] ?: return
+        remember(manga, remote)
+        // A restored server can reuse IDs. Never follow a replacement title automatically.
+        if (manga.id !in state.value.smartTitles) return
+        val pendingIds = pending.map { it.chapterId }.toSet()
+        val projected = remote.map { chapter ->
+            pending.filter { it.chapterId == chapter.id && it.identity == chapter.identity() }.fold(chapter) { value, intent ->
+                value.copy(user = value.user.copy(isRead = intent.patch.isRead ?: value.user.isRead))
+            }
+        }
+        if (state.value.smartRemoveRead) {
+            state.value.downloads.filter { item ->
+                item.mangaId == manga.id && item.automatic && item.chapterId !in pendingIds &&
+                    remote.any { chapter -> chapter.id == item.chapterId && chapter.user.isRead && previous.chapters.any { it.identity() == chapter.identity() && it.id == chapter.id } }
+            }.forEach { item ->
+                remove(item.chapterId, automaticCleanup = true)
+                discardPartial(item.chapterId)
+            }
+        }
+        val snapshot = state.value
+        val next = projected.filterNot { it.user.isRead }.sortedWith(compareBy({ it.sourceOrder }, { it.id }))
+            .take(snapshot.smartChapterCount)
+            .filterNot { chapter -> chapter.id in snapshot.smartExcluded || chapter.id in retired || snapshot.downloads.any { it.chapterId == chapter.id } }
+        save(snapshot.copy(downloads = snapshot.downloads + next.map { OfflineDownload(it.id, manga.id, automatic = true) }))
     }
 
     @Synchronized
@@ -204,13 +266,19 @@ internal class SuwayomiOfflineStore(private val root: File) {
     }
 
     @Synchronized
-    fun remove(chapterId: Int) {
+    fun remove(chapterId: Int, automaticCleanup: Boolean = false) {
         check(!closed)
         if ((readers[chapterId] ?: 0) > 0) retired += chapterId else File(root, chapterId.toString()).deleteRecursively()
         // The worker drops this staging directory after observing cancellation.
         val downloads = state.value.downloads.filterNot { it.chapterId == chapterId }
-        state.value.titles.keys.filter { id -> downloads.none { it.mangaId == id } }.forEach { File(root, "cover-$it").delete() }
-        save(state.value.copy(downloads = downloads, titles = state.value.titles.filterKeys { id -> downloads.any { it.mangaId == id } }))
+        state.value.titles.keys.filter { id -> downloads.none { it.mangaId == id } && id !in state.value.smartTitles }.forEach { File(root, "cover-$it").delete() }
+        save(
+            state.value.copy(
+                downloads = downloads,
+                titles = state.value.titles.filterKeys { id -> id in state.value.smartTitles || downloads.any { it.mangaId == id } },
+                smartExcluded = if (automaticCleanup) state.value.smartExcluded - chapterId else state.value.smartExcluded + chapterId,
+            ),
+        )
     }
 
     @Synchronized
