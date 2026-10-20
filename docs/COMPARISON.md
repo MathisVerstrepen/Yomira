@@ -74,10 +74,11 @@ This confirms useful image caching, not a complete offline reading mode. The tes
 
 ## Yomira
 
-Baseline: rebrand `d716da67b`, plus the current branch's documentation and screenshots.
+Baseline: Yomira v0.4.0, including provider migration and the existing documentation and screenshots.
 
 - [Phone download storage](../app/src/main/java/eu/kanade/tachiyomi/data/suwayomi/SuwayomiOfflineStore.kt) and [download worker](../app/src/main/java/eu/kanade/tachiyomi/data/suwayomi/SuwayomiOfflineWorker.kt) implement persistent device copies, transfer rules, and storage accounting.
 - [Source policy](../app/src/main/java/eu/kanade/tachiyomi/data/suwayomi/SuwayomiSourcePolicy.kt) applies server browsing restrictions.
+- [Source migration](../app/src/main/java/eu/kanade/tachiyomi/data/suwayomi/SuwayomiMigration.kt) and the [Browse migration screens](../app/src/main/java/eu/kanade/tachiyomi/ui/suwayomi/SuwayomiMigrationLibraryScreen.kt) provide library-provider selection, replacement search, chapter review, and verified progress/bookmark/category transfers. Originals remain in the library until verification succeeds.
 - The [user guide](./USAGE.md) records current server workflows, offline progress synchronization, permissions, and limits.
 
 The SFW README screenshots were captured from a real local Suwayomi v2.4.2422 instance. They illustrate Yomira's UI; they do not test the other clients or demonstrate parity with all of Komikku's features.

@@ -20,7 +20,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/MathisVerstrepen/komikku-suwayomi/releases/latest"><strong>Download APK</strong></a>
+  <a href="https://github.com/MathisVerstrepen/Yomira/releases/latest"><strong>Download APK</strong></a>
   · <a href="#get-started">Get started</a>
   · <a href="#compare-the-clients">Compare clients</a>
   · <a href="./docs/USAGE.md">User guide</a>
@@ -39,6 +39,7 @@
 - **Read with Komikku's reader:** page and webtoon modes, gestures, themes, bookmarks, and chapter controls.
 - **Keep your Suwayomi library with you:** categories, search, filters, bulk actions, updates, and reading history.
 - **Browse server sources:** search across providers and manage server extensions from Browse.
+- **Migrate providers:** find replacement titles, review chapter matches, and transfer progress, bookmarks, and categories. Start from **Browse → Migrate** or a library title’s **More → Migrate** menu.
 - **Read offline:** download chapters to your phone, with Wi-Fi-only transfers and a storage limit. Reading progress synchronizes after reconnecting.
 - **Manage your server:** control its download queue, configure library updates, and connect tracker accounts.
 
@@ -67,13 +68,13 @@ Choose Komikku for a standalone Android library, Yomira for Komikku's reader wit
 | Manage server downloads | Not a full server client | Yes | Yes | Yes |
 | Offline reading from device downloads | Local downloads; no server needed | No¹ | No¹ | **Completed phone downloads** |
 | Tracker account management | On the phone | No built-in UI | Through the server | Through the server |
-| Source migration | Yes | Yes | Yes | Not yet |
+| Source migration | Yes | Yes | Yes | **Chapter review and verified transfer** |
 
 ¹ Sorayomi and WebUI cache reader images, but their download actions save chapters **on the server**. Neither provides managed offline chapter downloads to the reading device.
 
 ## Get started
 
-1. **Install Yomira** from [Releases](https://github.com/MathisVerstrepen/komikku-suwayomi/releases/latest). Choose the **universal APK** if unsure.
+1. **Install Yomira** from [Releases](https://github.com/MathisVerstrepen/Yomira/releases/latest). Choose the **universal APK** if unsure.
 2. **Prepare your server.** Set up [Suwayomi-Server](https://github.com/Suwayomi/Suwayomi-Server), install source extensions there, and select your browsing languages/providers in WebUI.
 3. **Connect.** Enter the full server URL, including any proxy path. Choose the matching sign-in method and enter credentials if needed. Use HTTPS outside a trusted network.
 4. **Open your library**, or find titles in **Browse**. Server extension management is also in Browse.
@@ -88,16 +89,22 @@ Already using **Komikku Suwayomi**? Install a newer release signed by this fork 
 
 Server and phone icons show where each copy is stored. Tap a chapter's download icon to choose another destination. [Offline storage, retries, and account changes →](./docs/USAGE.md#read-offline)
 
+## Move titles to another provider
+
+Open **Browse → Migrate**, choose a library provider, and select titles. Pick a replacement provider or **Search all providers**, choose a title, and review its chapter matches before transferring.
+
+**Keep original in library** is off by default. The original is removed from the library only after the selected data is verified on the replacement. Turn the option on to retain both entries. Downloads stay with the original entry. [Migration steps and unmatched chapters →](./docs/USAGE.md#migrate-providers)
+
 ## What is not supported yet?
 
-Yomira does not yet bring every standalone Komikku feature to server mode. Source migration, feeds, merged manga, recommendations, widgets, and phone-local backup/cloud-sync are not fully integrated. Source browsing and new chapter fetching require the server; only completed phone downloads work offline.
+Yomira does not yet bring every standalone Komikku feature to server mode. Feeds, merged manga, recommendations, widgets, and phone-local backup/cloud-sync are not fully integrated. Source browsing and new chapter fetching require the server; only completed phone downloads work offline.
 
 The app uses **one active server/account connection**. Available operations depend on the server version and permissions. [All current limits →](./docs/USAGE.md#current-limits)
 
 ## Build, contribute, or get help
 
 - **Build from source:** JDK 21 and Android SDK 36. Follow the [build and test guide](./docs/DEVELOPMENT.md).
-- **Report a bug:** use [Yomira's issue tracker](https://github.com/MathisVerstrepen/komikku-suwayomi/issues) with app/server versions, Android version, and reproduction steps. Redact credentials and private data.
+- **Report a bug:** use [Yomira's issue tracker](https://github.com/MathisVerstrepen/Yomira/issues) with app/server versions, Android version, and reproduction steps. Redact credentials and private data.
 - **Contribute:** read [CONTRIBUTING.md](./CONTRIBUTING.md) and [AGENTS.md](./AGENTS.md).
 - **Privacy and upgrades:** [Privacy](./docs/PRIVACY.md) · [Branding and compatibility](./docs/BRANDING.md).
 

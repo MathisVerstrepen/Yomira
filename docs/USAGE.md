@@ -10,8 +10,8 @@ Yomira connects to one active Suwayomi server/account. Browse and fetch new chap
 | --- | --- |
 | **Library** | View covers or lists; search, filter, sort, group, organize categories, and select titles in bulk |
 | **Updates / History** | Check server chapter updates and recent reading |
-| **Browse** | Search across sources; use popular/latest lists and source filters; install/update/remove server extensions; configure source preferences and repositories |
-| **Title details** | Read/resume, bookmark, select chapters, choose a download destination, and manage tracker bindings |
+| **Browse** | Search across sources; use popular/latest lists and source filters; install/update/remove server extensions; configure source preferences and repositories; migrate library titles to other providers |
+| **Title details** | Read/resume, bookmark, select chapters, choose a download destination, manage tracker bindings, and start migration from More → Migrate |
 | **More** | Open the server queue, phone downloads, categories, settings, and account controls |
 
 Source browsing and search follow WebUI's saved language and enabled-source restrictions. Extensions and source preferences are shared server configuration.
@@ -49,11 +49,23 @@ These are recorded checks, not a guarantee that every server release supports ev
 
 Downloaded chapters use private app storage, outside Android’s disposable image cache, and are excluded from Android backup. Storage accounting includes saved pages, partial transfers, covers, and metadata. Lowering the limit preserves existing downloads; new transfers wait until there is room. Deleting a phone copy preserves server files and reading progress. Replacing/disconnecting the server account clears its phone downloads and pending changes; reauthenticating the same account preserves them.
 
+## Migrate providers
+
+1. Open **Browse → Migrate**. Providers are listed with their library title counts, including disabled or unavailable original providers. Search or sort by name/title count, open a provider, then select titles. **Select matching titles** applies to the current search while retaining other selections. For a single library title, use its **More → Migrate** menu instead.
+2. Choose a replacement provider or **Search all providers**. Replacement searches follow the server’s enabled-provider and language settings. In all-provider search, each provider initially shows up to three results; expand a group to see more.
+3. Choose a replacement title to load its chapter preview. Cards show chapter counts when available and check missing counts as results become visible. Review the chapter matches, using the **Unmatched** and **Saved** filters when helpful.
+4. Tap **Continue** and choose whether to transfer reading progress, bookmarks, and categories. **Keep original in library** is **off by default**. Enable it to keep both entries after success. If unmatched chapters contain selected progress or bookmarks, retaining the original is required unless you choose a better replacement or change the transfer options.
+5. Confirm the transfer. Existing replacement progress, bookmarks, and categories are preserved. The app verifies the selected data before removing the original from the library. For several selected titles, review each replacement in turn; use **Skip title**, **Next title**, or **Finish** to move through the queue.
+
+Read chapters transfer their completed status. For unfinished chapters, saved page positions are limited to the replacement chapter’s length. Downloads remain attached to the original entry and are not moved to the replacement.
+
+If a request fails or the saved state changes, **Reload preview** before retrying. A failed or unverified transfer keeps the original in the library. Transfers require a server connection and permission to change library/reading state; they are unavailable in incognito mode.
+
 ## Current limits
 
 - Offline availability applies to completed phone downloads. Server downloads alone do not make a chapter available on the phone. Browsing providers, fetching additional chapters, and server administration still require a connection.
 - Android source APKs are not executed by this client. Install extensions on the server.
-- Upstream workflows such as feeds, merged manga, recommendations, source migration, widgets, and phone-local backup/cloud-sync are not fully integrated into the server-backed app.
+- Upstream workflows such as feeds, merged manga, recommendations, widgets, and phone-local backup/cloud-sync are not fully integrated into the server-backed app.
 - Independent history deletion and reading-duration statistics require further server API integration.
 - Only selected reading preferences synchronize through the server. Presentation and device settings, such as brightness and orientation, remain local.
 - Incognito suppresses new personal reading-state writes from the app, but page requests and server-managed activity can still be observed by the server.
