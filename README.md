@@ -18,8 +18,6 @@ Yomira is a free, open source Android client for [Suwayomi-Server](https://githu
   <img src="./.github/readme-images/yomira/screenshots/reader.png" alt="Yomira reader with chapter and page controls" width="240" />
 </p>
 
-Screenshots use a separate [SFW demo library](./tools/screenshots/README.md). Manga artwork belongs to its respective creators.
-
 ## What you can do
 
 - **Read with Komikku's reader:** page and webtoon modes, gestures, themes, bookmarks, and chapter controls.
