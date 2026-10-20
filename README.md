@@ -49,11 +49,13 @@ Choose Komikku for a standalone Android library, Yomira for Komikku's reader wit
 | Source extensions run on | Phone | Server | Server | Server |
 | Search across sources | Yes | Yes | Yes | Yes |
 | Manage server downloads | Not a full server client | Yes | Yes | Yes |
-| Offline reading with the server unreachable | Local downloads; no server needed | Not verified¹ | Not verified¹ | **Completed phone downloads** |
-| Tracker account management | On the phone | Not verified¹ | Through the server | Through the server |
+| Offline reading from device downloads | Local downloads; no server needed | No¹ | No¹ | **Completed phone downloads** |
+| Tracker account management | On the phone | No built-in UI² | Through the server | Through the server |
 | Source migration | Yes | Yes | Yes | Not yet |
 
-¹ **Not verified** means the inspected sources did not establish support. Server downloads are separate from phone downloads. Sorayomi’s upstream repository is archived. See the [sources and version notes](./docs/COMPARISON.md).
+¹ Sorayomi and WebUI cache reader images, but their download actions save chapters **on the server**. Neither provides managed offline chapter downloads to the reading device.
+
+² Sorayomi has no tracker-account management UI; configure those accounts in WebUI. Its upstream repository is archived. See the [code audit, browser check, and version notes](./docs/COMPARISON.md).
 
 ## Get started
 
