@@ -41,6 +41,7 @@
 - **Browse server sources:** search across providers and manage server extensions from Browse.
 - **Migrate providers:** find replacement titles, review chapter matches, and transfer progress, bookmarks, and categories. Start from **Browse → Migrate** or a library title’s **More → Migrate** menu.
 - **Read offline:** download chapters to your phone, with Wi-Fi-only transfers and a storage limit. Reading progress synchronizes after reconnecting.
+- **Keep unread chapters ready:** enable smart phone downloads for selected titles. Keep the next few unread chapters available and remove automatic read copies after progress synchronizes.
 - **Manage your server:** control its download queue, configure library updates, and connect tracker accounts.
 
 ## How it works
@@ -84,10 +85,13 @@ Already using **Komikku Suwayomi**? Install a newer release signed by this fork 
 ## Take chapters offline
 
 1. Open a title, select chapters, and choose **Download to phone**.
-2. Check **More → Phone downloads**. The defaults are **Wi-Fi only** and a **2 GiB storage limit**; both are configurable.
-3. Wait for **Available offline**, then read without the server. Progress and bookmarks synchronize when you reconnect.
+2. Open **More → Phone downloads → Downloads** to view chapters grouped by title, pause/resume transfers, and check available copies.
+3. Use the **Settings** tab to configure **Wi-Fi only** and the **2 GiB storage limit**, both enabled by default.
+4. Wait for **Available offline**, then tap a chapter to read without the server. Use its overflow menu to remove a phone copy. Progress and bookmarks synchronize when you reconnect.
 
-To keep a title available automatically, enable **More → Smart phone downloads** in its title menu. Configure the unread buffer and synchronized-read cleanup in **More → Phone downloads**.
+To keep a title available automatically, open its **More → Smart phone downloads** menu and turn on **Auto-download**. The default is the next **3 unread chapters**; choose 1, 3, 5, 10, or 20 under **Phone downloads → Settings → Chapters to keep**.
+
+**Remove read copies** removes automatically downloaded phone copies after the server confirms they are read and pending chapter changes have synchronized. Manually saved copies are kept. Smart downloads follow the same Wi-Fi, pause, and storage rules. Checks run hourly and after progress syncs or connectivity returns; Android may delay background work. [Smart download settings and behavior →](./docs/USAGE.md#smart-phone-downloads)
 
 Server and phone icons show where each copy is stored. Tap a chapter's download icon to choose another destination. [Offline storage, retries, and account changes →](./docs/USAGE.md#read-offline)
 
