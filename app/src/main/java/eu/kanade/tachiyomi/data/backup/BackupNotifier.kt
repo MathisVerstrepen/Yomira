@@ -35,9 +35,11 @@ class BackupNotifier(private val context: Context) {
     private val progressNotificationBuilder = context.notificationBuilder(
         Notifications.CHANNEL_BACKUP_RESTORE_PROGRESS,
     ) {
-        setSmallIcon(R.drawable.ic_komikku)
-        setColor(ContextCompat.getColor(context, R.color.ic_launcher))
-        setLargeIcon(BitmapFactory.decodeResource(context.resources, R.drawable.komikku))
+        // KMK -->
+        setSmallIcon(R.drawable.ic_yomira_mark)
+        setColor(ContextCompat.getColor(context, R.color.yomira_accent))
+        setLargeIcon(BitmapFactory.decodeResource(context.resources, R.drawable.yomira))
+        // KMK <--
         setAutoCancel(false)
         setOngoing(true)
         setOnlyAlertOnce(true)
@@ -46,9 +48,11 @@ class BackupNotifier(private val context: Context) {
     private val completeNotificationBuilder = context.notificationBuilder(
         Notifications.CHANNEL_BACKUP_RESTORE_COMPLETE,
     ) {
-        setSmallIcon(R.drawable.ic_komikku)
-        setColor(ContextCompat.getColor(context, R.color.ic_launcher))
-        setLargeIcon(BitmapFactory.decodeResource(context.resources, R.drawable.komikku))
+        // KMK -->
+        setSmallIcon(R.drawable.ic_yomira_mark)
+        setColor(ContextCompat.getColor(context, R.color.yomira_accent))
+        setLargeIcon(BitmapFactory.decodeResource(context.resources, R.drawable.yomira))
+        // KMK <--
         setAutoCancel(false)
     }
 

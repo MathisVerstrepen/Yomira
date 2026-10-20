@@ -38,6 +38,7 @@ import eu.kanade.tachiyomi.BuildConfig
 import eu.kanade.tachiyomi.util.system.isDebugBuildType
 import tachiyomi.core.common.i18n.stringResource
 import tachiyomi.i18n.MR
+import tachiyomi.i18n.kmk.KMR
 import uy.kohesive.injekt.Injekt
 import uy.kohesive.injekt.api.get
 import java.text.DecimalFormat
@@ -105,7 +106,9 @@ private fun EHDebugModeOverlay() {
 private fun buildInfo(context: Context, sourceBlacklist: Boolean) = buildAnnotatedString {
     withStyle(SpanStyle(color = Color.Green)) {
         append("===[ ")
-        append(context.stringResource(MR.strings.app_name))
+        // KMK -->
+        append(context.stringResource(KMR.strings.suwayomi_app_name))
+        // KMK <--
         append(" ]===")
     }
     append('\n')

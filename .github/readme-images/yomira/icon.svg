@@ -1,1 +1,7 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 128 128" role="img" aria-labelledby="title description"><title id="title">Yomira Book Y icon</title><desc id="description">White open pages form a Y with an extended book spine on a magenta rounded square.</desc><defs><linearGradient id="magenta" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#F00995"/><stop offset=".55" stop-color="#DE008A"/><stop offset="1" stop-color="#B50070"/></linearGradient></defs><rect width="128" height="128" rx="29" fill="url(#magenta)"/><g color="#FFFFFF"><path fill="currentColor" fill-rule="evenodd" d="M33 35 C45 35 55 40 64 48 C73 40 83 35 95 35 Q98 35 98 38 V57 Q98 60 95 60 C84 60 75 65 68 73 V91 Q68 95 64 95 Q60 95 60 91 V73 C53 65 44 60 33 60 Q30 60 30 57 V38 Q30 35 33 35 Z M38 43 C46 44 53 48 60 54 V62 C53 57 46 54 38 53 Z M90 43 C82 44 75 48 68 54 V62 C75 57 82 54 90 53 Z"/></g></svg>
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 128 128" role="img" aria-labelledby="title description">
+  <title id="title">Yomira Yo panel icon</title>
+  <desc id="description">A custom warm-white katakana Yo, with three panel-like bars and a magenta tab, on a deep plum rounded square.</desc>
+  <!-- KMK: Original Yomira vector concept. -->
+  <defs><clipPath id="yo-outline"><path d="M36 31 H87 Q96 31 96 40 V88 Q96 97 87 97 H34 Q27 97 27 90 Q27 83 34 83 H82 V71 H43 Q36 71 36 64 Q36 57 43 57 H82 V45 H36 Q29 45 29 38 Q29 31 36 31 Z"/></clipPath></defs>
+  <rect width="128" height="128" rx="28" fill="#251329"/><g clip-path="url(#yo-outline)"><rect width="128" height="128" fill="#FFF8F0"/><rect x="26" y="56" width="25" height="16" fill="#F00995"/></g>
+</svg>

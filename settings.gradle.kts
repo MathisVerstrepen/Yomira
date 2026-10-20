@@ -40,7 +40,9 @@ dependencyResolutionManagement {
 
 enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
 
-rootProject.name = "Komikku"
+// KMK -->
+rootProject.name = "Yomira"
+// KMK <--
 include(":app")
 include(":core-metadata")
 include(":core:archive")

@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- KMK: Original Yomira artwork. Komikku artwork remains available under its original resource names. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="128dp" android:height="128dp" android:viewportWidth="128" android:viewportHeight="128">
+<path android:fillColor="#251329" android:pathData="M28,0H100Q128,0 128,28V100Q128,128 100,128H28Q0,128 0,100V28Q0,0 28,0Z"/><group><clip-path android:pathData="M36 31 H87 Q96 31 96 40 V88 Q96 97 87 97 H34 Q27 97 27 90 Q27 83 34 83 H82 V71 H43 Q36 71 36 64 Q36 57 43 57 H82 V45 H36 Q29 45 29 38 Q29 31 36 31 Z"/><path android:fillColor="#FFF8F0" android:pathData="M0,0H128V128H0Z"/><path android:fillColor="#F00995" android:pathData="M26,56H51V72H26Z"/></group>
+</vector>

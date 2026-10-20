@@ -23,8 +23,10 @@ import tachiyomi.i18n.kmk.KMR
 internal class AppUpdateNotifier(private val context: Context) {
 
     private val notificationBuilder = context.notificationBuilder(Notifications.CHANNEL_APP_UPDATE) {
-        setColor(ContextCompat.getColor(context, R.color.ic_launcher))
-        setLargeIcon(BitmapFactory.decodeResource(context.resources, R.drawable.komikku))
+        // KMK -->
+        setColor(ContextCompat.getColor(context, R.color.yomira_accent))
+        setLargeIcon(BitmapFactory.decodeResource(context.resources, R.drawable.yomira))
+        // KMK <--
     }
 
     /**
@@ -228,7 +230,9 @@ internal class AppUpdateNotifier(private val context: Context) {
         with(notificationBuilder) {
             setContentTitle(context.stringResource(KMR.strings.update_completed))
             setContentText(context.stringResource(MR.strings.updated_version, BuildConfig.VERSION_NAME))
-            setSmallIcon(R.drawable.ic_komikku)
+            // KMK -->
+            setSmallIcon(R.drawable.ic_yomira_mark)
+            // KMK <--
             setAutoCancel(true)
             setOngoing(false)
             setProgress(0, 0, false)

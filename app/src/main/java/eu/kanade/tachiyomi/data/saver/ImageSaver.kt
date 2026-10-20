@@ -20,6 +20,7 @@ import tachiyomi.core.common.i18n.stringResource
 import tachiyomi.core.common.util.system.ImageUtil
 import tachiyomi.core.common.util.system.logcat
 import tachiyomi.i18n.MR
+import tachiyomi.i18n.kmk.KMR
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.File
@@ -77,7 +78,9 @@ class ImageSaver(
         val imageLocation = (image.location as Location.Pictures).relativePath
         val relativePath = listOf(
             if (isMimeTypeSupported) Environment.DIRECTORY_PICTURES else Environment.DIRECTORY_DOCUMENTS,
-            context.stringResource(MR.strings.app_name),
+            // KMK -->
+            context.stringResource(KMR.strings.suwayomi_app_name),
+            // KMK <--
             imageLocation,
         ).joinToString(File.separator)
 
@@ -192,7 +195,9 @@ sealed interface Location {
             is Pictures -> {
                 val file = File(
                     Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES),
-                    context.stringResource(MR.strings.app_name),
+                    // KMK -->
+                    context.stringResource(KMR.strings.suwayomi_app_name),
+                    // KMK <--
                 )
                 if (relativePath.isNotEmpty()) {
                     return File(

@@ -18,6 +18,7 @@ import eu.kanade.presentation.theme.TachiyomiPreviewTheme
 import eu.kanade.tachiyomi.util.CrashLogUtil
 import kotlinx.coroutines.launch
 import tachiyomi.i18n.MR
+import tachiyomi.i18n.kmk.KMR
 import tachiyomi.presentation.core.components.material.padding
 import tachiyomi.presentation.core.i18n.stringResource
 import tachiyomi.presentation.core.screens.InfoScreen
@@ -33,7 +34,9 @@ fun CrashScreen(
     InfoScreen(
         icon = Icons.Outlined.BugReport,
         headingText = stringResource(MR.strings.crash_screen_title),
-        subtitleText = stringResource(MR.strings.crash_screen_description, stringResource(MR.strings.app_name)),
+        // KMK -->
+        subtitleText = stringResource(MR.strings.crash_screen_description, stringResource(KMR.strings.suwayomi_app_name)),
+        // KMK <--
         acceptText = stringResource(MR.strings.pref_dump_crash_logs),
         onAcceptClick = {
             scope.launch {

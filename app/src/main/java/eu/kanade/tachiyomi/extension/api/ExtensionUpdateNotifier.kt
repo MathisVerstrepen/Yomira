@@ -37,8 +37,10 @@ class ExtensionUpdateNotifier(
                 setStyle(NotificationCompat.BigTextStyle().bigText(extNames))
             }
             setSmallIcon(R.drawable.ic_extension_24dp)
-            setColor(ContextCompat.getColor(context, R.color.ic_launcher))
-            setLargeIcon(BitmapFactory.decodeResource(context.resources, R.drawable.komikku))
+            // KMK -->
+            setColor(ContextCompat.getColor(context, R.color.yomira_accent))
+            setLargeIcon(BitmapFactory.decodeResource(context.resources, R.drawable.yomira))
+            // KMK <--
             setContentIntent(NotificationReceiver.openExtensionsPendingActivity(context))
             setAutoCancel(true)
         }

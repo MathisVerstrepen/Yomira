@@ -7,13 +7,13 @@ import java.net.URLEncoder
 
 /** Portable identity contains no session credentials and never selects a different server automatically. */
 data class SuwayomiLink(val server: String, val mangaId: Int, val sourceId: Long, val mangaUrl: String) {
-    fun encode(): String = "komikku-suwayomi://manga/$mangaId?server=${encodeValue(server)}&source=$sourceId&url=${encodeValue(mangaUrl)}"
+    fun encode(): String = "yomira://manga/$mangaId?server=${encodeValue(server)}&source=$sourceId&url=${encodeValue(mangaUrl)}"
     fun matches(manga: ServerManga): Boolean = manga.id == mangaId && manga.sourceId == sourceId && manga.url == mangaUrl
     companion object {
         fun parse(value: String): SuwayomiLink {
             require(value.length <= 16384)
             val uri = URI(value)
-            require(uri.scheme == "komikku-suwayomi" && uri.host == "manga" && uri.userInfo == null && uri.port == -1 && uri.fragment == null)
+            require(uri.scheme in setOf("yomira", "komikku-suwayomi") && uri.host == "manga" && uri.userInfo == null && uri.port == -1 && uri.fragment == null)
             val id = uri.path.removePrefix("/").toInt()
             require(id > 0)
             val fields = requireNotNull(uri.rawQuery).split('&').map { part ->

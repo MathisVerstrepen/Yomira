@@ -72,6 +72,7 @@ import tachiyomi.domain.manga.interactor.DeleteFavoriteEntries
 import tachiyomi.domain.manga.interactor.GetExhFavoriteMangaWithMetadata
 import tachiyomi.domain.manga.interactor.GetFlatMetadataById
 import tachiyomi.i18n.MR
+import tachiyomi.i18n.kmk.KMR
 import tachiyomi.i18n.sy.SYMR
 import tachiyomi.presentation.core.i18n.stringResource
 import tachiyomi.presentation.core.util.collectAsState
@@ -982,11 +983,15 @@ object SettingsEhScreen : SearchableSettings {
             ),
             title = stringResource(SYMR.strings.time_between_batches),
             subtitle = if (value == 0) {
-                stringResource(SYMR.strings.time_between_batches_summary_1, stringResource(MR.strings.app_name))
+                // KMK -->
+                stringResource(SYMR.strings.time_between_batches_summary_1, stringResource(KMR.strings.suwayomi_app_name))
+                // KMK <--
             } else {
                 stringResource(
                     SYMR.strings.time_between_batches_summary_2,
-                    stringResource(MR.strings.app_name),
+                    // KMK -->
+                    stringResource(KMR.strings.suwayomi_app_name),
+                    // KMK <--
                     value,
                     EHentaiUpdateWorkerConstants.UPDATES_PER_ITERATION,
                 )

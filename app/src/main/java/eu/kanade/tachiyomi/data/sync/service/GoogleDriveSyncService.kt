@@ -27,6 +27,7 @@ import tachiyomi.core.common.i18n.stringResource
 import tachiyomi.core.common.util.lang.withIOContext
 import tachiyomi.core.common.util.system.logcat
 import tachiyomi.i18n.MR
+import tachiyomi.i18n.kmk.KMR
 import tachiyomi.i18n.sy.SYMR
 import uy.kohesive.injekt.Injekt
 import uy.kohesive.injekt.api.get
@@ -57,7 +58,9 @@ class GoogleDriveSyncService(context: Context, json: Json, syncPreferences: Sync
         ERROR,
     }
 
-    private val appName = context.stringResource(MR.strings.app_name)
+    // KMK -->
+    private val appName = context.stringResource(KMR.strings.suwayomi_app_name)
+    // KMK <--
 
     private val remoteFileName = "${appName}_sync.proto.gz"
 
@@ -383,7 +386,9 @@ class GoogleDriveService(private val context: Context) {
             NetHttpTransport(),
             jsonFactory,
             credential,
-        ).setApplicationName(context.stringResource(MR.strings.app_name))
+            // KMK -->
+        ).setApplicationName(context.stringResource(KMR.strings.suwayomi_app_name))
+            // KMK <--
             .build()
     }
 

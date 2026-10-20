@@ -41,6 +41,7 @@ import tachiyomi.domain.chapter.model.Chapter
 import tachiyomi.domain.manga.model.Manga
 import tachiyomi.domain.source.service.SourceManager
 import tachiyomi.i18n.MR
+import tachiyomi.i18n.kmk.KMR
 import tachiyomi.i18n.sy.SYMR
 import tachiyomi.presentation.core.components.material.Scaffold
 import uy.kohesive.injekt.Injekt
@@ -76,7 +77,9 @@ class InterceptActivity : BaseActivity() {
         Scaffold(
             topBar = { scrollBehavior ->
                 AppBar(
-                    title = stringResource(MR.strings.app_name),
+                    // KMK -->
+                    title = stringResource(KMR.strings.suwayomi_app_name),
+                    // KMK <--
                     navigateUp = ::finish,
                     scrollBehavior = scrollBehavior,
                 )

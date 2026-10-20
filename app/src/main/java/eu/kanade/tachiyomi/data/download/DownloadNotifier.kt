@@ -31,8 +31,10 @@ internal class DownloadNotifier(private val context: Context) {
 
     private val progressNotificationBuilder by lazy {
         context.notificationBuilder(Notifications.CHANNEL_DOWNLOADER_PROGRESS) {
-            setColor(ContextCompat.getColor(context, R.color.ic_launcher))
-            setLargeIcon(BitmapFactory.decodeResource(context.resources, R.drawable.komikku))
+            // KMK -->
+            setColor(ContextCompat.getColor(context, R.color.yomira_accent))
+            setLargeIcon(BitmapFactory.decodeResource(context.resources, R.drawable.yomira))
+            // KMK <--
             setAutoCancel(false)
             setOnlyAlertOnce(true)
         }
@@ -40,8 +42,10 @@ internal class DownloadNotifier(private val context: Context) {
 
     private val errorNotificationBuilder by lazy {
         context.notificationBuilder(Notifications.CHANNEL_DOWNLOADER_ERROR) {
-            setColor(ContextCompat.getColor(context, R.color.ic_launcher))
-            setLargeIcon(BitmapFactory.decodeResource(context.resources, R.drawable.komikku))
+            // KMK -->
+            setColor(ContextCompat.getColor(context, R.color.yomira_accent))
+            setLargeIcon(BitmapFactory.decodeResource(context.resources, R.drawable.yomira))
+            // KMK <--
             setAutoCancel(false)
         }
     }

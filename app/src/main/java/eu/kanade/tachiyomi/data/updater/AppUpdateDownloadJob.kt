@@ -44,6 +44,7 @@ import tachiyomi.core.common.util.lang.launchUI
 import tachiyomi.core.common.util.lang.withIOContext
 import tachiyomi.domain.release.service.AppUpdatePolicy
 import tachiyomi.i18n.MR
+import tachiyomi.i18n.kmk.KMR
 import uy.kohesive.injekt.Injekt
 import uy.kohesive.injekt.api.get
 import uy.kohesive.injekt.injectLazy
@@ -87,7 +88,9 @@ class AppUpdateDownloadJob(private val context: Context, workerParams: WorkerPar
         // KMK <--
 
         val url = inputData.getString(EXTRA_DOWNLOAD_URL)
-        val title = inputData.getString(EXTRA_DOWNLOAD_TITLE) ?: context.stringResource(MR.strings.app_name)
+        // KMK -->
+        val title = inputData.getString(EXTRA_DOWNLOAD_TITLE) ?: context.stringResource(KMR.strings.suwayomi_app_name)
+        // KMK <--
 
         if (url.isNullOrEmpty()) {
             return Result.failure()

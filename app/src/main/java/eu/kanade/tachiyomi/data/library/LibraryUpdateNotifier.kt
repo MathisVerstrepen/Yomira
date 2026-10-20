@@ -37,6 +37,7 @@ import tachiyomi.domain.library.model.LibraryManga
 import tachiyomi.domain.manga.model.Manga
 import tachiyomi.domain.source.service.SourceManager
 import tachiyomi.i18n.MR
+import tachiyomi.i18n.kmk.KMR
 import uy.kohesive.injekt.Injekt
 import uy.kohesive.injekt.api.get
 import java.math.RoundingMode
@@ -69,7 +70,9 @@ class LibraryUpdateNotifier(
      * Bitmap of the app for notifications.
      */
     private val notificationBitmap by lazy {
-        BitmapFactory.decodeResource(context.resources, R.drawable.komikku)
+        // KMK -->
+        BitmapFactory.decodeResource(context.resources, R.drawable.yomira)
+        // KMK <--
     }
 
     /**
@@ -77,9 +80,13 @@ class LibraryUpdateNotifier(
      */
     val progressNotificationBuilder by lazy {
         context.notificationBuilder(Notifications.CHANNEL_LIBRARY_PROGRESS) {
-            setContentTitle(context.stringResource(MR.strings.app_name))
+            // KMK -->
+            setContentTitle(context.stringResource(KMR.strings.suwayomi_app_name))
+            // KMK <--
             setSmallIcon(R.drawable.ic_refresh_24dp)
-            setColor(ContextCompat.getColor(context, R.color.ic_launcher))
+            // KMK -->
+            setColor(ContextCompat.getColor(context, R.color.yomira_accent))
+            // KMK <--
             setLargeIcon(notificationBitmap)
             setOngoing(true)
             setOnlyAlertOnce(true)
@@ -142,7 +149,9 @@ class LibraryUpdateNotifier(
                 NotificationCompat.BigTextStyle().bigText(context.stringResource(MR.strings.notification_size_warning)),
             )
             setSmallIcon(R.drawable.ic_warning_white_24dp)
-            setColor(ContextCompat.getColor(context, R.color.ic_launcher))
+            // KMK -->
+            setColor(ContextCompat.getColor(context, R.color.yomira_accent))
+            // KMK <--
             setTimeoutAfter(Downloader.WARNING_NOTIF_TIMEOUT_MS)
             setContentIntent(NotificationHandler.openUrl(context, HELP_WARNING_URL))
         }
@@ -164,8 +173,10 @@ class LibraryUpdateNotifier(
         ) {
             setContentTitle(context.pluralStringResource(MR.plurals.notification_update_error, failed, failed))
             setContentText(context.stringResource(MR.strings.action_show_errors))
-            setSmallIcon(R.drawable.ic_komikku)
-            setColor(ContextCompat.getColor(context, R.color.ic_launcher))
+            // KMK -->
+            setSmallIcon(R.drawable.ic_yomira_mark)
+            setColor(ContextCompat.getColor(context, R.color.yomira_accent))
+            // KMK <--
 
             setContentIntent(NotificationReceiver.openErrorLogPendingActivity(context))
         }
@@ -205,8 +216,10 @@ class LibraryUpdateNotifier(
                 }
             }
 
-            setSmallIcon(R.drawable.ic_komikku)
-            setColor(ContextCompat.getColor(context, R.color.ic_launcher))
+            // KMK -->
+            setSmallIcon(R.drawable.ic_yomira_mark)
+            setColor(ContextCompat.getColor(context, R.color.yomira_accent))
+            // KMK <--
             setLargeIcon(notificationBitmap)
 
             setGroup(Notifications.GROUP_NEW_CHAPTERS)
@@ -241,8 +254,10 @@ class LibraryUpdateNotifier(
             val description = getNewChaptersDescription(chapters)
             setContentText(description)
 
-            setSmallIcon(R.drawable.ic_komikku)
-            setColor(ContextCompat.getColor(context, R.color.ic_launcher))
+            // KMK -->
+            setSmallIcon(R.drawable.ic_yomira_mark)
+            setColor(ContextCompat.getColor(context, R.color.yomira_accent))
+            // KMK <--
 
             if (icon != null) {
                 setLargeIcon(icon)

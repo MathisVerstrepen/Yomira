@@ -24,6 +24,7 @@ import kotlinx.coroutines.flow.collectLatest
 import tachiyomi.domain.storage.service.StorageManager.Companion.directoryAccessible
 import tachiyomi.domain.storage.service.StoragePreferences
 import tachiyomi.i18n.MR
+import tachiyomi.i18n.kmk.KMR
 import tachiyomi.presentation.core.components.material.Button
 import tachiyomi.presentation.core.components.material.padding
 import tachiyomi.presentation.core.i18n.stringResource
@@ -61,7 +62,9 @@ internal class StorageStep : OnboardingStep {
             Text(
                 stringResource(
                     MR.strings.onboarding_storage_info,
-                    stringResource(MR.strings.app_name),
+                    // KMK -->
+                    stringResource(KMR.strings.suwayomi_app_name),
+                    // KMK <--
                     SettingsDataScreen.storageLocationText(storagePref),
                 ),
             )
@@ -84,7 +87,9 @@ internal class StorageStep : OnboardingStep {
                 color = MaterialTheme.colorScheme.onPrimaryContainer,
             )
 
-            Text(stringResource(MR.strings.onboarding_storage_help_info, stringResource(MR.strings.app_name)))
+            // KMK -->
+            Text(stringResource(MR.strings.onboarding_storage_help_info, stringResource(KMR.strings.suwayomi_app_name)))
+            // KMK <--
             Button(
                 modifier = Modifier.fillMaxWidth(),
                 onClick = { handler.openUri(SettingsDataScreen.HELP_URL) },

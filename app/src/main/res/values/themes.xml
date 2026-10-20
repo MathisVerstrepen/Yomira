@@ -753,7 +753,9 @@
     <!--== Splash Theme ==-->
     <style name="Theme.Tachiyomi.SplashScreen" parent="Theme.SplashScreen">
         <item name="windowSplashScreenAnimatedIcon">@drawable/ic_splash</item>
-        <item name="windowSplashScreenBackground">@color/splash</item>
+        <!-- KMK -->
+        <item name="windowSplashScreenBackground">@color/yomira_plum</item>
+        <!-- KMK end -->
         <item name="postSplashScreenTheme">@style/Theme.Tachiyomi</item>
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:navigationBarColor">@android:color/transparent</item>

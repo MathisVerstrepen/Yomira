@@ -29,6 +29,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
 import tachiyomi.core.common.i18n.stringResource
+import tachiyomi.i18n.kmk.KMR
 import uy.kohesive.injekt.Injekt
 import uy.kohesive.injekt.api.get
 import java.util.concurrent.TimeUnit
@@ -61,11 +62,13 @@ class SuwayomiNotificationWorker(context: Context, parameters: WorkerParameters)
                 if (active !== session) throw SuwayomiException(SuwayomiFailure.SESSION_CHANGED)
                 if (saved != null && changed.isNotEmpty() && canNotify(applicationContext)) {
                     val manager = NotificationManagerCompat.from(applicationContext)
-                    manager.createNotificationChannel(NotificationChannel(CHANNEL, applicationContext.stringResource(tachiyomi.i18n.kmk.KMR.strings.suwayomi_notifications), NotificationManager.IMPORTANCE_DEFAULT))
+                    manager.createNotificationChannel(NotificationChannel(CHANNEL, applicationContext.stringResource(KMR.strings.suwayomi_notifications), NotificationManager.IMPORTANCE_DEFAULT))
                     val intent = Intent(applicationContext, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
                     val pending = PendingIntent.getActivity(applicationContext, ID, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
-                    val title = applicationContext.stringResource(tachiyomi.i18n.kmk.KMR.strings.suwayomi_new_server_chapters, changed.size)
-                    val notification = NotificationCompat.Builder(applicationContext, CHANNEL).setSmallIcon(R.drawable.ic_komikku).setContentTitle(title)
+                    val title = applicationContext.stringResource(KMR.strings.suwayomi_new_server_chapters, changed.size)
+                    // KMK -->
+                    val notification = NotificationCompat.Builder(applicationContext, CHANNEL).setSmallIcon(R.drawable.ic_yomira_mark).setContentTitle(title)
+                        // KMK <--
                         .setContentText(changed.map { it.manga.title }.distinct().take(3).joinToString(" · ")).setContentIntent(pending).setAutoCancel(true).build()
                     // Persist before posting: a crash cannot repeatedly alert the same update. A crash between
                     // this write and notify may miss one alert; Android delivery is deliberately best effort.

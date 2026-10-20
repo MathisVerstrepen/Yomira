@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- KMK -->
-    <string name="suwayomi_app_name" translatable="false">Komikku Suwayomi</string>
+    <string name="suwayomi_app_name" translatable="false">Yomira</string>
     <!-- KMK end -->
     <!-- Actions -->
     <string name="action_search_for_source">Search for sources</string>
@@ -226,7 +226,7 @@
     <string name="discord_status_scrolling">Scrolling through</string>
     <string name="discord_status_messing">Messing around with</string>
     <string name="discord_download_button">Read on %s</string>
-    <string name="discord_app_description">Komikku - a manga reader app</string>
+    <string name="discord_app_description">Yomira - a manga reader for Suwayomi</string>
     <!-- Discord RPC Customization -->
     <string name="pref_category_discord_customization">Discord Customization</string>
     <string name="pref_discord_custom_message">Custom Message</string>
@@ -565,4 +565,12 @@
     <string name="suwayomi_settings_server_summary">Library updates and downloads</string>
     <string name="suwayomi_settings_tracking_summary">Tracking accounts and progress</string>
     <string name="suwayomi_settings_features_summary">Support and limitations</string>
+    <string name="yomira_fork_description">An independent Android client for Suwayomi, forked from Komikku and built on Mihon, TachiyomiSY, and Tachiyomi.</string>
+    <string name="yomira_upstream_title">Based on Komikku</string>
+    <string name="yomira_upstream_summary">Original app, reader, and interface</string>
+    <string name="yomira_releases">Yomira releases</string>
+    <string name="yomira_source_code">Yomira source code</string>
+    <string name="yomira_report_issue">Report a Yomira issue</string>
+    <string name="yomira_credits">Credits and license</string>
+    <string name="yomira_credits_summary">Komikku, Mihon, TachiyomiSY, Tachiyomi, and Suwayomi</string>
 </resources>

@@ -1,3 +1,5 @@
+# KMK -->
+# Yomira fork workflow; upstream destinations remain restricted where retained.
 name: Benchmark Builder
 # Manually build a benchmark on a tag
 
@@ -105,3 +107,4 @@ jobs:
         with:
           path: "**/*.apk"
           retention-days: 30
+# KMK <--

@@ -182,8 +182,10 @@ class App : Application(), DefaultLifecycleObserver, SingletonImageLoader.Factor
                         setContentTitle(stringResource(MR.strings.pref_incognito_mode))
                         setContentText(stringResource(MR.strings.notification_incognito_text))
                         setSmallIcon(R.drawable.ic_glasses_with_hat_24dp)
-                        setColor(ContextCompat.getColor(applicationContext, R.color.ic_launcher))
-                        setLargeIcon(BitmapFactory.decodeResource(applicationContext.resources, R.drawable.komikku))
+                        // KMK -->
+                        setColor(ContextCompat.getColor(applicationContext, R.color.yomira_accent))
+                        setLargeIcon(BitmapFactory.decodeResource(applicationContext.resources, R.drawable.yomira))
+                        // KMK <--
                         setOngoing(true)
 
                         val pendingIntent = PendingIntent.getBroadcast(

@@ -1,6 +1,7 @@
 // KMK -->
 package eu.kanade.tachiyomi.ui.suwayomi
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -132,11 +133,11 @@ internal fun ServerSetup(
             verticalArrangement = Arrangement.spacedBy(24.dp),
         ) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-                Surface(shape = RoundedCornerShape(20.dp), color = colors.primaryContainer) {
-                    Icon(painterResource(R.drawable.ic_komikku), contentDescription = null, tint = colors.onPrimaryContainer, modifier = Modifier.padding(10.dp).size(28.dp))
-                }
+                Image(painterResource(R.drawable.ic_yomira), contentDescription = null, modifier = Modifier.size(48.dp))
                 Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    Text(stringResource(MR.strings.app_name), style = MaterialTheme.typography.titleLarge)
+                    // KMK -->
+                    Text(stringResource(KMR.strings.suwayomi_app_name), style = MaterialTheme.typography.titleLarge)
+                    // KMK <--
                     Text(stringResource(KMR.strings.suwayomi_setup_brand), style = MaterialTheme.typography.labelMedium, color = colors.onSurfaceVariant)
                 }
             }
