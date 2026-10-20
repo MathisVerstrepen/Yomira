@@ -43,7 +43,7 @@ Use Android's System UI demo mode for a consistent clock, battery, and notificat
 adb -s emulator-5560 exec-out screencap -p > library.png
 ```
 
-The screenshots show real app UI and provider metadata. Artwork belongs to its respective creators; it is not Yomira artwork or covered by this repository's software license. The catalog's MangaDex UUIDs provide the original title references.
+The README includes library, title-detail, and reader captures under `.github/readme-images/yomira/screenshots/`. They show real app UI and provider metadata. Artwork belongs to its respective creators; it is not Yomira artwork or covered by this repository's software license. The catalog's MangaDex UUIDs provide the original title references.
 
 ## Stop
 

@@ -10,6 +10,16 @@ Download this adaptation from [GitHub Releases](https://github.com/MathisVerstre
 
 Previously released as **Komikku Suwayomi**. Yomira keeps Komikku’s original work and contributors credited in **About**, the [NOTICE](./NOTICE), and the [credits](#credits-and-license). It uses its own name and icon in accordance with [Komikku’s fork guidelines](./docs/UPSTREAM_KOMIKKU_CONTRIBUTING.md#forks).
 
+## Screenshots
+
+<p>
+  <img src="./.github/readme-images/yomira/screenshots/library.png" alt="Yomira library with a curated SFW manga shelf" width="240" />
+  <img src="./.github/readme-images/yomira/screenshots/manga-details.png" alt="Yomira title details and chapter list for Yotsuba&amp;!" width="240" />
+  <img src="./.github/readme-images/yomira/screenshots/reader.png" alt="Yomira reader showing Yotsuba&amp;! with chapter and page controls" width="240" />
+</p>
+
+Captured from a separate [SFW demo server](./tools/screenshots/README.md). Manga artwork belongs to its respective creators.
+
 ## How it works
 
 The app keeps Komikku's **Library, Updates, History, Browse, and More** tabs. Existing content and scroll position remain visible while background refreshes fetch updated server data.
