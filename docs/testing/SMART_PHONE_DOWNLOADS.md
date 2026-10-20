@@ -27,3 +27,7 @@ Both `:app:testDebugUnitTest --tests '*suwayomi*'` and `:app:testReleaseUnitTest
 | Resume and restart the app during upkeep | Confirmed read copies were removed and chapter 9 completed after restart. The selected title, three-chapter buffer, Wi-Fi-only setting, 128 MiB quota, and cleanup preference persisted. |
 
 The temporary quota file, Android user, server process, and ADB reverse forwarding were removed after verification. Hourly Android scheduling was not tested by waiting an hour; the same worker was exercised through its immediate triggers. Android controls periodic execution timing.
+
+## Modal UI follow-up
+
+The compact modal was built with `spotlessApply`, `spotlessCheck`, and `assembleDebug`, then installed on the same OnePlus and emulator. Verified the OnePlus title dialog and its route to Phone downloads. On a disposable emulator user, verified enable/disable persistence and an inline save error by temporarily removing write permission from the offline-store directory; restoring permission and retrying cleared the error. At 1.5× font scale, portrait content remained visible, and landscape content scrolled while the title and Close action stayed accessible. The single-chapter summary uses its singular plural-resource entry. No personal library settings were changed.

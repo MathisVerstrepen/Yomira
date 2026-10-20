@@ -294,14 +294,8 @@ internal fun SuwayomiMangaPresenter(presentationId: Long, expectedSession: Strin
             count = offline.smartChapterCount,
             onDismiss = { smartDownloads = false },
             onToggle = { enabled ->
-                scope.launch(Dispatchers.IO) {
-                    try {
-                        backend.requireSession(session.id).selectSmartDownloads(remote, state.chapters, enabled)
-                    } catch (e: kotlinx.coroutines.CancellationException) {
-                        throw e
-                    } catch (_: Exception) {
-                        snack.showSnackbar(context.stringResource(KMR.strings.suwayomi_offline_error))
-                    }
+                withContext(Dispatchers.IO) {
+                    backend.requireSession(session.id).selectSmartDownloads(remote, state.chapters, enabled)
                 }
             },
             onSettings = {

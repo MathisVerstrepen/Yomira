@@ -703,4 +703,10 @@
     <string name="suwayomi_smart_settings">Phone download settings</string>
     <string name="suwayomi_smart_automatic">Automatically downloaded</string>
     <string name="suwayomi_smart_disable_summary">Turning this off stops automatic downloads and keeps completed phone copies.</string>
+    <string name="suwayomi_smart_dialog_title">Smart downloads</string>
+    <string name="suwayomi_smart_auto_download">Auto-download</string>
+    <string name="suwayomi_smart_disable_hint">Turning off keeps chapters already saved on your phone.</string>
+    <string name="suwayomi_smart_dialog_settings">Download settings</string>
+    <string name="suwayomi_smart_dialog_settings_summary">Chapter count, Wi-Fi and storage</string>
+    <string name="suwayomi_smart_save_error">Couldn’t save this setting. Try again.</string>
 </resources>
