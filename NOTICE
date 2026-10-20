@@ -20,3 +20,8 @@ docs/UPSTREAM_KOMIKKU_CONTRIBUTING.md.
 
 The Yomira Yo panel icon is new artwork for this fork. Retained Komikku artwork
 identifies and credits the original project; it does not identify Yomira releases.
+
+The architecture illustration identifies Suwayomi and Sorayomi using their
+project logos, Copyright Contributors to the Suwayomi project. See
+docs/ARCHITECTURE.md and .github/readme-images/yomira/architecture-LICENSE.txt
+for illustration attribution and licensing.
