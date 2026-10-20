@@ -48,7 +48,7 @@ class SuwayomiBackend(private val context: Context) {
                     delay(1000)
                     val active = session.value ?: return@launch
                     active.flushSoon()
-                    SuwayomiSmartDownloadWorker.schedule(context, active, immediate = true)
+                    SuwayomiSmartDownloadWorker.schedule(context, active, immediate = true, replace = true)
                     val snapshot = active.offline.state.value
                     if (!snapshot.paused && snapshot.downloads.any { it.state in listOf(OfflineState.QUEUED, OfflineState.WIFI, OfflineState.NETWORK) }) SuwayomiOfflineWorker.schedule(context, active, replace = true)
                 }
@@ -294,7 +294,9 @@ class SuwayomiSession internal constructor(
 
     internal fun selectSmartDownloads(manga: ServerManga, chapters: List<ServerChapter>, enabled: Boolean) {
         assertActive()
+        val before = offline.state.value.downloads.map { it.chapterId }.toSet()
         offline.selectSmart(manga, chapters, enabled)
+        discardRemovedOffline(before - offline.state.value.downloads.map { it.chapterId }.toSet())
         SuwayomiSmartDownloadWorker.schedule(context, this, immediate = true)
         SuwayomiOfflineWorker.schedule(context, this, replace = true)
     }
@@ -344,12 +346,17 @@ class SuwayomiSession internal constructor(
     internal fun removeOffline(id: Int) {
         assertActive()
         offline.remove(id)
+        discardRemovedOffline(setOf(id))
+        SuwayomiOfflineWorker.schedule(context, this, replace = true)
+    }
+
+    private fun discardRemovedOffline(ids: Set<Int>) {
+        if (ids.isEmpty()) return
         scope.launch {
             uy.kohesive.injekt.Injekt.get<SuwayomiBackend>().offlineDownloadMutex.withLock {
-                if (!closed && offline.state.value.downloads.none { it.chapterId == id }) offline.discardPartial(id)
+                if (!closed) ids.filter { id -> offline.state.value.downloads.none { it.chapterId == id } }.forEach(offline::discardPartial)
             }
         }
-        SuwayomiOfflineWorker.schedule(context, this, replace = true)
     }
 
     internal fun resumeOfflineWork() {

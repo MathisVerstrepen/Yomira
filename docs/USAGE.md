@@ -49,6 +49,14 @@ These are recorded checks, not a guarantee that every server release supports ev
 
 Downloaded chapters use private app storage, outside Android’s disposable image cache, and are excluded from Android backup. Storage accounting includes saved pages, partial transfers, covers, and metadata. Lowering the limit preserves existing downloads; new transfers wait until there is room. Deleting a phone copy preserves server files and reading progress. Replacing/disconnecting the server account clears its phone downloads and pending changes; reauthenticating the same account preserves them.
 
+## Smart phone downloads
+
+Open a title’s **More → Smart phone downloads** menu and turn on **Keep this title available**. The default buffer is the next **3 unread chapters**, in source reading order. Choose 1, 3, 5, 10, or 20 in **More → Phone downloads → Unread chapters to keep**. The same screen lists selected titles and lets you stop automation for each title.
+
+Yomira checks selected titles for chapters already available on the server hourly, after progress synchronizes, when viewing a title, and when connectivity returns. Android may delay background work. It uses the existing phone-download Wi-Fi restriction, pause control, and storage limit. Fetch new chapters through the server’s normal library updates or the title’s refresh action.
+
+**Remove synchronized read copies** is on by default. It removes only automatically downloaded phone copies, after fresh server state confirms the chapter is read and no chapter changes remain pending. Unsynchronized, uncertain, or failed progress keeps the copy available. Files currently open in the reader are retained until the reader releases them. Manual downloads and server copies are preserved. Turning off cleanup keeps read copies; turning off a selected title cancels its unfinished automatic transfers and keeps completed copies. Removing a phone copy manually excludes it from automatic refill until the title is enabled again or the chapter is downloaded manually.
+
 ## Migrate providers
 
 1. Open **Browse → Migrate**. Providers are listed with their library title counts, including disabled or unavailable original providers. Search or sort by name/title count, open a provider, then select titles. **Select matching titles** applies to the current search while retaining other selections. For a single library title, use its **More → Migrate** menu instead.

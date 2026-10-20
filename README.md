@@ -87,6 +87,8 @@ Already using **Komikku Suwayomi**? Install a newer release signed by this fork 
 2. Check **More → Phone downloads**. The defaults are **Wi-Fi only** and a **2 GiB storage limit**; both are configurable.
 3. Wait for **Available offline**, then read without the server. Progress and bookmarks synchronize when you reconnect.
 
+To keep a title available automatically, enable **More → Smart phone downloads** in its title menu. Configure the unread buffer and synchronized-read cleanup in **More → Phone downloads**.
+
 Server and phone icons show where each copy is stored. Tap a chapter's download icon to choose another destination. [Offline storage, retries, and account changes →](./docs/USAGE.md#read-offline)
 
 ## Move titles to another provider

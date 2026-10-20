@@ -49,7 +49,7 @@ class SuwayomiSmartDownloadWorker(context: Context, parameters: WorkerParameters
 
     companion object {
         private fun name(id: String) = "SuwayomiSmartDownloads-$id"
-        internal fun schedule(context: Context, session: SuwayomiSession, immediate: Boolean = false) {
+        internal fun schedule(context: Context, session: SuwayomiSession, immediate: Boolean = false, replace: Boolean = false) {
             if (!WorkManager.isInitialized()) return
             val manager = WorkManager.getInstance(context)
             if (session.offline.state.value.smartTitles.isEmpty()) {
@@ -63,7 +63,7 @@ class SuwayomiSmartDownloadWorker(context: Context, parameters: WorkerParameters
             manager.enqueueUniquePeriodicWork(name(session.id), ExistingPeriodicWorkPolicy.KEEP, periodic)
             if (immediate) {
                 val request = OneTimeWorkRequestBuilder<SuwayomiSmartDownloadWorker>().setInputData(data).setConstraints(constraints).build()
-                manager.enqueueUniqueWork("${name(session.id)}-now", ExistingWorkPolicy.APPEND_OR_REPLACE, request)
+                manager.enqueueUniqueWork("${name(session.id)}-now", if (replace) ExistingWorkPolicy.REPLACE else ExistingWorkPolicy.APPEND_OR_REPLACE, request)
             }
         }
         internal fun cancel(context: Context, id: String) {
