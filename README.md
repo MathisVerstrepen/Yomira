@@ -1,18 +1,34 @@
-# Yomira
+<p align="center">
+  <img src="./.github/readme-images/yomira/icon.png" alt="Yomira icon" width="160" height="160" />
+</p>
 
-<img src="./.github/readme-images/yomira/icon.png" alt="Yomira icon" width="96" height="96" />
+<h1 align="center">Yomira</h1>
 
-**Komikku's Android reading experience, connected to your Suwayomi library.**
+<p align="center">
+  <strong>Komikku's Android reading experience, connected to your Suwayomi library.</strong>
+</p>
 
-Yomira is a free, open source Android client for [Suwayomi-Server](https://github.com/Suwayomi/Suwayomi-Server), forked from [Komikku](https://github.com/komikku-app/komikku). Keep the familiar library and reader on your phone while your server handles sources, library updates, and tracking.
+<p align="center">
+  A free, open source Android client for <a href="https://github.com/Suwayomi/Suwayomi-Server">Suwayomi-Server</a>,
+  forked from <a href="https://github.com/komikku-app/komikku">Komikku</a>.<br />
+  Keep the familiar library and reader on your phone while your server handles sources, library updates, and tracking.
+</p>
 
-**Requires Android 8.0+ and a Suwayomi server.** Completed phone downloads can be read without the server.
+<p align="center">
+  <strong>Requires Android 8.0+ and a Suwayomi server.</strong><br />
+  Completed phone downloads can be read without the server.
+</p>
 
-[Download APK](https://github.com/MathisVerstrepen/komikku-suwayomi/releases/latest) · [Get started](#get-started) · [Compare clients](#compare-the-clients) · [User guide](./docs/USAGE.md)
+<p align="center">
+  <a href="https://github.com/MathisVerstrepen/komikku-suwayomi/releases/latest"><strong>Download APK</strong></a>
+  · <a href="#get-started">Get started</a>
+  · <a href="#compare-the-clients">Compare clients</a>
+  · <a href="./docs/USAGE.md">User guide</a>
+</p>
 
 ## A look inside
 
-<p>
+<p align="center">
   <img src="./.github/readme-images/yomira/screenshots/library.png" alt="Yomira library with a curated SFW manga shelf" width="240" />
   <img src="./.github/readme-images/yomira/screenshots/manga-details.png" alt="Yomira title details and chapter list for Yotsuba&amp;!" width="240" />
   <img src="./.github/readme-images/yomira/screenshots/reader.png" alt="Yomira reader with chapter and page controls" width="240" />
