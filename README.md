@@ -1,12 +1,14 @@
-# Komikku Suwayomi
+# Yomira
 
-<img src="./.github/readme-images/app-icon-suwayomi.png" alt="Komikku Suwayomi icon" width="120" height="120" />
+<img src="./.github/readme-images/yomira/icon.png" alt="Yomira icon" width="120" height="120" />
 
-An Android client for **Suwayomi-Server**, adapted from [Komikku](https://github.com/komikku-app/komikku). It retains Komikku's native navigation, library, manga details, and configurable reader while using Suwayomi for the library, sources, reading progress, trackers, and downloads.
+An independent Android client for **Suwayomi-Server**, forked from [Komikku](https://github.com/komikku-app/komikku). It retains Komikku's native navigation, library, manga details, and configurable reader while using Suwayomi for the library, sources, reading progress, trackers, and downloads.
 
 This fork uses one active server/account connection. A reachable server is required for browsing, synchronization, and fetching new chapters; chapters downloaded to the phone can be read offline. Android 8.0 (API 26) or later is required.
 
 Download this adaptation from [GitHub Releases](https://github.com/MathisVerstrepen/komikku-suwayomi/releases/latest); choose the universal APK if you are unsure which architecture to use. Install a newer signed release over the existing release to keep your app data. APK checksums are included in each release as `SHA256SUMS.txt`.
+
+Previously released as **Komikku Suwayomi**. Yomira keeps Komikku’s original work and contributors credited in **About**, the [NOTICE](./NOTICE), and the [credits](#credits-and-license). It uses its own name and icon in accordance with [Komikku’s fork guidelines](./docs/UPSTREAM_KOMIKKU_CONTRIBUTING.md#forks).
 
 ## How it works
 
@@ -73,8 +75,8 @@ Downloaded chapters use private app storage, outside Android’s disposable imag
 Use **JDK 21** and **Android SDK 36**. The repository includes the Gradle wrapper; bytecode targets Java 17. Configure the SDK through Android Studio or `sdk.dir` in your local `local.properties`.
 
 ```sh
-git clone https://github.com/MathisVerstrepen/komikku-suwayomi.git
-cd komikku-suwayomi
+git clone https://github.com/MathisVerstrepen/komikku-suwayomi.git yomira
+cd yomira
 ./gradlew spotlessApply
 ./gradlew spotlessCheck
 ./gradlew assembleDebug
@@ -86,7 +88,7 @@ Debug APKs are written under `app/build/outputs/apk/debug/`. To install on a con
 ./gradlew installDebug
 ```
 
-The release package is `app.komikku.suwayomi`; debug builds use `app.komikku.suwayomi.dev`. This adaptation can install alongside upstream Komikku. Earlier development builds using `app.komikku.dev` remain separate and do not transfer their connection automatically. Default builds do not require Firebase or Google OAuth secrets. The upstream app updater is disabled in published builds.
+Yomira retains the release package `app.komikku.suwayomi`; debug builds use `app.komikku.suwayomi.dev`. These existing fork IDs and the signing key are kept for upgrades from Komikku Suwayomi without losing app data. This adaptation can install alongside upstream Komikku. Earlier development builds using `app.komikku.dev` remain separate and do not transfer their connection automatically. Default builds do not require Firebase or Google OAuth secrets. Upstream telemetry and app-update services are disabled. Use **About → Yomira releases** to download updates. Future APKs are named `Yomira-vX.Y.Z-<architecture>.apk`; historical releases retain their original names. See [branding and compatibility](./docs/BRANDING.md) and [privacy](./docs/PRIVACY.md).
 
 ### Tests
 
@@ -102,14 +104,14 @@ The release workflow runs the full unit-test suite with `./gradlew testReleaseUn
 
 Report adaptation bugs and feature requests in [this repository's issue tracker](https://github.com/MathisVerstrepen/komikku-suwayomi/issues). Include the app version or commit, server version and authentication mode, Android version, reproduction steps, and relevant redacted logs/screenshots. Keep passwords, tokens, and private server data out of reports.
 
-Follow [AGENTS.md](./AGENTS.md) for repository conventions and required checks. Kotlin/XML changes require `spotlessApply`, `spotlessCheck`, and `assembleDebug`, in that order. New fork-specific strings belong in the base locale of `i18n-kmk`; changes to existing code use `KMK` markers. The inherited [contribution guide](./CONTRIBUTING.md) provides upstream development background; its upstream community links and standalone feature instructions may not apply to this adaptation. See also the [Code of Conduct](./CODE_OF_CONDUCT.md).
+Follow [AGENTS.md](./AGENTS.md) for repository conventions and required checks. Kotlin/XML changes require `spotlessApply`, `spotlessCheck`, and `assembleDebug`, in that order. New fork-specific strings belong in the base locale of `i18n-kmk`; changes to existing code use `KMK` markers. The [contribution guide](./CONTRIBUTING.md) explains fork development and preserves a link to the original Komikku guidelines. See also the [Code of Conduct](./CODE_OF_CONDUCT.md).
 
 ## Credits and license
 
-Built on [Komikku](https://github.com/komikku-app/komikku), [Mihon](https://github.com/mihonapp/mihon), [TachiyomiSY](https://github.com/jobobby04/TachiyomiSY), and Tachiyomi, with thanks to their contributors. Server functionality is provided by [Suwayomi-Server](https://github.com/Suwayomi/Suwayomi-Server).
+Yomira is forked from [Komikku](https://github.com/komikku-app/komikku), [Mihon](https://github.com/mihonapp/mihon), [TachiyomiSY](https://github.com/jobobby04/TachiyomiSY), and Tachiyomi, with thanks to their contributors. Server functionality is provided by [Suwayomi-Server](https://github.com/Suwayomi/Suwayomi-Server).
 
 This application hosts no manga content and is not affiliated with the content providers available through server extensions.
 
-Licensed under the [Apache License 2.0](./LICENSE).
+Licensed under the [Apache License 2.0](./LICENSE). Original copyright and attribution notices are retained; see [NOTICE](./NOTICE). Yomira’s Yo panel icon is original artwork for this fork.
 
 Copyright 2015 Javier Tomás. See the license and source files for additional notices.

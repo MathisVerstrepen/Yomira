@@ -25,6 +25,8 @@ concurrency:
 
 jobs:
   trigger_preview_build:
+    # KMK: Dispatches to Komikku infrastructure only in the original upstream repository.
+    if: github.repository == 'komikku-app/komikku'
     name: Trigger preview build
     runs-on: 'ubuntu-24.04'
 
