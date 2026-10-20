@@ -76,8 +76,13 @@ class SuwayomiMigrationTest {
         var originals = listOf(chapter(1, 1.0, read = true, bookmark = true, page = 5), chapter(2, 2.0, page = 3))
         var replacements = listOf(chapter(11, 1.0, 2, page = 8), chapter(12, 2.0, 2, bookmark = true), chapter(13, 0.5, 2))
         val writes = mutableListOf<String>()
+        val chapterPatches = mutableListOf<ChapterPatch>()
         var failAt: String? = null
         var ignoreWrites = false
+        var ignoreChapterWrites = false
+        var fetchedPageCount = 40
+        val pageRequests = mutableListOf<Int>()
+        var fetchPages: (ServerChapter) -> ServerChapter = { it.copy(pageCount = fetchedPageCount) }
         var onReady: (() -> Unit)? = null
         var beforeRemoval: (() -> Unit)? = null
         var readyCount = 0
@@ -90,15 +95,22 @@ class SuwayomiMigrationTest {
         override suspend fun manga(id: Int) = if (id == original.id) original else replacement
         override suspend fun chapters(id: Int) = if (id == original.id) originals else replacements
         override suspend fun chapter(id: Int) = replacements.first { it.id == id }
+        override suspend fun fetchChapterPages(id: Int): ServerChapter {
+            pageRequests += id
+            val result = fetchPages(chapter(id))
+            replacements = replacements.map { if (it.id == id) result else it }
+            return result
+        }
         private fun write(operation: String) {
             if (operation == failAt) throw SuwayomiException(SuwayomiFailure.NETWORK)
             writes += operation
         }
         override suspend fun patch(chapter: ServerChapter, patch: ChapterPatch) {
             write("chapter:${chapter.id}")
-            if (ignoreWrites) return
+            chapterPatches += patch
+            if (ignoreWrites || ignoreChapterWrites) return
             replacements = replacements.map {
-                if (it.id != chapter.id) it else it.copy(user = it.user.copy(isRead = patch.isRead ?: it.user.isRead, isBookmarked = patch.isBookmarked ?: it.user.isBookmarked, lastPageRead = patch.lastPageRead ?: it.user.lastPageRead))
+                if (it.id != chapter.id) it else it.copy(user = it.user.copy(isRead = patch.isRead ?: it.user.isRead, isBookmarked = patch.isBookmarked ?: it.user.isBookmarked, lastPageRead = patch.lastPageRead?.coerceIn(0, maxOf(0, it.pageCount)) ?: it.user.lastPageRead))
             }
         }
         override suspend fun addCategory(mangaId: Int, categoryId: Int) {
@@ -113,9 +125,9 @@ class SuwayomiMigrationTest {
     }
 
     @Test
-    fun `merges progress bookmarks and categories then removes original last`() = runBlocking {
+    fun `default migration merges progress bookmarks and categories then removes original last`() = runBlocking {
         val fixture = Fixture()
-        migrateSource(fixture, fixture.preview, SourceMigrationOptions(keepOriginal = false))
+        migrateSource(fixture, fixture.preview, SourceMigrationOptions())
         assertEquals("library:1:false", fixture.writes.last())
         assertFalse(fixture.original.user.inLibrary)
         assertTrue(fixture.replacement.user.inLibrary)
@@ -129,9 +141,9 @@ class SuwayomiMigrationTest {
     }
 
     @Test
-    fun `keeps original by default and respects unchecked transfer options`() = runBlocking {
+    fun `explicit keep original option respects unchecked transfer options`() = runBlocking {
         val fixture = Fixture()
-        migrateSource(fixture, fixture.preview, SourceMigrationOptions(progress = false, bookmarks = false, categories = false))
+        migrateSource(fixture, fixture.preview, SourceMigrationOptions(progress = false, bookmarks = false, categories = false, keepOriginal = true))
         assertEquals(listOf("library:2:true"), fixture.writes)
         assertTrue(fixture.original.user.inLibrary)
     }
@@ -143,7 +155,132 @@ class SuwayomiMigrationTest {
         migrateSource(fixture, fixture.preview, SourceMigrationOptions())
         assertTrue(fixture.replacements[0].user.isRead)
         assertTrue(fixture.replacements[0].user.isBookmarked)
-        assertEquals(12, fixture.replacements[0].user.lastPageRead)
+        assertEquals(8, fixture.replacements[0].user.lastPageRead)
+    }
+
+    @Test
+    fun `completed chapters with unknown length transfer completion without invalid page offsets`() = runBlocking {
+        for (alreadyRead in listOf(false, true)) {
+            val fixture = Fixture()
+            fixture.originals = listOf(chapter(1, 1.0, read = true, bookmark = true, page = 36).copy(pageCount = -1))
+            fixture.replacements = listOf(chapter(11, 1.0, 2, read = alreadyRead).copy(pageCount = -1))
+            migrateSource(fixture, fixture.preview, SourceMigrationOptions(keepOriginal = false))
+            assertTrue(fixture.replacements.single().user.isRead)
+            assertTrue(fixture.replacements.single().user.isBookmarked)
+            assertEquals(0, fixture.replacements.single().user.lastPageRead)
+            assertTrue(fixture.chapterPatches.all { it.lastPageRead == null })
+            assertTrue(fixture.pageRequests.isEmpty())
+            assertEquals("library:1:false", fixture.writes.last())
+        }
+    }
+
+    @Test
+    fun `in progress migration loads only unknown destination lengths and caps to last page`() = runBlocking {
+        val fixture = Fixture()
+        fixture.originals = listOf(chapter(1, 1.0, page = 36))
+        fixture.replacements = listOf(chapter(11, 1.0, 2).copy(pageCount = -1))
+        fixture.fetchedPageCount = 10
+        migrateSource(fixture, fixture.preview, SourceMigrationOptions(keepOriginal = false))
+        assertEquals(listOf(11), fixture.pageRequests)
+        assertEquals(9, fixture.replacements.single().user.lastPageRead)
+        assertFalse(fixture.replacements.single().user.isRead)
+        assertEquals("library:1:false", fixture.writes.last())
+    }
+
+    @Test
+    fun `known shorter replacement caps progress without fetching pages`() = runBlocking {
+        val fixture = Fixture()
+        fixture.originals = listOf(chapter(1, 1.0, page = 36))
+        fixture.replacements = listOf(chapter(11, 1.0, 2).copy(pageCount = 7))
+        migrateSource(fixture, fixture.preview, SourceMigrationOptions(keepOriginal = false))
+        assertEquals(6, fixture.replacements.single().user.lastPageRead)
+        assertTrue(fixture.pageRequests.isEmpty())
+        assertFalse(fixture.original.user.inLibrary)
+    }
+
+    @Test
+    fun `existing replacement completion is preserved without fetching or applying partial progress`() = runBlocking {
+        val fixture = Fixture()
+        fixture.originals = listOf(chapter(1, 1.0, page = 36))
+        fixture.replacements = listOf(chapter(11, 1.0, 2, read = true).copy(pageCount = -1))
+        migrateSource(fixture, fixture.preview, SourceMigrationOptions(keepOriginal = false))
+        assertTrue(fixture.replacements.single().user.isRead)
+        assertEquals(0, fixture.replacements.single().user.lastPageRead)
+        assertTrue(fixture.pageRequests.isEmpty())
+        assertFalse(fixture.writes.any { it.startsWith("chapter:") })
+        assertFalse(fixture.original.user.inLibrary)
+    }
+
+    @Test
+    fun `completion arriving during page preparation is kept instead of applying stale partial progress`() = runBlocking {
+        val fixture = Fixture()
+        fixture.originals = listOf(chapter(1, 1.0, page = 36))
+        fixture.replacements = listOf(chapter(11, 1.0, 2).copy(pageCount = -1))
+        fixture.fetchPages = { it.copy(pageCount = 40, user = it.user.copy(isRead = true)) }
+        migrateSource(fixture, fixture.preview, SourceMigrationOptions(keepOriginal = false))
+        assertEquals(listOf(11), fixture.pageRequests)
+        assertTrue(fixture.replacements.single().user.isRead)
+        assertFalse(fixture.writes.any { it.startsWith("chapter:") })
+        assertFalse(fixture.original.user.inLibrary)
+    }
+
+    @Test
+    fun `unknown length is not fetched for unchecked progress or progress already ahead`() = runBlocking {
+        for (options in listOf(SourceMigrationOptions(progress = false), SourceMigrationOptions())) {
+            val fixture = Fixture()
+            fixture.originals = listOf(chapter(1, 1.0, page = 12, bookmark = true))
+            fixture.replacements = listOf(chapter(11, 1.0, 2, page = 15).copy(pageCount = -1))
+            migrateSource(fixture, fixture.preview, options)
+            assertTrue(fixture.pageRequests.isEmpty())
+            assertEquals(15, fixture.replacements.single().user.lastPageRead)
+        }
+    }
+
+    @Test
+    fun `page lookup failures cancellation invalid identity and empty chapters preserve the original`() {
+        val cases: List<(ServerChapter) -> ServerChapter> = listOf(
+            { throw SuwayomiException(SuwayomiFailure.NETWORK) },
+            { throw CancellationException() },
+            { it.copy(pageCount = 0) },
+            { it.copy(pageCount = 10, url = "/different") },
+        )
+        for (fetch in cases) {
+            val fixture = Fixture()
+            fixture.originals = listOf(chapter(1, 1.0, page = 36))
+            fixture.replacements = listOf(chapter(11, 1.0, 2).copy(pageCount = -1))
+            fixture.fetchPages = fetch
+            assertTrue(runCatching { runBlocking { migrateSource(fixture, fixture.preview, SourceMigrationOptions(keepOriginal = false)) } }.isFailure)
+            assertTrue(fixture.original.user.inLibrary)
+            assertTrue(fixture.writes.isEmpty())
+        }
+    }
+
+    @Test
+    fun `verification rejects a server dropping representable in progress pages`() {
+        val fixture = Fixture()
+        fixture.originals = listOf(chapter(1, 1.0, page = 12))
+        fixture.replacements = listOf(chapter(11, 1.0, 2))
+        fixture.ignoreChapterWrites = true
+        assertThrows(SuwayomiException::class.java) { runBlocking { migrateSource(fixture, fixture.preview, SourceMigrationOptions(keepOriginal = false)) } }
+        assertTrue(fixture.original.user.inLibrary)
+        assertFalse("library:1:false" in fixture.writes)
+    }
+
+    @Test
+    fun `gateway page preparation returns fresh identity and validates the page payload`() = runBlocking {
+        val session = mockk<SuwayomiSession>()
+        val chapter = chapter(11, 1.0, 2).copy(pageCount = 2)
+        coEvery { session.pages(11) } returns ServerPages(listOf("/page/0", "/page/1"), chapter)
+        val gateway = SessionMigrationGateway(session) { true }
+        assertEquals(chapter, gateway.fetchChapterPages(11))
+        coVerify(exactly = 1) { session.pages(11) }
+        coVerify(exactly = 0) { session.image(any()) }
+        coEvery { session.pages(11) } returns ServerPages(listOf("/page/0", "/page/1"), chapter, ServerSyncConflict("Other reader", 1))
+        assertTrue(runCatching { gateway.fetchChapterPages(11) }.exceptionOrNull() is SourceMigrationChanged)
+        for (invalid in listOf(ServerPages(emptyList(), chapter), ServerPages(listOf("/one"), chapter), ServerPages(listOf("/a", "/b"), chapter.copy(id = 12)))) {
+            coEvery { session.pages(11) } returns invalid
+            assertEquals(SuwayomiFailure.CONTRACT, (runCatching { gateway.fetchChapterPages(11) }.exceptionOrNull() as? SuwayomiException)?.failure)
+        }
     }
 
     @Test
@@ -176,9 +313,9 @@ class SuwayomiMigrationTest {
         val fixture = Fixture()
         fixture.originals = fixture.originals + chapter(3, 99.0, bookmark = true)
         assertEquals(1, fixture.preview.unmatchedSaved(SourceMigrationOptions()))
-        assertThrows(IllegalArgumentException::class.java) { runBlocking { migrateSource(fixture, fixture.preview, SourceMigrationOptions(keepOriginal = false)) } }
+        assertThrows(IllegalArgumentException::class.java) { runBlocking { migrateSource(fixture, fixture.preview, SourceMigrationOptions()) } }
         assertTrue(fixture.writes.isEmpty())
-        runBlocking { migrateSource(fixture, fixture.preview, SourceMigrationOptions()) }
+        runBlocking { migrateSource(fixture, fixture.preview, SourceMigrationOptions(keepOriginal = true)) }
         assertTrue(fixture.original.user.inLibrary)
     }
 

@@ -57,7 +57,13 @@ import tachiyomi.presentation.core.util.collectAsState
 import uy.kohesive.injekt.Injekt
 import uy.kohesive.injekt.api.get
 
-class SuwayomiMigrationScreen(private val sessionId: String, private val originalId: Int) : Screen() {
+class SuwayomiMigrationScreen(
+    private val sessionId: String,
+    private val originalId: Int,
+    private val remainingOriginalIds: List<Int> = emptyList(),
+    private val batchPosition: Int = 1,
+    private val batchSize: Int = 1,
+) : Screen() {
     @OptIn(ExperimentalFoundationApi::class, ExperimentalLayoutApi::class)
     @Composable
     override fun Content() {
@@ -119,6 +125,14 @@ class SuwayomiMigrationScreen(private val sessionId: String, private val origina
             focus.clearFocus()
             model.search()
         }
+        fun nextTitle() {
+            focus.clearFocus()
+            if (remainingOriginalIds.isEmpty()) {
+                navigator.pop()
+            } else {
+                navigator.replace(SuwayomiMigrationScreen(sessionId, remainingOriginalIds.first(), remainingOriginalIds.drop(1), batchPosition + 1, batchSize))
+            }
+        }
         BackHandler { back() }
         val sources = remember(state.sources, sourceQuery) {
             state.sources.filter { it.name.contains(sourceQuery, true) || it.lang.contains(sourceQuery, true) }
@@ -133,25 +147,46 @@ class SuwayomiMigrationScreen(private val sessionId: String, private val origina
                     TopAppBar(title = {
                         Column {
                             Text(stringResource(KMR.strings.suwayomi_migration_title))
-                            state.original?.let { Text(it.title, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis) }
+                            val subtitle = if (batchSize > 1) stringResource(KMR.strings.suwayomi_migration_queue_position, batchPosition, batchSize, state.original?.title.orEmpty()) else state.original?.title
+                            subtitle?.let { Text(it, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis) }
                         }
                     }, navigationIcon = {
                         IconButton(onClick = ::back) { Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(KMR.strings.suwayomi_back)) }
+                    }, actions = {
+                        if (batchSize > 1 && !state.completed) TextButton(onClick = ::nextTitle, enabled = !state.migrating) { Text(stringResource(KMR.strings.suwayomi_migration_skip_title)) }
                     })
                     if (!state.completed && !state.migrating) MigrationSteps(step)
                 }
             },
             bottomBar = {
                 if (preview != null && !state.migrating && !keyboardVisible) {
-                    MigrationFooter(
-                        label = stringResource(if (state.completed) KMR.strings.suwayomi_migration_open_replacement else KMR.strings.suwayomi_migration_continue),
-                        enabled = state.completed || (!state.loading && !needsReload),
-                        supporting = stringResource(if (state.completed) KMR.strings.suwayomi_migration_success else KMR.strings.suwayomi_migration_safe_until_done),
-                        onClick = {
-                            focus.clearFocus()
-                            if (state.completed) navigator.replace(serverMangaScreen(sessionId, preview.replacement.id)) else optionsOpen = true
-                        },
-                    )
+                    Column {
+                        if (state.completed && batchSize > 1) {
+                            TextButton(onClick = { navigator.push(serverMangaScreen(sessionId, preview.replacement.id)) }, modifier = Modifier.fillMaxWidth()) {
+                                Text(stringResource(KMR.strings.suwayomi_migration_open_replacement))
+                            }
+                        }
+                        MigrationFooter(
+                            label = stringResource(
+                                when {
+                                    !state.completed -> KMR.strings.suwayomi_migration_continue
+                                    batchSize == 1 -> KMR.strings.suwayomi_migration_open_replacement
+                                    remainingOriginalIds.isEmpty() -> KMR.strings.suwayomi_migration_finish_queue
+                                    else -> KMR.strings.suwayomi_migration_next_title
+                                },
+                            ),
+                            enabled = state.completed || (!state.loading && !needsReload),
+                            supporting = stringResource(if (state.completed) KMR.strings.suwayomi_migration_success else KMR.strings.suwayomi_migration_safe_until_done),
+                            onClick = {
+                                focus.clearFocus()
+                                when {
+                                    !state.completed -> optionsOpen = true
+                                    batchSize > 1 -> nextTitle()
+                                    else -> navigator.replace(serverMangaScreen(sessionId, preview.replacement.id))
+                                }
+                            },
+                        )
+                    }
                 }
             },
         ) { padding ->

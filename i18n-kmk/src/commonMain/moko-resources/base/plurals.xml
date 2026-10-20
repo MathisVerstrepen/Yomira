@@ -5,5 +5,9 @@
         <item quantity="one">%1$d chapter</item>
         <item quantity="other">%1$d chapters</item>
     </plurals>
+    <plurals name="suwayomi_migration_library_titles">
+        <item quantity="one">%1$d library title</item>
+        <item quantity="other">%1$d library titles</item>
+    </plurals>
     <!-- KMK Suwayomi source migration end -->
 </resources>

@@ -29,7 +29,7 @@ internal data class SourceMigrationOptions(
     val progress: Boolean = true,
     val bookmarks: Boolean = true,
     val categories: Boolean = true,
-    val keepOriginal: Boolean = true,
+    val keepOriginal: Boolean = false,
 )
 
 /** Match exact finite numbers, then unique names for unnumbered specials. Never infer read gaps. */
@@ -69,12 +69,15 @@ internal interface SourceMigrationGateway {
     suspend fun manga(id: Int): ServerManga
     suspend fun chapters(id: Int): List<ServerChapter>
     suspend fun chapter(id: Int): ServerChapter
+    suspend fun fetchChapterPages(id: Int): ServerChapter
     suspend fun patch(chapter: ServerChapter, patch: ChapterPatch)
     suspend fun addCategory(mangaId: Int, categoryId: Int)
     suspend fun library(mangaId: Int, member: Boolean)
 }
 
 internal class SourceMigrationChanged : Exception()
+
+private data class MigrationReadingState(val isRead: Boolean, val lastPageRead: Int)
 
 internal class SessionMigrationGateway(private val session: SuwayomiSession, private val canWrite: () -> Boolean) : SourceMigrationGateway {
     override suspend fun ready() {
@@ -87,6 +90,12 @@ internal class SessionMigrationGateway(private val session: SuwayomiSession, pri
     override suspend fun manga(id: Int) = session.manga(id)
     override suspend fun chapters(id: Int) = session.chapters(id)
     override suspend fun chapter(id: Int) = session.chapter(id)
+    override suspend fun fetchChapterPages(id: Int): ServerChapter {
+        val result = session.pages(id)
+        if (result.syncConflict != null) throw SourceMigrationChanged()
+        if (result.chapter.id != id || result.pages.isEmpty() || result.chapter.pageCount != result.pages.size) throw SuwayomiException(SuwayomiFailure.CONTRACT)
+        return result.chapter
+    }
     private fun requireWrite() {
         if (!canWrite()) throw SuwayomiException(SuwayomiFailure.PERMISSION_DENIED)
         if (session.pending.value.isNotEmpty()) throw SourceMigrationChanged()
@@ -194,15 +203,31 @@ internal suspend fun migrateSource(
     val total = transfers.size + categories.size + 1
     var completed = 0
     onProgress(completed, total)
+    val expectedProgress = mutableMapOf<Int, MigrationReadingState>()
     for ((id, matches) in transfers) {
         val expected = matches.first().replacement!!
         // Read immediately before merging; avoid one request for every unread chapter in a large title.
-        val chapter = gateway.chapter(id)
+        var chapter = gateway.chapter(id)
         if (!expected.sameMigrationChapter(chapter)) throw SourceMigrationChanged()
         val originals = matches.map { it.original.user }
+        val read = originals.any { it.isRead }
+        val sourcePage = originals.maxOf { it.lastPageRead }
+        // Completed chapters carry completion, not a provider-specific final page index.
+        // Suwayomi clamps page offsets to pageCount (and older servers throw for -1).
+        if (options.progress && !read && !chapter.user.isRead && sourcePage > chapter.user.lastPageRead && chapter.pageCount <= 0) {
+            chapter = gateway.fetchChapterPages(id)
+            if (!expected.sameMigrationChapter(chapter)) throw SourceMigrationChanged()
+            if (chapter.pageCount <= 0) throw SuwayomiException(SuwayomiFailure.CONTRACT)
+        }
+        val page = if (options.progress && !read && !chapter.user.isRead && sourcePage > chapter.user.lastPageRead) {
+            maxOf(chapter.user.lastPageRead, sourcePage.coerceAtMost(chapter.pageCount - 1))
+        } else {
+            chapter.user.lastPageRead
+        }
+        if (options.progress) expectedProgress[id] = MigrationReadingState(read || chapter.user.isRead, page)
         val patch = ChapterPatch(
-            isRead = true.takeIf { options.progress && originals.any { it.isRead } && !chapter.user.isRead },
-            lastPageRead = maxOf(chapter.user.lastPageRead, originals.maxOf { it.lastPageRead }).takeIf { options.progress && it > chapter.user.lastPageRead },
+            isRead = true.takeIf { options.progress && read && !chapter.user.isRead },
+            lastPageRead = page.takeIf { options.progress && it > chapter.user.lastPageRead },
             isBookmarked = true.takeIf { options.bookmarks && originals.any { it.isBookmarked } && !chapter.user.isBookmarked },
         )
         if (patch != ChapterPatch()) gateway.patch(chapter, patch)
@@ -226,10 +251,10 @@ internal suspend fun migrateSource(
     for ((id, matches) in groups) {
         val chapter = verifiedChapters[id] ?: throw SourceMigrationChanged()
         if (!matches.first().replacement!!.sameMigrationChapter(chapter)) throw SourceMigrationChanged()
-        if (matches.any {
-                (options.progress && ((it.original.user.isRead && !chapter.user.isRead) || chapter.user.lastPageRead < it.original.user.lastPageRead)) ||
-                    (options.bookmarks && it.original.user.isBookmarked && !chapter.user.isBookmarked)
-            }
+        val progress = expectedProgress[id]
+        val missingProgress = progress != null && !chapter.user.isRead && (progress.isRead || chapter.user.lastPageRead < progress.lastPageRead)
+        if (missingProgress ||
+            matches.any { options.bookmarks && it.original.user.isBookmarked && !chapter.user.isBookmarked }
         ) {
             throw SuwayomiException(SuwayomiFailure.SERVER)
         }

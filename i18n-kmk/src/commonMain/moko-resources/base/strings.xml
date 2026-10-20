@@ -666,5 +666,27 @@
     <string name="suwayomi_migration_provider_results">%1$s · %2$d results</string>
     <string name="suwayomi_migration_expand_results">Show all %1$d results</string>
     <string name="suwayomi_migration_collapse_results">Show fewer results</string>
+    <string name="suwayomi_migration_tab">Migrate</string>
+    <string name="suwayomi_migration_library_heading">Migrate providers</string>
+    <string name="suwayomi_migration_library_hint">Choose a library provider, then select the titles you want to move.</string>
+    <string name="suwayomi_migration_unavailable_provider">Unavailable provider</string>
+    <string name="suwayomi_migration_sort_name">Name</string>
+    <string name="suwayomi_migration_sort_count">Title count</string>
+    <string name="suwayomi_migration_sort_ascending">Ascending order</string>
+    <string name="suwayomi_migration_sort_descending">Descending order</string>
+    <string name="suwayomi_migration_library_empty">No providers to migrate</string>
+    <string name="suwayomi_migration_library_empty_hint">Providers appear here when you add titles to your server library.</string>
+    <string name="suwayomi_migration_select_titles">Select titles</string>
+    <string name="suwayomi_migration_filter_library_titles">Search library titles</string>
+    <string name="suwayomi_migration_select_all">Select all</string>
+    <string name="suwayomi_migration_select_matches">Select matching titles</string>
+    <string name="suwayomi_migration_selected_count">%1$d of %2$d selected</string>
+    <string name="suwayomi_migration_continue_selected">Continue (%1$d)</string>
+    <string name="suwayomi_migration_queue_hint">Choose and review a replacement for each selected title before transferring.</string>
+    <string name="suwayomi_migration_provider_library_empty">This provider has no titles in your library.</string>
+    <string name="suwayomi_migration_queue_position">Title %1$d of %2$d: %3$s</string>
+    <string name="suwayomi_migration_skip_title">Skip title</string>
+    <string name="suwayomi_migration_next_title">Next title</string>
+    <string name="suwayomi_migration_finish_queue">Finish</string>
     <!-- KMK Suwayomi source migration end -->
 </resources>
